@@ -1444,3 +1444,9 @@ Zoom	확대/축소
 Bring all to front	모두 앞으로 가져오기
 Drag to give the plan more or less room; double-click to reset	끌어서 계획이 차지하는 공간을 조절하고, 두 번 클릭하면 원래대로 돌아갑니다
 Copy the message	메시지 복사
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	클린룸은 원본의 코드, 파일, 페이지 소스를 절대 읽지 않고 눈에 보이는 것만으로 작업합니다. 심층은 모든 도구로 읽고, IDA나 Ghidra가 설치되어 있으면 함께 씁니다. 발견한 내용마다 어느 쪽을 썼는지 기록됩니다.
+Deep decompiler	심층 디컴파일러
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	자동은 IDA를 먼저, 그다음 Ghidra를 선택합니다. 직접 고를 수도 있습니다.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	심층: 가진 모든 도구로 코드, 파일, 페이지 소스를 읽고, 외부 디컴파일러가 설치되어 있으면 함께 씁니다. 눌러서 전환합니다.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine}이 설치되지 않아 내장 디컴파일러를 대신 씁니다. 설정 → 엔진에서 엔진을 선택하세요.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	이 컴퓨터에 아직 {engine}이 없어 내장 디컴파일러를 대신 씁니다.

@@ -1444,3 +1444,9 @@ Zoom	Изменить масштаб
 Bring all to front	Все окна — на передний план
 Drag to give the plan more or less room; double-click to reset	Перетащите, чтобы дать плану больше или меньше места; двойной щелчок возвращает как было
 Copy the message	Скопировать сообщение
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Режим «Чистая комната» никогда не читает код, файлы или исходник страницы оригинала: он работает с тем, что вы можете увидеть. «Глубокий» читает их всеми инструментами, а также IDA или Ghidra, если один из них установлен. Каждая находка записывает, что использовалось.
+Deep decompiler	Декомпилятор глубокого режима
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Автоматический выбор предпочитает IDA, затем Ghidra. Можно также выбрать напрямую.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Глубокий: мы читаем его код, файлы и исходник страницы всеми инструментами, а также внешним декомпилятором, если он установлен. Нажмите, чтобы переключить.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} не установлен, поэтому используется встроенный декомпилятор. Выберите движок в Настройки → Движки.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ещё нет на этом компьютере, поэтому используется встроенный декомпилятор.

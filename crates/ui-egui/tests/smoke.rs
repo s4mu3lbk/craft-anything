@@ -211,7 +211,8 @@ fn deep_mode_without_ghidra_asks_to_get_it_before_using_it() {
     let mut h = harness_sized(egui::vec2(1280.0, 1120.0), move || {
         let mut a = demo::app(demo::engine(Mode::Beginner, true));
         demo::fill_projects(&mut a);
-        // An empty engine store: no Ghidra here.
+        // No external engines, including ones installed on the host running the tests.
+        a.settings.engines.only_configured = true;
         a.settings.engines.store_dir = Some(store);
         a.state.make.target = TargetRef::Local { path: game };
         a.state.make.game = true;
@@ -246,6 +247,23 @@ fn deep_mode_without_ghidra_asks_to_get_it_before_using_it() {
     assert_eq!(h.state().state.modal, Some(Modal::Ghidra));
     assert!(h.state().ghidra.start_after.is_some(), "the build starts once Ghidra is ready");
     h.get_by_label("Build without it");
+}
+
+#[test]
+fn ida_satisfies_deep_mode_without_offering_a_ghidra_download() {
+    let d = tempfile::tempdir().unwrap();
+    let mut h = harness_sized(egui::vec2(1280.0, 900.0), move || demo::app(demo::engine(Mode::Beginner, true)));
+    h.state_mut().settings.engines.only_configured = true;
+    h.state_mut().settings.engines.deep_engine = craft_anything_engine::DeepEngine::Ida;
+    h.state_mut().set_deep(true);
+    assert!(h.state_mut().deep_engine_missing());
+    assert!(h.state().state.modal.is_none(), "an explicit IDA choice never opens the Ghidra installer");
+    let ida = d.path().join(if cfg!(windows) { "idat.exe" } else { "idat" });
+    std::fs::write(&ida, b"stand-in").unwrap();
+    h.state_mut().settings.engines.tools.ida = Some(ida);
+    h.state_mut().ghidra.deep_ready = None;
+    assert!(h.state_mut().deep_engine_ready());
+    assert!(!h.state().ghidra_install_offered());
 }
 
 #[test]
@@ -816,6 +834,7 @@ fn mode_switch_and_deep_toggle() {
     let empty = store.path().to_path_buf();
     let mut h = harness(move || {
         let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        a.settings.engines.only_configured = true;
         a.settings.engines.store_dir = Some(empty);
         a
     });

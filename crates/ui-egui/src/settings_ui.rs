@@ -6,7 +6,7 @@ use crate::state::SettingsTab;
 use crate::theme::{self, ThemeKind, Tokens};
 use crate::{CraftApp, Pick, icons, widgets};
 use craft_anything_ai::BackendKind;
-use craft_anything_engine::Mode;
+use craft_anything_engine::{DeepEngine, Mode};
 use egui::{RichText, Ui, Vec2};
 use std::path::PathBuf;
 
@@ -251,7 +251,7 @@ fn engines(app: &mut CraftApp, ui: &mut Ui) {
     row(
         ui,
         "Clean room / Deep",
-        "Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.",
+        "Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.",
         |ui| {
             let sel = usize::from(app.settings.deep_mode);
             if let Some(i) = widgets::segmented(ui, &["Clean room", "Deep"], sel, 30.0) {
@@ -260,6 +260,17 @@ fn engines(app: &mut CraftApp, ui: &mut Ui) {
         },
     );
     ui.add_space(12.0);
+    row(ui, "Deep decompiler", "Automatic prefers IDA, then Ghidra. You can also choose one directly.", |ui| {
+        let current = app.settings.engines.deep_engine;
+        egui::ComboBox::from_id_salt("deep-engine").selected_text(tr(current.name())).show_ui(ui, |ui| {
+            for choice in [DeepEngine::Auto, DeepEngine::Ida, DeepEngine::Ghidra] {
+                if ui.selectable_label(current == choice, tr(choice.name())).clicked() {
+                    app.settings.engines.deep_engine = choice;
+                    app.settings_changed();
+                }
+            }
+        });
+    });
     row(ui, "Ghidra", "Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.", |ui| {
         crate::engine_ui::ghidra_status(app, ui);
     });

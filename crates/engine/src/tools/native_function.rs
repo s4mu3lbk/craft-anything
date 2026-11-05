@@ -379,24 +379,23 @@ fn native_function_pseudocode(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOu
     select_document(ctx, &p.document)?;
     // Resolve the function entry in a scoped borrow so the deep hook can take `&mut ctx`. The
     // built-in analysis stops short on a huge program (a 200 MB game has far more functions than
-    // it maps), so in Deep mode an address it can't place (0x…, FUN_…, sub_…) goes to Ghidra,
-    // which analysed the whole program and finds the function containing it.
-    // Ghidra may load the program somewhere else (a position-independent ELF goes to 0x100000),
-    // so the deep hook is told whose address this is: ours, or one from a name Ghidra made.
+    // it maps), so in Deep mode an address it can't place (0x…, FUN_…, sub_…) goes to the external
+    // engine, which analysed the whole program and finds the function containing it. The deep hook
+    // is told whose address this is: ours, or one from a generated external-engine name.
     let (at, our_base, unknown) = {
         let st = native(ctx)?;
         let t = ctx.session.active()?;
         let our_base = st.img.bin.image_base;
         match resolve_function(t, &st.prog, &p.function) {
             Ok(f) => (super::deep::At::Ours(f.entry), our_base, None),
-            Err(e) => match ghidra_address(&p.function).filter(|_| !ctx.session.clean_room()) {
-                Some(a) if is_ghidra_name(&p.function) => (super::deep::At::Engine(a), our_base, Some(e)),
+            Err(e) => match deep_address(&p.function).filter(|_| !ctx.session.clean_room()) {
+                Some(a) if is_deep_name(&p.function) => (super::deep::At::Engine(a), our_base, Some(e)),
                 Some(a) => (super::deep::At::Ours(a), our_base, Some(e)),
                 None => return Err(e),
             },
         }
     };
-    // Deep mode (Ghidra) is preferred through this same tool id when it is on and available;
+    // The selected Deep engine is preferred through this same tool id when it is on and available;
     // otherwise, and whenever anything about it fails, we use the built-in clean-room lifter.
     let why_not_deep = match super::deep::pseudo_code(ctx, at, our_base, params_json(&p)) {
         Ok(result) => return result,
@@ -430,15 +429,14 @@ fn native_function_pseudocode(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOu
     Ok(ToolOutput::evidence(e))
 }
 
-/// An address Ghidra can look up: `0x…`, a bare hex address, or a generated name like `FUN_…`.
-/// Whether `function` is a name Ghidra made from an address (`FUN_00101160`), so the address in it
-/// is Ghidra's rather than ours.
-fn is_ghidra_name(function: &str) -> bool {
+/// An address an external engine can look up: `0x…`, a bare hex address, or a generated name.
+/// Whether `function` is a generated external-engine name, so its address isn't in our address space.
+fn is_deep_name(function: &str) -> bool {
     let s = function.trim();
     ["FUN_", "SUB_", "sub_", "LAB_"].iter().any(|p| s.starts_with(p))
 }
 
-fn ghidra_address(function: &str) -> Option<u64> {
+fn deep_address(function: &str) -> Option<u64> {
     let s = function.trim();
     if let Some(hex) = ["FUN_", "SUB_", "sub_", "LAB_"].iter().find_map(|p| s.strip_prefix(p)) {
         let hex = hex.strip_prefix("0x").or_else(|| hex.strip_prefix("0X")).unwrap_or(hex);
@@ -828,7 +826,7 @@ mod tests {
             ("4096", Some(4096)),
             ("main", None),
         ] {
-            assert_eq!(super::ghidra_address(input), expected, "{input}");
+            assert_eq!(super::deep_address(input), expected, "{input}");
         }
         let r = call(&e, "native_function_address_show", json!({"function": "dispatch"}));
         assert_eq!(r["result"]["address"], format!("{:#x}", l.code_va + tk::x64::DISPATCH));

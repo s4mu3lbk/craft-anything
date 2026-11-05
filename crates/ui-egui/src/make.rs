@@ -2,10 +2,11 @@
 //! ("What do you want to recreate?", "Say what you want"), big targets and one big Start button. Below it,
 //! the projects made so far.
 
-use crate::i18n::tr;
+use crate::i18n::{tr, trf};
 use crate::state::MakeDraft;
 use crate::theme::{self, Tokens};
 use crate::{CraftApp, Pick, icons, widgets};
+use craft_anything_engine::DeepEngine;
 use craft_anything_engine::workspace::{ExistingFiles, Status, TargetRef};
 use egui::{Margin, RichText, Sense, Ui, Vec2};
 
@@ -420,11 +421,11 @@ fn look_inside(app: &mut CraftApp, ui: &mut Ui) {
     if let Some(on) = pick {
         app.set_deep(on);
     }
-    // Ghidra reads programs, not websites.
+    // External decompilers read programs, not websites.
     if !matches!(app.state.make.target, TargetRef::Local { .. }) {
         return;
     }
-    if app.settings.deep_mode && !app.ghidra_missing() {
+    if app.settings.deep_mode && app.settings.preferred_deep_engine() == Some(DeepEngine::Ghidra) {
         ui.add_space(8.0);
         ui.horizontal_wrapped(|ui| {
             icons::show(ui, "cpu", 16.0, t.icon);
@@ -436,12 +437,18 @@ fn look_inside(app: &mut CraftApp, ui: &mut Ui) {
             }
         });
     }
-    if app.settings.deep_mode && app.ghidra_missing() {
+    if app.settings.deep_mode && app.deep_engine_missing() {
+        let engine = app.settings.engines.deep_engine;
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             icons::show(ui, "triangle-alert", 16.0, t.warning);
-            ui.label(RichText::new(tr("Ghidra isn't on this computer yet, so the built-in decompiler stands in.")).size(theme::SMALL).color(t.text_dim));
-            if app.ghidra.job.is_none() && widgets::secondary(ui, Some("download"), "Get Ghidra").clicked() {
+            let name = if engine == DeepEngine::Auto { "IDA or Ghidra" } else { engine.name() };
+            ui.label(
+                RichText::new(trf("{engine} isn't on this computer yet, so the built-in decompiler stands in.", &[("engine", name)]))
+                    .size(theme::SMALL)
+                    .color(t.text_dim),
+            );
+            if app.ghidra_install_offered() && app.ghidra.job.is_none() && widgets::secondary(ui, Some("download"), "Get Ghidra").clicked() {
                 app.state.modal = Some(crate::state::Modal::Ghidra);
             }
         });

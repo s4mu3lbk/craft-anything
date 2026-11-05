@@ -1,5 +1,5 @@
 //! Study: look at the target before the first build (capture a website, triage a program, start
-//! Ghidra's analysis in Deep mode) and write the notes the builder reads.
+//! the selected external analysis in Deep mode) and write the notes the builder reads.
 
 use super::*;
 
@@ -45,20 +45,25 @@ impl Worker {
                     Ok(out) => notes.push_str(&describe(&out)),
                     Err(e) => notes.push_str(&format!("A first look failed: {}\n", e.message)),
                 }
-                if !program.is_file() && !self.engine.session().clean_room() {
+                let engine = self.engine.session().settings.preferred_deep_engine().map(|e| e.name()).unwrap_or("External Deep engine");
+                if !program.is_file() {
                     self.step(
                         ws,
                         Step::Study,
                         Status::Inspecting,
-                        "Couldn't find the program to decompile, so Ghidra can't be used. Pick the game's or app's main folder or its program.",
+                        &format!("Couldn't find the program to decompile, so {engine} can't be used. Pick the game's or app's main folder or its program."),
                     )?;
-                    notes.push_str(&format!("\n## Ghidra\n\nNo program was found in {}, so Ghidra couldn't be used.\n", path.display()));
+                    notes.push_str(&format!("\n## {engine}\n\nNo program was found in {}, so {engine} couldn't be used.\n", path.display()));
                 }
-                if let Some(done) = self.prepare_ghidra(&program) {
-                    // Deep mode always waits for Ghidra: the builder then decompiles with it straight away.
+                if let Some(done) = self.prepare_deep(&program) {
                     let started = std::time::Instant::now();
                     // One line: the app's progress card shows how long it has been going.
-                    self.step(ws, Step::Study, Status::Inspecting, "Ghidra is analysing the program (only the first time; a big game takes a while)…")?;
+                    self.step(
+                        ws,
+                        Step::Study,
+                        Status::Inspecting,
+                        &format!("{engine} is analysing the program (only the first time; a big game takes a while)…"),
+                    )?;
                     let result = loop {
                         match done.recv_timeout(Duration::from_secs(30)) {
                             Ok(r) => break r,
@@ -68,11 +73,13 @@ impl Worker {
                     };
                     notes.push_str(&match result {
                         Ok(()) => format!(
-                            "\n## Ghidra\n\nDeep mode: Ghidra has analysed {} ({} min), so decompiling it is quick.\n",
+                            "\n## {engine}\n\nDeep mode: {engine} has analysed {} ({} min), so decompiling it is quick.\n",
                             program.display(),
                             started.elapsed().as_secs() / 60
                         ),
-                        Err(e) => format!("\n## Ghidra\n\nGhidra couldn't analyse {} ({e}), so decompiling uses the built-in decompiler.\n", program.display()),
+                        Err(e) => {
+                            format!("\n## {engine}\n\n{engine} couldn't analyse {} ({e}), so decompiling uses the built-in decompiler.\n", program.display())
+                        }
                     });
                 }
                 if let Some(f) = folder {
@@ -227,32 +234,30 @@ impl Worker {
         Ok(kept)
     }
 
-    /// Deep mode with Ghidra installed: run Ghidra's one-time analysis of `program` on its own
-    /// thread; the receiver gets its result. The builder's tools share the analysis (waiting for it
-    /// rather than starting another), and it carries on if the person pauses, so nothing is lost.
-    pub(super) fn prepare_ghidra(&self, program: &Path) -> Option<Receiver<Result<(), String>>> {
-        // A folder (nothing in it recognised as the program) isn't something Ghidra can open.
+    /// Deep mode with an external engine installed: analyse `program` on its own thread. The
+    /// builder's tools share the saved analysis, waiting for it rather than starting another.
+    pub(super) fn prepare_deep(&self, program: &Path) -> Option<Receiver<Result<(), String>>> {
         if !program.is_file() {
             return None;
         }
-        let settings = {
+        let (settings, engine) = {
             let s = self.engine.session();
-            if s.clean_room() || s.settings.ghidra_launcher().is_none() {
+            if s.clean_room() {
                 return None;
             }
-            s.settings.clone()
+            (s.settings.clone(), s.settings.preferred_deep_engine()?)
         };
         let program = program.to_path_buf();
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::Builder::new()
-            .name("ghidra-prepare".into())
+            .name(format!("{}-prepare", engine.id()))
             .spawn(move || {
                 let result = std::fs::read(&program).map_err(|e| e.to_string()).and_then(|bytes| {
                     let sha = craft_anything_evidence::sha256_hex(&bytes);
                     craft_anything_engine::tools::deep::prepare(&settings, &bytes, &sha, &|_| {})
                 });
                 if let Err(e) = &result {
-                    log::warn!("Ghidra's analysis of {} failed: {e}", program.display());
+                    log::warn!("{} analysis of {} failed: {e}", engine.name(), program.display());
                 }
                 let _ = tx.send(result);
             })

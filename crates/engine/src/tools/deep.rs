@@ -1,27 +1,29 @@
 //! The Deep-mode hook the native tools consult.
 //!
-//! When the session is **not** clean-room (Deep mode is on) and Ghidra is installed, the native
-//! decompile path prefers Ghidra's result through the *same* tool id (`native_function_pseudocode`),
-//! recording `environment.engine = "ghidra"` and a higher confidence. When Deep mode is off, or
-//! Ghidra is absent, or anything about the bridge fails, this returns `None` and the caller falls
-//! back to the built-in clean-room lifter — the clean-room path is never changed.
+//! In Deep mode, the native decompile path prefers the selected external engine through the same
+//! tool id (`native_function_pseudocode`), recording its id and version in the evidence. Clean room,
+//! a missing engine, or a bridge failure falls back to the built-in lifter; Clean room never starts
+//! an external engine.
 //!
-//! The Ghidra session is launched lazily on first use and cached on the target, keyed by the
-//! target's content and an analysis settings hash. A launch that fails is remembered so we don't
-//! retry it on every call.
+//! The external session is launched lazily on first use and cached on the target, keyed by content
+//! and analysis profile. A launch failure is remembered so it isn't retried on every call.
 
-use crate::settings::Settings;
+use crate::settings::{DeepEngine, Settings};
 use crate::tool::{Ctx, ToolOutput};
-use craft_anything_engines::ghidra::{self, DeepDecompiler, DeepFunction};
+use craft_anything_engines::deep::{DeepDecompiler, DeepError, DeepFunction, Rebase};
+use craft_anything_engines::{ghidra, ida};
 use craft_anything_evidence::{Confidence, Environment, EvidenceBuilder, Limitation, Location, ToolError, host_triple};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// The analysis settings hash for the default Deep profile. Part of the project cache key, so a
-/// different pinned language re-analyses rather than reusing the auto-detected project.
-fn settings_hash(language_id: Option<&str>) -> String {
-    let seed = format!("craft-anything-ghidra-fast-profile-v2|lang={}", language_id.unwrap_or(""));
+/// Part of the project cache key, so a different engine or pinned language re-analyses rather than
+/// reusing an incompatible project. Keep Ghidra's seed stable to retain existing analyses.
+fn settings_hash(engine: DeepEngine, language_id: Option<&str>) -> String {
+    let seed = match engine {
+        DeepEngine::Ghidra => format!("craft-anything-ghidra-fast-profile-v2|lang={}", language_id.unwrap_or("")),
+        DeepEngine::Ida | DeepEngine::Auto => "craft-anything-ida-profile-v1".to_string(),
+    };
     craft_anything_evidence::sha256_hex(seed.as_bytes())
 }
 
@@ -33,85 +35,143 @@ struct DeepSlot {
     provider: Result<Arc<dyn DeepDecompiler>, String>,
 }
 
-/// How long Ghidra's one-time analysis of a target may take by default: a big game can take hours,
-/// and it's saved, so later sessions open it in moments.
 const ANALYSIS_LIMIT_SECS: u64 = 8 * 3600;
 
-/// Why Ghidra wasn't used, as said to the builder. These say only that; the caller adds what it did
-/// instead (the built-in decompiler's answer, or that no function was found).
-/// Deep mode is on but Ghidra isn't installed.
-pub const NOT_INSTALLED: &str = "Deep mode is on, but Ghidra isn't installed. The person can get Ghidra from Settings → Engines.";
+pub const NOT_INSTALLED: &str = "Deep mode is on, but Ghidra isn't installed and neither is IDA. Set an engine in Settings → Engines.";
 
-/// Get (or lazily create) the deep provider for the active target. `Err(Some(why))`: Deep mode is
-/// on but Ghidra can't be used; `Err(None)`: Clean room (never launches). Either way the caller
-/// uses the built-in engine.
+fn not_installed(settings: &Settings) -> String {
+    match settings.engines.deep_engine {
+        DeepEngine::Auto => NOT_INSTALLED.into(),
+        DeepEngine::Ida => "Deep mode is set to IDA, but IDA isn't installed. Set its console executable in Settings → Engines.".into(),
+        DeepEngine::Ghidra => "Deep mode is set to Ghidra, but Ghidra isn't installed. The person can get Ghidra from Settings → Engines.".into(),
+    }
+}
+
+fn display_engine(id: &str) -> &str {
+    if id == "ida" { "IDA" } else { "Ghidra" }
+}
+
+enum ProviderConfig {
+    Ghidra(ghidra::Config),
+    Ida(ida::Config),
+}
+
+fn config(settings: &Settings, language_override: Option<String>, engine: DeepEngine) -> Option<(ProviderConfig, String)> {
+    match engine {
+        DeepEngine::Ghidra => {
+            let g = &settings.engines.ghidra;
+            let language_id = language_override.or_else(|| g.language_id.clone());
+            let digest = settings_hash(engine, language_id.as_deref());
+            let cfg = ghidra::Config {
+                analyze_headless: settings.ghidra_launcher()?,
+                java_home: settings.ghidra_java(),
+                startup_timeout: Duration::from_secs(g.startup_timeout_secs.unwrap_or(ANALYSIS_LIMIT_SECS)),
+                store_dir: settings.engine_store_dir(),
+                language_id,
+                compiler_spec: g.compiler_spec.clone(),
+                memory_gb: g.memory_gb,
+            };
+            Some((ProviderConfig::Ghidra(cfg), digest))
+        }
+        DeepEngine::Ida | DeepEngine::Auto => {
+            let digest = settings_hash(DeepEngine::Ida, None);
+            let cfg = ida::Config {
+                executable: settings.ida_launcher()?,
+                startup_timeout: Duration::from_secs(ANALYSIS_LIMIT_SECS),
+                store_dir: settings.engine_store_dir(),
+            };
+            Some((ProviderConfig::Ida(cfg), digest))
+        }
+    }
+}
+
+fn start(
+    cfg: ProviderConfig,
+    bytes: &[u8],
+    sha256: &str,
+    digest: &str,
+    cancel: &ida::Cancel<'_>,
+    progress: &ida::Progress<'_>,
+) -> Result<Arc<dyn DeepDecompiler>, DeepError> {
+    match cfg {
+        ProviderConfig::Ghidra(cfg) => Ok(Arc::new(ghidra::Session::start(&cfg, bytes, sha256, digest, cancel, progress)?)),
+        ProviderConfig::Ida(cfg) => Ok(Arc::new(ida::Session::start(&cfg, bytes, sha256, digest, cancel, progress)?)),
+    }
+}
+
+/// Get (or lazily create) the deep provider for the active target. Clean room never launches one.
 fn provider_for_active(ctx: &mut Ctx<'_>) -> Result<Arc<dyn DeepDecompiler>, Option<String>> {
     if ctx.session.clean_room() {
         return Err(None);
     }
-    // Already decided for this target?
     if let Ok(t) = ctx.session.active()
         && let Some(slot) = t.ext.get::<DeepSlot>()
     {
         return slot.provider.clone().map_err(Some);
     }
-
-    // The target's bytes and identity.
     let (bytes, sha256) = match ctx.session.active() {
         Ok(t) => (t.target.bytes.clone(), t.target.sha256.clone()),
         Err(_) => return Err(None),
     };
-    if bytes.is_empty() {
-        return remember(ctx, Err("Ghidra needs the program's bytes, which aren't loaded, so the built-in decompiler was used.".into()));
-    }
-
-    // A per-target language override (from core_target_open) wins over the global setting.
-    let language = ctx.session.active().ok().and_then(|t| t.ext.get::<LanguageOverride>().map(|o| o.0.clone()));
-    // Not remembered: once the person installs Ghidra, the next call uses it.
-    let Some((cfg, digest)) = config(&ctx.session.settings, language) else {
-        return Err(Some(NOT_INSTALLED.into()));
+    let Some(mut engine) = ctx.session.settings.preferred_deep_engine() else {
+        return Err(Some(not_installed(&ctx.session.settings)));
     };
+    if bytes.is_empty() {
+        return remember(ctx, Err(format!("{} needs the program's bytes, which aren't loaded, so the built-in decompiler was used.", engine.name())));
+    }
+    let language = ctx.session.active().ok().and_then(|t| t.ext.get::<LanguageOverride>().map(|o| o.0.clone()));
     let cancel = ctx.cancel.clone();
     let cancel_fn = move || cancel.is_cancelled();
     let progress = ctx.progress;
     let report = |f: f32, m: &str| (progress)(crate::tool::Progress { fraction: Some(f), message: m.to_string() });
-
-    match ghidra::Session::start(&cfg, bytes.as_ref(), &sha256, &digest, &cancel_fn, &report) {
-        Ok(session) => remember(ctx, Ok(Arc::new(session))),
-        // Stopped by the caller: try again next time rather than remembering a failure.
-        Err(ghidra::GhidraError::Cancelled) => Err(Some("Ghidra was stopped before it was ready.".into())),
+    let automatic = ctx.session.settings.engines.deep_engine == DeepEngine::Auto;
+    let (cfg, digest) = config(&ctx.session.settings, language.clone(), engine).ok_or_else(|| Some(not_installed(&ctx.session.settings)))?;
+    let mut result = start(cfg, bytes.as_ref(), &sha256, &digest, &cancel_fn, &report);
+    if automatic
+        && engine == DeepEngine::Ida
+        && matches!(&result, Err(DeepError::Bridge { code, .. }) if code == "decompiler_unavailable")
+        && ctx.session.settings.ghidra_launcher().is_some()
+    {
+        engine = DeepEngine::Ghidra;
+        let (cfg, digest) = config(&ctx.session.settings, language, engine).ok_or_else(|| Some(not_installed(&ctx.session.settings)))?;
+        result = start(cfg, bytes.as_ref(), &sha256, &digest, &cancel_fn, &report);
+    }
+    match result {
+        Ok(provider) => remember(ctx, Ok(provider)),
+        Err(DeepError::Cancelled) => Err(Some(format!("{} was stopped before it was ready.", engine.name()))),
         Err(e) => {
-            log::warn!("Deep mode (Ghidra) unavailable; using the built-in engine: {e}");
-            remember(ctx, Err(format!("Ghidra couldn't open this program ({e}).")))
+            log::warn!("Deep mode ({}) unavailable; using the built-in engine: {e}", engine.id());
+            remember(ctx, Err(format!("{} couldn't open this program ({e}).", engine.name())))
         }
     }
 }
 
-/// Ghidra's settings for a target (and its analysis settings hash), the same for the app and the
-/// builder's tool server so both find one shared analysis. `None`: Ghidra isn't installed.
-fn config(settings: &Settings, language_override: Option<String>) -> Option<(ghidra::Config, String)> {
-    let g = &settings.engines.ghidra;
-    let language_id = language_override.or_else(|| g.language_id.clone());
-    let digest = settings_hash(language_id.as_deref());
-    let cfg = ghidra::Config {
-        analyze_headless: settings.ghidra_launcher()?,
-        java_home: settings.ghidra_java(),
-        startup_timeout: Duration::from_secs(g.startup_timeout_secs.unwrap_or(ANALYSIS_LIMIT_SECS)),
-        store_dir: settings.engine_store_dir(),
-        language_id,
-        compiler_spec: g.compiler_spec.clone(),
-        memory_gb: g.memory_gb,
-    };
-    Some((cfg, digest))
-}
-
-/// Analyse a program with Ghidra ahead of time (Deep mode), so the builder's first decompile opens
-/// a saved analysis instead of waiting hours for one. Shares the analysis with any other process
-/// doing the same. `progress` gets a line now and then.
+/// Analyse a program ahead of time with the same selected provider the later tool call will use.
 pub fn prepare(settings: &Settings, bytes: &[u8], sha256: &str, progress: &(dyn Fn(&str) + Send + Sync)) -> Result<(), String> {
-    let (cfg, digest) = config(settings, None).ok_or_else(|| NOT_INSTALLED.to_string())?;
+    let engine = settings.preferred_deep_engine().ok_or_else(|| not_installed(settings))?;
+    let (cfg, digest) = config(settings, None, engine).ok_or_else(|| not_installed(settings))?;
     let never = || false;
-    ghidra::analyse(&cfg, bytes, sha256, &digest, &never, &|_, m: &str| progress(m)).map(|_| ()).map_err(|e| e.to_string())
+    let report = |_: f32, message: &str| progress(message);
+    match cfg {
+        ProviderConfig::Ghidra(cfg) => ghidra::analyse(&cfg, bytes, sha256, &digest, &never, &report).map(|_| ()).map_err(|e| e.to_string()),
+        ProviderConfig::Ida(cfg) => match ida::Session::start(&cfg, bytes, sha256, &digest, &never, &report) {
+            Ok(_) => Ok(()),
+            Err(e)
+                if settings.engines.deep_engine == DeepEngine::Auto
+                    && matches!(&e, DeepError::Bridge { code, .. } if code == "decompiler_unavailable")
+                    && settings.ghidra_launcher().is_some() =>
+            {
+                let (fallback, fallback_digest) = config(settings, None, DeepEngine::Ghidra).ok_or_else(|| not_installed(settings))?;
+                match fallback {
+                    ProviderConfig::Ghidra(cfg) => {
+                        ghidra::analyse(&cfg, bytes, sha256, &fallback_digest, &never, &report).map(|_| ()).map_err(|e| e.to_string())
+                    }
+                    ProviderConfig::Ida(_) => Err(not_installed(settings)),
+                }
+            }
+            Err(e) => Err(e.to_string()),
+        },
+    }
 }
 
 fn remember(ctx: &mut Ctx<'_>, provider: Result<Arc<dyn DeepDecompiler>, String>) -> Result<Arc<dyn DeepDecompiler>, Option<String>> {
@@ -126,64 +186,64 @@ fn remember(ctx: &mut Ctx<'_>, provider: Result<Arc<dyn DeepDecompiler>, String>
 pub enum At {
     /// The built-in engine's, as every other tool reports it.
     Ours(u64),
-    /// Already Ghidra's: the address in a name Ghidra made (`FUN_00101160`).
+    /// Already the external engine's, from a generated name such as `FUN_00101160` or `sub_00101160`.
     Engine(u64),
 }
 
 /// Decompile the function at `at` with the deep engine if available. `our_base` is the image
-/// base the built-in engine reads the program at; Ghidra may have loaded it elsewhere (a
-/// position-independent ELF goes to 0x100000), so addresses are moved between the two.
-/// `Err(why)` → the caller uses the built-in lifter and passes on why Ghidra wasn't used (`None`
-/// in Clean room). `Ok(Err(..))` only for a cancellation the caller should surface.
+/// base the built-in engine reads the program at; an external engine may load it elsewhere, so
+/// addresses are moved between the two. `Err(why)` → the caller uses the built-in lifter and passes
+/// on why the external engine wasn't used (`None` in Clean room). `Ok(Err(..))` is cancellation.
 pub fn pseudo_code(ctx: &mut Ctx<'_>, at: At, our_base: u64, params: serde_json::Value) -> Result<Result<ToolOutput, ToolError>, Option<String>> {
     let provider = provider_for_active(ctx)?;
-    let rebase = ghidra::Rebase::new(our_base, provider.image_base());
+    let engine = display_engine(provider.engine());
+    let rebase = Rebase::new(our_base, provider.image_base());
     let entry = match at {
         At::Ours(a) => rebase.to_engine(a),
         At::Engine(a) => a,
     };
     match provider.decompile(entry) {
         Ok(Some(df)) => {
-            let renames = user_renames(ctx, rebase);
+            let renames = user_renames(ctx, rebase, provider.engine());
             Ok(build_evidence(ctx, provider.as_ref(), df, rebase, &renames, params))
         }
-        Ok(None) => Err(Some("Ghidra had no answer for this function.".into())),
-        Err(ghidra::GhidraError::Cancelled) => Ok(Err(ToolError::cancelled())),
+        Ok(None) => Err(Some(format!("{engine} had no answer for this function."))),
+        Err(DeepError::Cancelled) => Ok(Err(ToolError::cancelled())),
         Err(e) => {
-            log::warn!("Ghidra decompile failed; falling back to the built-in engine: {e}");
-            // A dead bridge (Ghidra crashed or was killed) is started again on the next call; the
-            // saved analysis makes that quick.
-            if matches!(e, ghidra::GhidraError::Connection(_) | ghidra::GhidraError::Protocol(_))
+            log::warn!("{engine} decompile failed; falling back to the built-in engine: {e}");
+            // A dead bridge is started again on the next call; the saved analysis makes that quick.
+            if matches!(e, DeepError::Connection(_) | DeepError::Protocol(_))
                 && let Ok(t) = ctx.session.active_mut()
             {
                 t.ext.remove::<DeepSlot>();
             }
             Err(Some(match e {
-                // The bridge looks up the function containing the address and, when its analysis
-                // has none, tries to make one there; the message says why it couldn't.
-                ghidra::GhidraError::Bridge { ref code, ref message } if code == "not_found" => {
-                    format!("Ghidra's analysis has no function at this address and it couldn't make one: {message}.")
+                DeepError::Bridge { ref code, ref message } if code == "not_found" => {
+                    format!("{engine}'s analysis has no function at this address and it couldn't make one: {message}.")
                 }
-                e => format!("Ghidra couldn't decompile this function ({e})."),
+                e => format!("{engine} couldn't decompile this function ({e})."),
             }))
         }
     }
 }
 
-/// A name Ghidra may use → the person's name for it, and the address (ours) they named.
+/// A generated Deep-engine name → the person's name for it, and the address (ours) they named.
 type Renames = HashMap<String, (String, u64)>;
 
-/// For each address the person named, the names Ghidra may give it, each with the person's name:
-/// the ones Ghidra makes from its own address (`FUN_00101160`, `DAT_…`, `LAB_…`) and the program's
-/// own symbol, which Ghidra uses too. Our made-up `sub_…` names are left out; Ghidra never uses them.
-fn user_renames(ctx: &mut Ctx<'_>, rebase: ghidra::Rebase) -> Renames {
+fn user_renames(ctx: &mut Ctx<'_>, rebase: Rebase, engine: &str) -> Renames {
     let mut out = Renames::new();
     let Ok(st) = super::native_common::native(ctx) else { return out };
     let Ok(t) = ctx.session.active() else { return out };
     for (&a, name) in &t.annotations.names {
         let theirs = rebase.to_engine(a);
-        for prefix in ["FUN", "DAT", "LAB"] {
-            out.entry(format!("{prefix}_{theirs:08x}")).or_insert_with(|| (name.clone(), a));
+        if engine == "ida" {
+            for prefix in ["sub_", "loc_", "off_"] {
+                out.entry(format!("{prefix}{theirs:08x}")).or_insert_with(|| (name.clone(), a));
+            }
+        } else {
+            for prefix in ["FUN", "DAT", "LAB"] {
+                out.entry(format!("{prefix}_{theirs:08x}")).or_insert_with(|| (name.clone(), a));
+            }
         }
         if let Some(symbol) = st.prog.name_at(a).filter(|n| n != name && !n.starts_with("sub_")) {
             out.entry(symbol).or_insert_with(|| (name.clone(), a));
@@ -321,11 +381,12 @@ fn build_evidence(
     ctx: &Ctx<'_>,
     provider: &dyn DeepDecompiler,
     df: DeepFunction,
-    rebase: ghidra::Rebase,
+    rebase: Rebase,
     renames: &Renames,
     params: serde_json::Value,
 ) -> Result<ToolOutput, ToolError> {
     let subject = ctx.session.active()?.target.subject();
+    let engine = display_engine(provider.engine());
     let env = Environment {
         clean_room: false,
         engine: provider.engine().to_string(),
@@ -334,12 +395,10 @@ fn build_evidence(
         language_id: provider.language_id(),
     };
     let line_count = df.pseudocode.as_deref().map(|p| p.lines().count()).unwrap_or(0);
-    // The entry as every other tool gives it; Ghidra's own only when it differs.
+    // The entry as every other tool gives it; the external engine's own only when it differs.
     let entry = rebase.from_engine(df.entry);
-    // The names the person set, in place of Ghidra's own: as set in the function field and the
-    // summary, and in the code wherever they can stand as C names.
-    // By the function's address first: Ghidra may call it by a symbol the renames leave out
-    // (`sub_…`), and then that name of Ghidra's is renamed in the code too.
+    // Apply the person's names in the function field, summary and code where they are valid C names.
+    // Matching by address first also covers a generated name the general rename map leaves out.
     let by_address = ctx.session.active()?.annotations.names.get(&entry).cloned();
     let mut renames = renames.clone();
     if let Some(n) = &by_address {
@@ -369,13 +428,13 @@ fn build_evidence(
         // inferred lifter, but still a reading aid rather than source.
         .confidence(Confidence::Derived)
         .target_content(true)
-        .limitation(Limitation::new("deep_engine", "the pseudo-C comes from the external Deep engine (Ghidra), not the original source"))
+        .limitation(Limitation::new("deep_engine", format!("the pseudo-C comes from the external Deep engine ({engine}), not the original source")))
         .location(Location::address(entry));
     if !rebase.is_identity() {
         e = e.limitation(Limitation::new(
             "engine_rebased",
             format!(
-                "Ghidra loaded this program at {:#x}, not where the built-in engine reads it ({:#x}); entry is the built-in address, engine_entry Ghidra's, and the addresses in Ghidra's names inside the pseudo-C (FUN_…, DAT_…) are Ghidra's",
+                "{engine} loaded this program at {:#x}, not where the built-in engine reads it ({:#x}); entry is the built-in address, engine_entry {engine}'s, and generated names inside the pseudo-C may use {engine}'s addresses",
                 rebase.theirs(),
                 rebase.ours(),
             ),
@@ -384,14 +443,14 @@ fn build_evidence(
     if renamed {
         e = e.limitation(Limitation::new(
             "user_names_applied",
-            "the names you set replace Ghidra's own in this pseudo-C, matched by the name Ghidra gives each address (its FUN_/DAT_/LAB_ name or the program's symbol)",
+            format!("the names you set replace {engine}'s own in this pseudo-C, matched by generated names or the program's symbols"),
         ));
     }
     if !not_in_code.is_empty() {
         e = e.limitation(Limitation::new(
             "user_names_not_in_code",
             format!(
-                "Ghidra's own name is kept in the code for these names you set, because they aren't C names or the code already uses them for something else: {}",
+                "{engine}'s own name is kept in the code for these names you set, because they aren't C names or the code already uses them for something else: {}",
                 not_in_code.join(", ")
             ),
         ));
@@ -399,7 +458,7 @@ fn build_evidence(
     if df.created {
         e = e.limitation(Limitation::new(
             "made_on_demand",
-            "Ghidra's analysis had no function here, so it made one starting at this address (for this session, never saved); its bounds come from following the code from there",
+            format!("{engine}'s analysis had no function here, so it made one starting at this address (for this session, never saved); its bounds come from following the code from there"),
         ));
     }
     Ok(ToolOutput::evidence(e.build()?))
@@ -641,6 +700,50 @@ mod tests {
         assert_eq!(rename_identifiers(r#"puts("a \" check_key"); c = '\''; check_key();"#, &renames), r#"puts("a \" check_key"); c = '\''; verify();"#);
         assert_eq!(rename_identifiers("", &renames), "");
         assert_eq!(rename_identifiers("été check_key", &renames), "été verify");
+    }
+
+    struct Ida;
+
+    impl DeepDecompiler for Ida {
+        fn engine(&self) -> &'static str {
+            "ida"
+        }
+        fn engine_version(&self) -> Option<String> {
+            Some("9.4-test".into())
+        }
+        fn image_base(&self) -> Option<u64> {
+            Some(tk::ELF_BASE)
+        }
+        fn decompile(&self, entry: u64) -> Result<Option<DeepFunction>, DeepError> {
+            let name = format!("sub_{entry:08x}");
+            Ok(Some(DeepFunction {
+                entry,
+                pseudocode: Some(format!("int {name}(void) {{ return 7; }}")),
+                signature: Some(format!("int {name}(void)")),
+                name,
+                created: false,
+            }))
+        }
+        fn list_functions(&self) -> Result<Vec<DeepFunction>, DeepError> {
+            Ok(Vec::new())
+        }
+    }
+
+    #[test]
+    fn ida_evidence_and_generated_names_use_the_same_tool_contract() {
+        let (elf, l) = tk::elf64(tk::ElfArch::X86_64, true);
+        let e = engine_with("prog", &elf);
+        with_deep(&e, Arc::new(Ida));
+        let generated = format!("sub_{:08x}", l.code_va);
+        let r = call(&e, "native_function_pseudocode", json!({"function": generated}));
+        assert_eq!(r["environment"]["engine"], "ida");
+        assert_eq!(r["environment"]["engine_version"], "9.4-test");
+        assert_eq!(r["result"]["entry"], format!("{:#x}", l.code_va));
+        assert!(r["result"]["pseudo_code"].as_str().unwrap().contains("return 7"));
+        call(&e, "native_name_set", json!({"address": format!("{:#x}", l.code_va), "name": "answer"}));
+        let r = call(&e, "native_function_pseudocode", json!({"function": "main"}));
+        assert_eq!(r["result"]["function"], "answer");
+        assert!(r["result"]["pseudo_code"].as_str().unwrap().contains("int answer(void)"), "{r}");
     }
 
     #[test]

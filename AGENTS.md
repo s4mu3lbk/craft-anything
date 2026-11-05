@@ -19,7 +19,7 @@ crates/
   js         L1  JavaScript/Electron/web bundles: parse, module graph, IPC, source maps, unbundling
   analysis   L2  Analyzers producing evidence (triage, dossiers, trace, compare, app graph, rebuild ledger)
   platform   L2  Native services: owned processes, PTY capture, sandbox, engine store, atomic files
-  engines    L3  Optional external engines: Ghidra bridge (Deep mode), adb, CDP, Frida, JADX, Apktool…
+  engines    L3  Optional external engines: Deep-mode decompiler bridges, adb, CDP, Frida, JADX, Apktool…
   engine     L4  Session, projects (.cany), workspaces (what the person is making), the inbox
                  (questions/approvals), ToolSpec registry, settings, consent, the tool list
   ai         L5  AI backends (Anthropic, OpenAI, OpenRouter, local, agent CLIs, SSH) + agent loop + crews,

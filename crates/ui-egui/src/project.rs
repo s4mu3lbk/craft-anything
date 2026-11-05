@@ -83,8 +83,8 @@ impl CraftApp {
             return;
         }
         let target = resolve_target(&draft);
-        // Deep mode reads a program's code with Ghidra: got first when it isn't here (asked once).
-        if matches!(target, TargetRef::Local { .. }) && !draft.skip_ghidra && self.ghidra_missing() {
+        // Deep mode reads a program's code with the selected external engine, when one is here.
+        if matches!(target, TargetRef::Local { .. }) && !draft.skip_ghidra && self.deep_engine_missing() && self.ghidra_install_offered() {
             self.ghidra.start_after = Some(Box::new(draft));
             self.state.modal = Some(Modal::Ghidra);
             return;

@@ -63,6 +63,17 @@ fn a_folder_without_the_launcher_is_not_an_install() {
 }
 
 #[test]
+fn ida_installs_and_macos_bundles_are_found() {
+    let d = tempfile::tempdir().expect("tempdir");
+    let windows = d.path().join("IDA Professional 9.4").join("idat.exe");
+    touch(&windows);
+    assert_eq!(find_in_known_roots("ida", &["idat.exe"], &[(d.path().to_path_buf(), 1)]), Some(windows));
+    let mac = d.path().join("IDA Pro.app").join("Contents/MacOS/idat");
+    touch(&mac);
+    assert_eq!(find_in_known_roots("ida", &["idat"], &[(d.path().to_path_buf(), 1)]), Some(mac));
+}
+
+#[test]
 fn every_host_folder_for_ghidra_resolves_without_panicking() {
     let ghidra = engine("ghidra").expect("ghidra is in the table");
     for (folder, depth) in ghidra.known_root_folders() {

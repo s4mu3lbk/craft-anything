@@ -13,6 +13,34 @@ pub enum Mode {
     Experienced,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DeepEngine {
+    /// Prefer IDA when its decompiler works, then Ghidra.
+    #[default]
+    Auto,
+    Ida,
+    Ghidra,
+}
+
+impl DeepEngine {
+    pub fn id(self) -> &'static str {
+        match self {
+            DeepEngine::Auto => "auto",
+            DeepEngine::Ida => "ida",
+            DeepEngine::Ghidra => "ghidra",
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            DeepEngine::Auto => "Automatic",
+            DeepEngine::Ida => "IDA",
+            DeepEngine::Ghidra => "Ghidra",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GhidraSettings {
@@ -65,13 +93,15 @@ macro_rules! tool_paths {
 }
 
 // Ghidra is not here: its folder is `GhidraSettings::install_dir`.
-tool_paths!(adb, jadx, apktool, chromium, frida, gdb, lldb, mitmdump, binwalk, unblob, ilspy, java, tshark, objdump, rizin, rtl433, vineflower);
+tool_paths!(ida, adb, jadx, apktool, chromium, frida, gdb, lldb, mitmdump, binwalk, unblob, ilspy, java, tshark, objdump, rizin, rtl433, vineflower);
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct EngineSettings {
     pub ghidra: GhidraSettings,
     pub tools: ToolPaths,
+    /// Which external decompiler Deep mode prefers.
+    pub deep_engine: DeepEngine,
     /// Folder for managed engine installs; defaults to `<data dir>/engines`.
     pub store_dir: Option<PathBuf>,
     /// URL of a user-run JEB MCP server, e.g. `http://127.0.0.1:8425/mcp` (loopback, plain HTTP only).
@@ -90,7 +120,7 @@ pub struct Settings {
     pub version: u32,
     pub mode: Mode,
     /// Deep mode: tools may look inside the original (its code, files and page source), with our
-    /// own engines and with Ghidra when it's installed. Off is Clean room: nothing inside the
+    /// own engines and the selected external decompiler. Off is Clean room: nothing inside the
     /// original is read, only what can be seen from outside ([`crate::clean_room`]).
     pub deep_mode: bool,
     /// `studio` (dark) or `studio-light`.
@@ -443,6 +473,35 @@ impl Settings {
         craft_anything_engines::ghidra::get::java_home(self.engines.ghidra.java_home.as_deref(), &self.engine_store_dir())
     }
 
+    pub fn ida_launcher(&self) -> Option<PathBuf> {
+        self.engine_path("ida")
+    }
+
+    /// The external engine Deep mode should try, when the selected one is installed.
+    pub fn preferred_deep_engine(&self) -> Option<DeepEngine> {
+        match self.engines.deep_engine {
+            DeepEngine::Auto => {
+                if self.ida_launcher().is_some() {
+                    Some(DeepEngine::Ida)
+                } else if self.ghidra_launcher().is_some() {
+                    Some(DeepEngine::Ghidra)
+                } else {
+                    None
+                }
+            }
+            DeepEngine::Ida => self.ida_launcher().is_some().then_some(DeepEngine::Ida),
+            DeepEngine::Ghidra => self.ghidra_launcher().is_some().then_some(DeepEngine::Ghidra),
+        }
+    }
+
+    pub fn deep_engine_path(&self, engine: DeepEngine) -> Option<PathBuf> {
+        match engine {
+            DeepEngine::Auto => self.preferred_deep_engine().and_then(|e| self.deep_engine_path(e)),
+            DeepEngine::Ida => self.ida_launcher(),
+            DeepEngine::Ghidra => self.ghidra_launcher(),
+        }
+    }
+
     /// Where an external engine is on this computer, honouring every setting that can name one:
     /// the path overrides (`engines.tools`) and, for Ghidra, its own folder setting
     /// (`engines.ghidra.install_dir`). The one lookup behind every listing (`engines_list`,
@@ -505,6 +564,30 @@ auto_mode = true
         assert!(!text.contains("only_configured"), "{text}");
         let loaded: Settings = toml::from_str(&text).unwrap();
         assert!(!loaded.engines.only_configured);
+    }
+
+    #[test]
+    fn deep_engine_selection_is_persisted_and_auto_prefers_ida() {
+        let dir = tempfile::tempdir().unwrap();
+        let ida = dir.path().join("ida").join(if cfg!(windows) { "idat.exe" } else { "idat" });
+        std::fs::create_dir_all(ida.parent().unwrap()).unwrap();
+        std::fs::write(&ida, b"stand-in").unwrap();
+        let mut s = Settings::default();
+        s.engines.only_configured = true;
+        s.engines.store_dir = Some(dir.path().join("engines"));
+        assert_eq!(s.engines.deep_engine, DeepEngine::Auto);
+        assert_eq!(s.preferred_deep_engine(), None);
+        s.engines.tools.ida = Some(ida.clone());
+        assert_eq!(s.preferred_deep_engine(), Some(DeepEngine::Ida));
+        assert_eq!(s.deep_engine_path(DeepEngine::Auto), Some(ida));
+        s.engines.deep_engine = DeepEngine::Ghidra;
+        assert_eq!(s.preferred_deep_engine(), None, "an explicit missing engine never switches to IDA");
+        let text = toml::to_string_pretty(&s).unwrap();
+        assert!(text.contains("deep_engine = \"ghidra\""), "{text}");
+        let loaded: Settings = toml::from_str(&text).unwrap();
+        assert_eq!(loaded.engines.deep_engine, DeepEngine::Ghidra);
+        let old: Settings = toml::from_str("version = 2\n").unwrap();
+        assert_eq!(old.engines.deep_engine, DeepEngine::Auto);
     }
 
     #[test]

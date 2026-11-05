@@ -779,8 +779,10 @@ An open lane: anyone may take these at any time.
 
 ### R3.14 IDA Deep engine
 Owner: open · Status: in progress
-- [ ] Detect a manually installed IDA and use its headless decompiler in Deep mode, with cached
-      analysis, provider selection, evidence and the existing built-in fallback
+- [x] Detect a manually installed IDA and use its headless decompiler in Deep mode, with cached
+      analysis, provider selection, evidence and the existing built-in fallback. Live IDA 9.4 on
+      Linux x86-64 decompiled `main` and a cached helper; Clean room, error and cleanup checks passed.
+      Other platforms and older IDA versions have stand-in tests only
       — claimed: Kimi Code, branch feature/r3.14-ida-deep-engine
 - [ ] Map raw-binary processor and load-address settings to IDA's loader instead of falling back
 

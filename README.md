@@ -134,7 +134,7 @@ Both modes drive the same engine.
   and, when you allow it, a picture of the app's window. Tools that would look inside are refused
   and say how to turn on Deep mode.
 - **Deep**: every tool is used, for your private use. A program's code and files are read with the
-  built-in engines (and Ghidra when it's installed), a website's JavaScript is read and its start
+  built-in engines (and IDA or Ghidra when installed), a website's JavaScript is read and its start
   page watched, and the builder may use all of them.
 
 Clean room is a rule about what Craft Anything offers and refuses. It is not an operating-system
@@ -184,7 +184,7 @@ connects Craft Anything to coding-agent apps.
 A pure-Rust reverse-engineering engine with 320 tools (300 in the engine, the rest from the AI and
 setup layers) for native programs, .NET, Java, Android, Apple, Electron/JavaScript, websites,
 firmware, packet captures, databases and game files. Its own decoders, disassembler and
-decompiler work without any outside program; Deep mode uses them all, and Ghidra when it's
+decompiler work without any outside program; Deep mode uses them all, and IDA or Ghidra when
 installed. It powers the desktop app (egui), the CLI and the MCP server, and parts of it run in
 the browser as WebAssembly. The full list is in [docs/tools.md](docs/tools.md).
 
@@ -235,7 +235,7 @@ only takes it off the list.
 > - **Works today:** the desktop app (Simple and Advanced), the CLI and the MCP server; the
 >   Study → Build → Check → Refine workflow for websites, apps and games with Claude Code as the
 >   builder; website checks at three screen widths; game rebuilds in Unity, Unreal or Godot; Deep
->   mode with Ghidra; generated pictures and 3D models (opt-in, your own fal.ai key); plugins (MCP
+>   mode with IDA or Ghidra; generated pictures and 3D models (opt-in, your own fal.ai key); plugins (MCP
 >   servers, and WASM components in builds with the `wasm-plugins` option).
 > - **Partly there:** building with API keys and other coding agents (built, not yet run live),
 >   behaviour checks for apps and games, a few engine tools tested only against stand-ins.

@@ -1444,3 +1444,9 @@ Zoom	Zoomen
 Bring all to front	Alle nach vorne bringen
 Drag to give the plan more or less room; double-click to reset	Ziehen, um dem Plan mehr oder weniger Platz zu geben; Doppelklick setzt zurück
 Copy the message	Die Nachricht kopieren
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean Room liest nie den Code, die Dateien oder den Seitenquelltext des Originals: Er arbeitet mit dem, was du sehen kannst. Deep liest sie mit allen Werkzeugen und mit IDA oder Ghidra, wenn eines installiert ist. Jeder Befund hält fest, was verwendet wurde.
+Deep decompiler	Deep-Dekompilierer
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automatisch bevorzugt IDA, dann Ghidra. Du kannst auch eines direkt wählen.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: Wir lesen Code, Dateien und Seitenquelltext mit allen Werkzeugen und mit einem externen Dekompilierer, wenn einer installiert ist. Klicke zum Wechseln.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} ist nicht installiert, deshalb springt der eingebaute Dekompilierer ein. Wähle eine Engine unter Einstellungen → Engines.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ist noch nicht auf diesem Computer, deshalb springt der eingebaute Dekompilierer ein.

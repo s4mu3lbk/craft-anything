@@ -38,7 +38,7 @@ pub mod workspace;
 pub use craft_anything_evidence as evidence;
 pub use registry::Registry;
 pub use session::Session;
-pub use settings::{Mode, Settings};
+pub use settings::{DeepEngine, Mode, Settings};
 pub use target::{Target, TargetKind};
 pub use tool::{Caller, CancelToken, Ctx, Effects, Progress, Requires, ToolOutput, ToolSpec, Toolset};
 

@@ -9,10 +9,12 @@ pub mod adb;
 pub mod assets;
 pub mod cdp;
 pub mod cutter;
+pub mod deep;
 pub mod frida;
 pub mod game;
 pub mod gdb;
 pub mod ghidra;
+pub mod ida;
 pub mod install;
 pub mod jadx;
 #[cfg(test)]
@@ -81,11 +83,15 @@ pub fn locate_configured(id: &str, overrides: &dyn ToolPathLookup, store: &Path)
     None
 }
 
-/// An executable in a managed install folder: `<dir>/<exe>`, `<dir>/bin/<exe>` or
-/// `<dir>/support/<exe>`, in `dir` itself or in one of its sub-folders, newest name first (an
-/// archive unpacks into one top folder, often versioned: `ghidra_12.1.4_PUBLIC/support/…`).
+/// An executable in a managed install folder: at its root, in a conventional executable folder,
+/// or in one of its sub-folders, newest name first (an archive often unpacks into one versioned
+/// folder). macOS application bundles keep executables in `Contents/MacOS`.
 fn in_managed(dir: &Path, exes: &[&str]) -> Option<PathBuf> {
-    let here = |d: &Path| exes.iter().flat_map(|exe| [d.join(exe), d.join("bin").join(exe), d.join("support").join(exe)]).find(|p| p.is_file());
+    let here = |d: &Path| {
+        exes.iter()
+            .flat_map(|exe| [d.join(exe), d.join("bin").join(exe), d.join("support").join(exe), d.join("Contents/MacOS").join(exe)])
+            .find(|p| p.is_file())
+    };
     if let Some(p) = here(dir) {
         return Some(p);
     }

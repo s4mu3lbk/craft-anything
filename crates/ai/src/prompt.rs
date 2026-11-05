@@ -39,7 +39,7 @@ pub fn system_prompt(beginner: bool, clean_room: bool, investigation: &str, memo
     let mode = if clean_room {
         "Analysis mode: Clean room. Nothing inside a target is looked at (its code, files or page source): only the tools that work from outside run, and the rest are refused. If the question needs a look inside, say so: the person can switch on Deep mode."
     } else {
-        "Analysis mode: Deep. Use every tool that helps: our own engines read a target's code, files and pages, and Ghidra adds its decompiler when it's installed. Evidence records which engine produced it."
+        "Analysis mode: Deep. Use every tool that helps: our own engines read a target's code, files and pages, and IDA or Ghidra adds its decompiler when installed. Evidence records which engine produced it."
     };
     let memory = if memory { format!("\n\n{MEMORY}") } else { String::new() };
     format!("{METHOD}{memory}\n\n{}\n\n{mode}\n\n## Investigation so far\n{investigation}\n", if beginner { BEGINNER } else { EXPERIENCED })

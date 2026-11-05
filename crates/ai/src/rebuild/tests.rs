@@ -19,7 +19,7 @@ fn kind_of(request: &str, target: &TargetRef, stack: &str) -> &'static str {
     KindRegistry::built_in().detect(request, target, stack).unwrap().id()
 }
 fn brief(ws: &Workspace, k: &str, deep: bool, ghidra: bool, editor: Option<&Path>, assets: bool, extra: Option<&str>) -> String {
-    super::brief(kind(k).as_ref(), &BriefCx { ws, deep, ghidra, editor, assets, image_model: None }, extra)
+    super::brief(kind(k).as_ref(), &BriefCx { ws, deep, deep_engine: ghidra.then_some("Ghidra"), editor, assets, image_model: None }, extra)
 }
 fn refine(k: &str, check: &CheckResult) -> String {
     kind(k).refine(check)
@@ -792,7 +792,7 @@ fn games_get_the_mechanics_sheet_and_decompile_only_in_deep_mode() {
     // Deep mode requires decompiling before estimating, and says to wait for Ghidra.
     assert!(deep.contains("decompile the program before you estimate anything") && deep.contains("only after you looked for it in the code"));
     // It says which decompiler it really has.
-    assert!(deep.contains("Ghidra isn't installed") && deep.contains("built-in decompiler"));
+    assert!(deep.contains("Neither IDA nor Ghidra is installed") && deep.contains("built-in decompiler"));
     // Generated assets replace the original's art; its sounds and the rest still come from the game.
     let mut gen_ws = ws.clone();
     gen_ws.manifest.generate_assets = true;
@@ -808,6 +808,8 @@ fn games_get_the_mechanics_sheet_and_decompile_only_in_deep_mode() {
     assert!(generated.contains("Realistic assets") && !generated.contains("original game's own files"), "{generated}");
     let with_ghidra = brief(&ws, "game", true, true, None, false, None);
     assert!(with_ghidra.contains("reads the code with Ghidra") && with_ghidra.contains("never skip decompiling") && !with_ghidra.contains("isn't installed"));
+    let with_ida = super::brief::decompile_note(false, Some("IDA"));
+    assert!(with_ida.contains("reads the code with IDA") && with_ida.contains("while IDA opens it"));
     // An app rebuilt from a program gets the same rule in Deep mode, and only then.
     let app = brief(&ws, "app", true, true, None, false, None);
     assert!(app.contains("decompile the program before you estimate anything") && app.contains("features the person asked for"), "{app}");
@@ -921,7 +923,7 @@ fn a_registered_kind_is_chosen_from_its_words_and_brings_its_checks() {
     let ws = Workspace::create(d.path(), "Deck", "Make slides", TargetRef::None).unwrap();
     let checks = kinds.get("slides").unwrap().checks(&ws);
     assert_eq!(checks.iter().map(|c| c.id()).collect::<Vec<_>>(), ["outline"]);
-    let b = super::brief(&SlidesKind, &BriefCx { ws: &ws, deep: false, ghidra: false, editor: None, assets: false, image_model: None }, None);
+    let b = super::brief(&SlidesKind, &BriefCx { ws: &ws, deep: false, deep_engine: None, editor: None, assets: false, image_model: None }, None);
     assert!(b.contains("What to build: a slide deck."), "{b}");
 }
 
@@ -1090,7 +1092,7 @@ fn other_pages_of_the_same_site_are_picked_from_its_links() {
     // The brief mentions the other pages only when some were captured.
     let d = tempfile::tempdir().unwrap();
     let ws = Workspace::create(d.path(), "Shop", "Clone it", TargetRef::Website { url: "https://shop.example.com/".into() }).unwrap();
-    let cx = |ws| BriefCx { ws, deep: false, ghidra: false, editor: None, assets: false, image_model: None };
+    let cx = |ws| BriefCx { ws, deep: false, deep_engine: None, editor: None, assets: false, image_model: None };
     assert!(kinds::WebsiteKind.brief_sections(&cx(&ws)).is_empty());
     std::fs::create_dir_all(ws.capture_dir()).unwrap();
     std::fs::write(ws.capture_dir().join(ROUTES_FILE), serde_json::to_vec(&r).unwrap()).unwrap();
@@ -2163,7 +2165,7 @@ fn a_resumed_game_builder_hears_the_asset_choice_as_it_is_now() {
     let mut ws = Workspace::create(d.path(), "Game", "A snake game", TargetRef::None).unwrap();
     let game = kind("game");
     fn cx(ws: &Workspace, assets: bool) -> BriefCx<'_> {
-        BriefCx { ws, deep: false, ghidra: false, editor: None, assets, image_model: None }
+        BriefCx { ws, deep: false, deep_engine: None, editor: None, assets, image_model: None }
     }
     assert!(game.follow_up_sections(&cx(&ws, true)).is_empty(), "off and never used: nothing to say");
     // Turned on after the first build, with a key: the follow-up carries the asset note and budget.

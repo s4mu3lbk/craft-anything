@@ -202,6 +202,11 @@ real Deep-mode run (the CLI never shows it: it already has a console). Every chi
 the windowed app gets `CREATE_NO_WINDOW`; check the desktop app, not only the CLI, after adding a
 program.
 
+**An isolated home hid the licensed tool's configuration.** IDA started headlessly but reported no
+licence and no configured Python after `HOME` and `IDAUSR` were pointed at a scratch folder. Isolate
+its target, database and temporary files, but keep the vendor's user configuration so the person's
+licence and Python remain available; validate with a real decompile, not just process startup.
+
 **A graphics backend that crashed before it was chosen.** We ranked GL last when picking an
 adapter, but eframe starts every backend first, and starting GL loaded an old Intel OpenGL driver
 that crashed the app before any window or error box (#196). Ranking can't protect you from a

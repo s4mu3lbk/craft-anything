@@ -162,7 +162,7 @@ pub(super) const DECOMPILE_FIRST: &str = "You haven't decompiled anything yet, a
 
 /// Deep mode: decompiling the target is required, not optional, before anything is estimated.
 /// `game`: point at a game's mechanics rather than the requested features.
-pub(super) fn decompile_note(game: bool, ghidra: bool) -> String {
+pub(super) fn decompile_note(game: bool, deep_engine: Option<&str>) -> String {
     let what = if game {
         "the code behind movement, aiming and firing, damage and health, and how enemies behave (native_strings_find for weapon names, settings or console variables, then follow the references to the functions)"
     } else {
@@ -171,11 +171,11 @@ pub(super) fn decompile_note(game: bool, ghidra: bool) -> String {
     let mut s = format!(
         "\n- Deep mode is on: decompile the program before you estimate anything. Open its main program with core_target_open, find {what}, and read each with native_function_pseudocode. Write the constants, formulas and rules you find into app/MECHANICS.md with their function addresses, and mark a value \"estimated\" only after you looked for it in the code. Then write your own code from that sheet: never paste decompiled code into app/."
     );
-    s.push_str(if ghidra {
-        " native_function_pseudocode reads the code with Ghidra, which has already analysed the program, so it answers in moments (the first call takes a minute or two while Ghidra opens it). If a call takes long, wait for it: never skip decompiling because it's slow."
+    if let Some(engine) = deep_engine {
+        s.push_str(&format!(" native_function_pseudocode reads the code with {engine}, which has already analysed the program, so it answers in moments (the first call takes a minute or two while {engine} opens it). If a call takes long, wait for it: never skip decompiling because it's slow."));
     } else {
-        " Ghidra isn't installed, so native_function_pseudocode uses the built-in decompiler, which is rougher: check each value against a second function or the program's files before you trust it."
-    });
+        s.push_str(" Neither IDA nor Ghidra is installed, so native_function_pseudocode uses the built-in decompiler, which is rougher: check each value against a second function or the program's files before you trust it.");
+    }
     s
 }
 
@@ -211,7 +211,7 @@ pub(super) const PRIVATE_USE_NOTE: &str = "This build contains the original game
 /// Clean room copies none of its files. `generated`: the person chose generated assets, so new
 /// models and pictures replace the original's art (in Deep mode its sounds, music, fonts,
 /// animations and maps are still used).
-pub(super) fn game_steps(deep: bool, ghidra: bool, has_target: bool, generated: bool) -> String {
+pub(super) fn game_steps(deep: bool, deep_engine: Option<&str>, has_target: bool, generated: bool) -> String {
     let mut s = String::from(
         "Making it play like the original:\n\
          - Start app/MECHANICS.md: every number that shapes how it plays. Movement (walk and run speed, acceleration, friction, air control, jump height, gravity, crouch), camera (field of view, mouse sensitivity), each weapon (damage, fire rate, magazine, reload time, spread, recoil, range), health and armour, respawn, scoring, modes, timers, and how computer players behave. Next to each value say where it came from (a file in the game's folder, a function address or evidence id) or mark it \"estimated\". Build from that sheet and keep it up to date.\n\
@@ -221,7 +221,7 @@ pub(super) fn game_steps(deep: bool, ghidra: bool, has_target: bool, generated: 
     s.push_str(super::kinds::mechanics::MECHANICS_CONTRACT);
     if has_target {
         if deep {
-            s.push_str(&decompile_note(true, ghidra));
+            s.push_str(&decompile_note(true, deep_engine));
         } else {
             s.push_str("\n- Clean room is on: don't open, read, list or decompile the game's files or code. Work from the person's description, the pictures and any documentation they give, and mark the numbers you estimate. If exact values matter, tell the person they can switch on Deep mode.");
         }

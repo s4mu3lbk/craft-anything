@@ -1444,3 +1444,9 @@ Zoom	縮放
 Bring all to front	將全部視窗移至最前
 Drag to give the plan more or less room; double-click to reset	拖曳以調整計畫佔用的空間；按兩下恢復預設
 Copy the message	複製這則訊息
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	淨室模式不會讀取原作的程式碼、檔案或網頁原始碼，只依據可見內容工作。深度模式會使用全部工具讀取這些內容，安裝 IDA 或 Ghidra 後也會使用它們。每項發現都會記錄所用模式。
+Deep decompiler	深度反編譯器
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	自動模式優先使用 IDA，其次 Ghidra。也可以直接指定一個。
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	深度：使用所有可用工具讀取其程式碼、檔案和網頁原始碼；安裝外部反編譯器後也會使用它。按一下切換。
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	尚未安裝 {engine}，將使用內建反編譯器。請前往「設定 → 引擎」選擇引擎。
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	此電腦尚未安裝 {engine}，將暫用內建反編譯器。

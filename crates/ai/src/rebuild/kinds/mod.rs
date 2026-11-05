@@ -55,8 +55,8 @@ pub struct BriefCx<'a> {
     pub ws: &'a Workspace,
     /// Deep mode: decompiling the target is allowed (and required for programs).
     pub deep: bool,
-    /// Ghidra is installed, so decompiling uses it.
-    pub ghidra: bool,
+    /// The external Deep engine selected for this run, when one is installed.
+    pub deep_engine: Option<&'a str>,
     /// The game engine's editor for engine stacks.
     pub editor: Option<&'a Path>,
     /// An asset provider's key is set up; assets are offered only if the project also allows them
@@ -160,7 +160,7 @@ impl CheckCx<'_> {
         self.worker.engine.session().settings.build.clone()
     }
 
-    /// Deep mode is on (Ghidra enabled): the builder had to decompile a program target.
+    /// Deep mode is on: the builder had to decompile a program target.
     pub fn deep(&self) -> bool {
         !self.worker.engine.session().clean_room()
     }

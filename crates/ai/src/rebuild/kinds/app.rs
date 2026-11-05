@@ -50,7 +50,7 @@ impl TargetKind for AppKind {
             return s;
         }
         if cx.deep && matches!(cx.ws.manifest.target, TargetRef::Local { .. }) {
-            s.push(decompile_note(false, cx.ghidra).trim_start().to_string());
+            s.push(decompile_note(false, cx.deep_engine).trim_start().to_string());
             s.push(mechanics::MECHANICS_CONTRACT.to_string());
         }
         // A console program is compared by its runs, not pictured.

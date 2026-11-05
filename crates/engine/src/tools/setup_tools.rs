@@ -413,7 +413,13 @@ fn engines_list(ctx: &mut Ctx<'_>, _params: Value) -> Result<ToolOutput, ToolErr
     Ok(ToolOutput::Value(json!({
         "engine_store": store.display().to_string(),
         "engines": engines,
-        "deep_mode": {"enabled": s.deep_mode, "ghidra": s.ghidra_launcher().map(|p| p.display().to_string())},
+        "deep_mode": {
+            "enabled": s.deep_mode,
+            "selected_engine": s.engines.deep_engine.id(),
+            "available_engine": s.preferred_deep_engine().map(|e| e.id()),
+            "ida": s.ida_launcher().map(|p| p.display().to_string()),
+            "ghidra": s.ghidra_launcher().map(|p| p.display().to_string()),
+        },
         "game_engines": builders,
     })))
 }

@@ -2,7 +2,7 @@
 //! backend, Simple · Advanced, settings and the window buttons. Empty parts drag the window; the
 //! window edges resize it.
 
-use crate::i18n::tr;
+use crate::i18n::{tr, trf};
 use crate::state::Screen;
 use crate::theme::{self, Tokens};
 use crate::{CraftApp, icons, widgets};
@@ -238,7 +238,7 @@ fn download_pill(ui: &mut Ui, title: &str, fraction: Option<f32>) -> egui::Respo
 fn deep_toggle(app: &mut CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let deep = app.settings.deep_mode;
-    let missing = app.ghidra_missing();
+    let missing = app.deep_engine_missing();
     let label = tr(if deep { "Deep" } else { "Clean room" });
     let g = widgets::label_galley(ui, &label, 12.0, t.text);
     let size = Vec2::new(g.size().x + 64.0, 30.0);
@@ -262,9 +262,19 @@ fn deep_toggle(app: &mut CraftApp, ui: &mut Ui) {
         ui.label(tr(
             "Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.",
         ));
-        ui.label(tr("Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch."));
+        ui.label(tr(
+            "Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.",
+        ));
         if missing {
-            ui.label(RichText::new(tr("Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.")).color(t.warning));
+            let selected = app.settings.engines.deep_engine;
+            let engine = if selected == craft_anything_engine::DeepEngine::Auto { "IDA or Ghidra" } else { selected.name() };
+            ui.label(
+                RichText::new(trf(
+                    "{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.",
+                    &[("engine", engine)],
+                ))
+                .color(t.warning),
+            );
         }
     });
     if resp.clicked() {

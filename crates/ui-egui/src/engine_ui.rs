@@ -11,7 +11,7 @@ use crate::state::{MakeDraft, Modal, Screen};
 use crate::theme::{self, Tokens};
 use crate::{CraftApp, Done, icons, widgets};
 use craft_anything_ai::rebuild::KindRegistry;
-use craft_anything_engine::{CallOptions, Caller};
+use craft_anything_engine::{CallOptions, Caller, DeepEngine};
 use craft_anything_engines::assets::{AssetProvider, AssetProviders, fal};
 use craft_anything_engines::game::{self, Builder, Inventory};
 use craft_anything_engines::ghidra::{self, get};
@@ -120,6 +120,8 @@ impl CraftApp {
 pub struct GhidraFlow {
     /// Whether Ghidra was found; `None` until looked for again (after a settings change or install).
     pub ready: Option<bool>,
+    /// Whether the selected Deep engine was found.
+    pub deep_ready: Option<bool>,
     /// The download running, as a job.
     pub job: Option<u64>,
     /// The project to start once Ghidra is ready (or the person goes on without it): the draft
@@ -137,6 +139,19 @@ impl CraftApp {
     /// Deep mode is on, but it can't use Ghidra yet.
     pub fn ghidra_missing(&mut self) -> bool {
         self.settings.deep_mode && !self.ghidra_ready()
+    }
+
+    pub fn deep_engine_ready(&mut self) -> bool {
+        let settings = &self.settings;
+        *self.ghidra.deep_ready.get_or_insert_with(|| settings.preferred_deep_engine().is_some())
+    }
+
+    pub fn deep_engine_missing(&mut self) -> bool {
+        self.settings.deep_mode && !self.deep_engine_ready()
+    }
+
+    pub fn ghidra_install_offered(&self) -> bool {
+        self.settings.engines.deep_engine != DeepEngine::Ida
     }
 
     /// Download Ghidra and its Java in the background (the person already agreed).

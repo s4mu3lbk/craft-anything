@@ -190,6 +190,15 @@ const NO_PATHS: &[KnownPath] = &[];
 /// Arch and its derivatives in `/opt/ghidra`, Debian and Kali in `/usr/share/ghidra` (#85).
 const GHIDRA_PATHS: &[KnownPath] = &[linux("/opt/ghidra", "support/analyzeHeadless"), linux("/usr/share/ghidra", "support/analyzeHeadless")];
 
+const IDA_PATHS: &[KnownPath] = &[
+    win("ProgramFiles", "IDA Pro/idat.exe"),
+    win("ProgramFiles", "IDA Professional/idat.exe"),
+    mac(Base::Dir("/Applications"), "IDA Pro.app/Contents/MacOS/idat"),
+    mac(Base::Dir("/Applications"), "IDA Professional.app/Contents/MacOS/idat"),
+    linux("/opt/ida", "idat"),
+    linux("/opt/idapro", "idat"),
+];
+
 const NO_ROOTS: &[KnownRoot] = &[];
 
 const fn root(os: &'static str, base: Base, rel: &'static str, depth: usize) -> KnownRoot {
@@ -220,6 +229,17 @@ const GHIDRA_ROOTS: &[KnownRoot] = &[
     root("linux", Base::Env("HOME"), "", 1),
     root("linux", Base::Env("HOME"), "Downloads", 1),
     root("linux", Base::Env("HOME"), "Desktop", 1),
+];
+
+const IDA_ROOTS: &[KnownRoot] = &[
+    root("windows", Base::Env("ProgramFiles"), "", 1),
+    root("windows", Base::Env("ProgramFiles(x86)"), "", 1),
+    root("windows", Base::Env("USERPROFILE"), "", 1),
+    root("macos", Base::Dir("/Applications"), "", 1),
+    root("macos", Base::Env("HOME"), "Applications", 1),
+    root("linux", Base::Dir("/opt"), "", 1),
+    root("linux", Base::Dir("/usr/local"), "", 2),
+    root("linux", Base::Env("HOME"), "", 1),
 ];
 
 /// Browsers on Windows and macOS rarely put themselves on PATH.
@@ -411,6 +431,17 @@ pub const ENGINES: &[ExternalEngine] = &[
         known_roots: GHIDRA_ROOTS,
         path_setting: false,
         install: Install::Guided { pins: GHIDRA_PINS, how: GHIDRA_SETUP },
+    },
+    ExternalEngine {
+        id: "ida",
+        name: "IDA",
+        needed_for: "Deep mode: decompiled functions and pseudocode",
+        exes: &["idat", "idat64"],
+        exes_windows: &["idat.exe", "idat64.exe"],
+        known_paths: IDA_PATHS,
+        known_roots: IDA_ROOTS,
+        path_setting: true,
+        install: Install::Manual,
     },
     ExternalEngine {
         id: "adb",

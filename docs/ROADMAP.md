@@ -85,7 +85,7 @@ Issues are ranked by people affected and how badly, after leaving out what's alr
 | 3 | R2.7, R2.8 | — | Small gaps left in finished work |
 | 3 | R2.9 Everyday use, R2.10 Pinned builds | — | Open to anyone at any time; most lines stand alone |
 | 3 | R1.5 | — | Small leftovers |
-| Any | M3: R3.3, R3.9, R3.11 | — | Open lane |
+| Any | M3: R3.3, R3.9, R3.11, R3.14 | — | Open lane |
 | Later | R4.1 macOS CLI, R4.2 Managed tier | **decision** | Not before M5 |
 
 ---
@@ -776,6 +776,13 @@ to the project next.
 ## M3 Engine depth
 
 An open lane: anyone may take these at any time.
+
+### R3.14 IDA Deep engine
+Owner: open · Status: in progress
+- [ ] Detect a manually installed IDA and use its headless decompiler in Deep mode, with cached
+      analysis, provider selection, evidence and the existing built-in fallback
+      — claimed: Kimi Code, branch feature/r3.14-ida-deep-engine
+- [ ] Map raw-binary processor and load-address settings to IDA's loader instead of falling back
 
 ### R3.3 Frida sessions for real
 Owner: open · Status: todo

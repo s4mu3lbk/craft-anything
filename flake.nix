@@ -26,6 +26,8 @@
         with pkgs;
         [
           wayland
+          dbus
+          zenity
           libxkbcommon
           libGL
           vulkan-loader
@@ -74,7 +76,8 @@
               cp target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/craft-anything $out/bin/
               cp target/${pkgs.stdenv.hostPlatform.rust.rustcTarget}/release/craft-anything-cli $out/bin/
               wrapProgram $out/bin/craft-anything \
-                --prefix LD_LIBRARY_PATH : ${nixpkgs.lib.makeLibraryPath libs}
+                --prefix LD_LIBRARY_PATH : ${nixpkgs.lib.makeLibraryPath libs} \
+                --prefix PATH : ${nixpkgs.lib.makeBinPath libs}
             '';
             meta = {
               description = "Evidence-backed software analysis and rebuilding";

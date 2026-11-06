@@ -144,6 +144,9 @@ cheapest help we can give anyone, so nothing below should hold it up for long.
       show whether Claude Code accepts its tools
 - [ ] Add to `docs/releasing.md`: after a release, close every ticket marked as waiting for it, so
       they don't stay open marked `fixed`
+- [ ] NixOS: An app and A game open their file/folder pickers with Zenity and libdbus available;
+      missing runtime dependencies made both buttons look unresponsive
+      — claimed: Kimi Code, branch bugfix/r5.1-nixos-file-dialogs
 
 ### R5.2 Keeping contributions moving
 Owner: maintainers · Status: in progress

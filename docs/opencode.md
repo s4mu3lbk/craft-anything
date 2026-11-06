@@ -86,6 +86,8 @@ setting from API/Claude `effort`: an unavailable OpenCode variant is refused, ne
 Hub and tool selections use the same save path: reread the settings file strictly, preserve unrelated
 disk changes, and reject a changed backend or project. Malformed settings are left untouched, and
 the session is updated only after a successful save.
+Builder runs explicitly use OpenCode's `build` agent so a saved `plan` default cannot stop before
+writing files. Extra arguments can still select another agent explicitly.
 Closing the app also preserves the latest AI selection. If a running tool holds the session,
 pending non-AI app settings are kept in `config.pending.toml` instead of waiting for the tool or
 overwriting its settings. At the next startup they are merged with the latest saved AI table;

@@ -207,6 +207,11 @@ licence and no configured Python after `HOME` and `IDAUSR` were pointed at a scr
 its target, database and temporary files, but keep the vendor's user configuration so the person's
 licence and Python remain available; validate with a real decompile, not just process startup.
 
+**A builder that only planned.** OpenCode inherited a saved `plan` agent and produced a detailed plan
+but no project files, so the next check reported an empty `app/` instead of the real cause. Builder
+runs explicitly select its editing agent (`--agent build`), while an explicit user override still wins;
+verify a real file-writing request, not only argument tests.
+
 **A graphics backend that crashed before it was chosen.** We ranked GL last when picking an
 adapter, but eframe starts every backend first, and starting GL loaded an old Intel OpenGL driver
 that crashed the app before any window or error box (#196). Ranking can't protect you from a

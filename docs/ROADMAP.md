@@ -508,6 +508,10 @@ Owner: open · Status: in progress
 - [ ] OpenCode's plain adapter never passes our tool server, so its builder has none of our tools
       and hunts for a setting that doesn't exist (#481). Hand it the server, or build over ACP by
       default once that passes
+- [x] Use OpenCode's build agent for builder runs unless extra arguments already choose one; a saved
+      plan default produced only plans and left app/ empty. Argument tests and a live file-writing
+      run passed
+      — claimed: Kimi Code, branch bugfix/r2.2-opencode-build-agent
 - [x] Aider has no adapter, so the plain one hands it the prompt as a file name, and it can open a
       browser sign-in nobody agreed to (#72). Give it an adapter, or stop offering it — claimed: Afloat16, branch bugfix/r2.2-aider-recommendations-20261103
 - [ ] Add a non-interactive Aider adapter before recommending it again; detection currently leaves it out.

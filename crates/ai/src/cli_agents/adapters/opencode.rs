@@ -54,10 +54,12 @@ impl AgentAdapter for OpenCode {
     /// Build native `run` arguments, encoding an optional thinking depth as `provider/model#variant`.
     fn args(&self, cx: &ArgsCx) -> Vec<String> {
         let mut a = vec!["run".to_string()];
-        // A builder works unattended: what OpenCode would stop to ask is allowed, unless its own
-        // settings deny it (as Codex gets a workspace-write sandbox).
+        // A builder works unattended and must use OpenCode's editing agent, not a saved plan default.
         if cx.builder {
             a.push("--auto".into());
+            if !cx.options.args.iter().any(|arg| arg == "--agent" || arg.starts_with("--agent=")) {
+                a.extend(["--agent".into(), "build".into()]);
+            }
         }
         if let Some(m) = &cx.options.cli_model {
             let model = cx.options.cli_thinking.map_or_else(|| m.clone(), |d| format!("{m}#{}", d.as_str()));
@@ -179,12 +181,10 @@ mod tests {
     #[test]
     fn the_prompt_goes_to_run_after_the_flags() {
         assert_eq!(args(false, &BackendOptions::default()), ["run", "--format", "json", "PRE make a game"]);
+        assert_eq!(args(true, &BackendOptions::default()), ["run", "--auto", "--agent", "build", "--format", "json", "PRE make a game"]);
         let options =
-            BackendOptions { cli_model: Some("anthropic/claude-sonnet-4-5".into()), args: vec!["--agent".into(), "build".into()], ..Default::default() };
-        assert_eq!(
-            args(true, &options),
-            ["run", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "build", "--format", "json", "PRE make a game"]
-        );
+            BackendOptions { cli_model: Some("anthropic/claude-sonnet-4-5".into()), args: vec!["--agent".into(), "plan".into()], ..Default::default() };
+        assert_eq!(args(true, &options), ["run", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "plan", "--format", "json", "PRE make a game"]);
         assert!(AgentAdapters::built_in().for_agent("opencode").ids().contains(&"opencode"), "registered, not the plain adapter");
     }
 

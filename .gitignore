@@ -16,3 +16,8 @@ corpus/
 *.pfx
 *.key
 .claude/settings.local.json
+
+# Nix and direnv local artifacts
+.devenv/
+.direnv/
+result

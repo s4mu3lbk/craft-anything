@@ -212,6 +212,11 @@ but no project files, so the next check reported an empty `app/` instead of the 
 runs explicitly select its editing agent (`--agent build`), while an explicit user override still wins;
 verify a real file-writing request, not only argument tests.
 
+**A button that wasn't broken.** An app and A game called the file picker, but the Nix package had
+neither Zenity nor libdbus, so nothing appeared and the buttons looked unresponsive. Package external
+programs as well as shared libraries, put them on the wrapper's `PATH`, and open the real dialog as
+the live check.
+
 **A graphics backend that crashed before it was chosen.** We ranked GL last when picking an
 adapter, but eframe starts every backend first, and starting GL loaded an old Intel OpenGL driver
 that crashed the app before any window or error box (#196). Ranking can't protect you from a

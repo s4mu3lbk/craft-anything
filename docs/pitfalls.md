@@ -202,6 +202,11 @@ real Deep-mode run (the CLI never shows it: it already has a console). Every chi
 the windowed app gets `CREATE_NO_WINDOW`; check the desktop app, not only the CLI, after adding a
 program.
 
+**A builder that only planned.** OpenCode inherited a saved `plan` agent and produced a detailed plan
+but no project files, so the next check reported an empty `app/` instead of the real cause. Builder
+runs explicitly select its editing agent (`--agent build`), while an explicit user override still wins;
+verify a real file-writing request, not only argument tests.
+
 **A graphics backend that crashed before it was chosen.** We ranked GL last when picking an
 adapter, but eframe starts every backend first, and starting GL loaded an old Intel OpenGL driver
 that crashed the app before any window or error box (#196). Ranking can't protect you from a

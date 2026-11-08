@@ -1332,6 +1332,7 @@ dependencies = [
  "hex",
  "log",
  "nix 0.31.3",
+ "objc2-core-graphics",
  "portable-pty",
  "process-wrap",
  "serde",

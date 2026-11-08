@@ -193,7 +193,12 @@ pub fn metadata(data: &[u8], h: &Header) -> Result<Metadata, FormatError> {
         if v == 15 || v == 16 {
             c.u8("stripped")?;
         }
-        objects.push(Object { path_id, class_id, offset: h.data_offset.saturating_add(start), size });
+        let offset = h
+            .data_offset
+            .checked_add(start)
+            .filter(|offset| offset.checked_add(u64::from(size)).is_some_and(|end| end <= h.file_size))
+            .ok_or_else(|| FormatError::Malformed(format!("object {path_id} lies outside the file")))?;
+        objects.push(Object { path_id, class_id, offset, size });
     }
     for _ in 0..c.count("script references", 12)? {
         c.i32("script file")?;

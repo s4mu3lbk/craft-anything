@@ -87,6 +87,12 @@ pub fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
+/// A number that never repeats within this process, for names that must stay unique even when
+/// two are made in the same millisecond (or a name was just freed by deletion).
+pub fn next_counter() -> u64 {
+    COUNTER.fetch_add(1, Ordering::SeqCst)
+}
+
 /// Ids are `[0-9a-z-]` only, so they are always safe as file names.
 fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 64 && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
@@ -119,7 +125,7 @@ impl Inbox {
         action: Option<String>,
     ) -> Result<String, ToolError> {
         std::fs::create_dir_all(&self.dir).map_err(|e| ToolError::io(self.dir.display(), e))?;
-        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let n = next_counter();
         let id = format!("{}-{}-{n}", now_ms(), std::process::id());
         let req = Request { id: id.clone(), kind, title: title.to_string(), detail: detail.to_string(), choices, allow_text, action, created_ms: now_ms() };
         let bytes = serde_json::to_vec_pretty(&req).map_err(|e| ToolError::internal(e.to_string()))?;

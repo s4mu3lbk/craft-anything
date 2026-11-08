@@ -14,11 +14,11 @@
 <h1 align="center">Craft Anything</h1>
 
 <p align="center">
-  <a href="README.md">English</a> · <b>日本語</b> · <a href="README.zh.md">简体中文</a> · <a href="README.ko.md">한국어</a>
+  <a href="README.md">English</a> · <b>日本語</b> · <a href="README.zh.md">简体中文</a> · <a href="README.zh-hant.md">繁體中文</a> · <a href="README.ko.md">한국어</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.pt.md">Português</a>
 </p>
 
 <p align="center">
-  <b>あらゆる Web サイト、アプリ、ゲームがどう動いているかを見て、あなた自身の版を AI に作らせる。純粋な Rust で書かれた、オープンソースのクリーンルームエンジン。</b><br>
+  <b>あらゆる Web サイト、アプリ、ゲームがどう動いているかを見て、あなた自身の版を AI に作らせる。純粋な Rust で書かれた、外から観察する方式のオープンソースエンジン。</b><br>
   対象を指定して、欲しいものを伝えるだけ。実際の調査ツールで元のソフトを調べ、<br>
   コーディングエージェントに新しいプロジェクトを作らせ、結果を元のソフトと比較して磨き上げます。
 </p>
@@ -118,15 +118,15 @@ Craft Anything で対象を指定し、欲しいものを伝えて「Start」を
 
 ## 2 つの使い方
 
-- **Simple** (既定): 「What do you want to make?」と表示されるので、Web サイト、アプリ、ゲームから選び、説明して Start を押します。プロジェクトページには 4 つのステップ (Study → Build → Check → Ready)、エージェントが今何をしているかの平易な説明、質問と承認のカード、結果がどれくらい似ているか、結果やそのフォルダを開くボタンが並びます。変更は下の入力欄から頼めます。「Just look inside」は、何も作らずに対象へ質問できます (ディープモード時)。
+- **Simple** (既定): 「What do you want to make?」と表示されるので、Web サイト、アプリ、ゲームから選び、説明して Start を押します。プロジェクトページには 4 つのステップ (Study → Build → Check → Ready)、エージェントが今何をしているかの平易な説明、質問と承認のカード、結果がどれくらい似ているか、結果やそのフォルダを開くボタンが並びます。変更は下の入力欄から頼めます。「Just look inside」は、何も作らずに対象へ質問できます (中まで解析モード時)。
 - **Advanced**: フル機能のワークベンチ。すべてのツール (Ctrl/Cmd+K)、関数、文字列、疑似 C、逆アセンブル、16 進数、コールグラフ、エビデンス、不明点、ジョブ、ログ、エージェントコンソール。
 
 どちらのモードも同じエンジンを動かします。
 
-## クリーンルーム(Clean room)かディープモード(Deep)
+## 外から観察(Clean room)と中まで解析(Deep)
 
-- **クリーンルーム(Clean room)** (既定): 元のソフトの中身は一切読みません。コードも、ファイルも、ページのソースも読みません。Craft Anything は、あなたに見えるものだけから作業します。追加した画像、訪問者から見た Web サイト (スクリーンショット、見えているテキスト、計測したレイアウト、色、フォント、余白、開いたメニュー)、そして許可した場合はアプリのウィンドウの画像です。中を覗こうとするツールは拒否され、ディープモードの有効化方法を案内します。
-- **ディープモード(Deep)**: すべてのツールを使います。私的利用のためのモードです。プログラムのコードとファイルは内蔵エンジン (インストールされていれば Ghidra も)で読み、Web サイトの JavaScript を読み、そのスタートページを観察します。ビルダーもそれらすべてを使えます。
+- **外から観察(Clean room)** (既定): 元のソフトの中身は一切読みません。コードも、ファイルも、ページのソースも読みません。Craft Anything は、あなたに見えるものだけから作業します。追加した画像、訪問者から見た Web サイト (スクリーンショット、見えているテキスト、計測したレイアウト、色、フォント、余白、開いたメニュー)、そして許可した場合はアプリのウィンドウの画像です。中を覗こうとするツールは拒否され、中まで解析モードをオンにする方法を案内します。
+- **中まで解析(Deep)**: すべてのツールを使います。私的利用のためのモードです。プログラムのコードとファイルは内蔵エンジン (インストールされていれば Ghidra も)で読み、Web サイトの JavaScript を読み、そのスタートページを観察します。ビルダーもそれらすべてを使えます。
 
 タイトルバーまたは Settings で切り替えられます。`settings_set deep_mode true` で設定するか、CLI の 1 回限りなら `--deep` (または `--clean-room`)を使ってください。
 
@@ -160,7 +160,7 @@ craft-anything-cli rebuild https://example.com "Recreate this website"
 
 ## 内部の仕組み
 
-純粋な Rust で書かれたリバースエンジニアリングエンジンです。ネイティブプログラム、.NET、Java、Android、Apple、Electron/JavaScript、Web サイト、ファームウェア、パケットキャプチャ、データベース、ゲームファイル向けに 314 個のツール (うち 298 個がエンジン本体、残りは AI とセットアップの層)を備えています。独自のデコーダ、逆アセンブラ、逆コンパイラは外部プログラムなしで動きます。ディープモードではそれらすべてを使い、インストールされていれば Ghidra も使います。これがデスクトップアプリ (egui)、CLI、MCP サーバーを支え、一部は WebAssembly としてブラウザでも動きます。全リストは [docs/tools.md](docs/tools.md) にあります。
+純粋な Rust で書かれたリバースエンジニアリングエンジンです。ネイティブプログラム、.NET、Java、Android、Apple、Electron/JavaScript、Web サイト、ファームウェア、パケットキャプチャ、データベース、ゲームファイル向けに 314 個のツール (うち 298 個がエンジン本体、残りは AI とセットアップの層)を備えています。独自のデコーダ、逆アセンブラ、逆コンパイラは外部プログラムなしで動きます。中まで解析モードではそれらすべてを使い、インストールされていれば Ghidra も使います。これがデスクトップアプリ (egui)、CLI、MCP サーバーを支え、一部は WebAssembly としてブラウザでも動きます。全リストは [docs/tools.md](docs/tools.md) にあります。
 
 <a name="get-started"></a>
 
@@ -204,7 +204,7 @@ craft-anything-cli rebuild - "Add a contact form" --project-folder "<your folder
 > - **いま動くもの:** デスクトップアプリ (Simple と Advanced)、CLI、MCP サーバー。Claude Code
 > をビルダーとして、Web サイト・アプリ・ゲームを「調べる → 作る → 確認する → 磨く」の順に進める
 > ワークフロー。3 つの画面幅での Web サイト確認。Unity、Unreal、Godot でのゲーム再構築。Ghidra を
-> 使うディープモード。生成画像と 3D モデル (オプトイン、自分の fal.ai キー)。プラグイン (MCP
+> 使う中まで解析モード。生成画像と 3D モデル (オプトイン、自分の fal.ai キー)。プラグイン (MCP
 > サーバー、および `wasm-plugins` オプション付きビルドでの WASM コンポーネント)。
 > - **一部だけ:** API キーや他のコーディングエージェントでのビルド (実装済み、実環境では未実行)、
 > アプリとゲームの挙動チェック、実物ではなくダミーの対象でしかテストしていない一部のエンジンツール。
@@ -331,12 +331,13 @@ RISC-V (riscv64): `craft-anything-<ver>-linux-riscv64.tar.gz`、tarball のみ�
 | <img src="https://raw.githubusercontent.com/storytold/cadcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.cadcraft.png" alt="" width="32" height="32"> | **CADCraft** | コンピューター支援設計 | [GitHub](https://github.com/storytold/cadcraft) | [ウェブサイト](https://getartcraft.com/apps/cadcraft) |
 | <img src="https://raw.githubusercontent.com/storytold/gridcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.gridcraft.png" alt="" width="32" height="32"> | **GridCraft** | 表計算とデータ | [GitHub](https://github.com/storytold/gridcraft) | [ウェブサイト](https://getartcraft.com/apps/gridcraft) |
 | <img src="https://raw.githubusercontent.com/storytold/texturecraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.texturecraft.png" alt="" width="32" height="32"> | **TextureCraft** | 3D テクスチャ描画 | [GitHub](https://github.com/storytold/texturecraft) | [ウェブサイト](https://getartcraft.com/apps/texturecraft) |
+| <img src="https://raw.githubusercontent.com/storytold/materialcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.materialcraft.png" alt="" width="32" height="32"> | **MaterialCraft** | ノードベースのプロシージャル素材 | [GitHub](https://github.com/storytold/materialcraft) | [ウェブサイト](https://getartcraft.com/apps/materialcraft) |
 | <img src="https://raw.githubusercontent.com/storytold/craft-anything/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.craft-anything.png" alt="" width="32" height="32"> | **Craft Anything** | あらゆるソフトの仕組みを知り、自分の版を作る | [GitHub](https://github.com/storytold/craft-anything) | [ウェブサイト](https://getartcraft.com/apps/craft-anything) |
 | <img src="https://raw.githubusercontent.com/tangency-labs/solidcraft/main/assets/icons/app/linux/exports/hicolor/64x64/apps/io.tangencylabs.solidcraft.png" alt="" width="32" height="32"> | **SolidCraft** | Tangency Labs によるパラメトリック 3D CAD(コミュニティ製アプリ) | [GitHub](https://github.com/tangency-labs/solidcraft) | |
 
 ## ライセンスとクレジット
 
-Craft Anything は [MIT](LICENSE-MIT) または [Apache-2.0](LICENSE-APACHE) のデュアルライセンスです (どちらかお選びください)。Copyright (c) 2026 ArtCraft Team and the Craft Anything contributors. 必要な通知は [NOTICE](NOTICE) にあります。
+Craft Anything は [MIT](LICENSE-MIT) または [Apache-2.0](LICENSE-APACHE) のデュアルライセンスです (どちらかお選びください)。Copyright (c) 2026 ArtCraft Team and the Craft Anything contributors ([CONTRIBUTORS.md](CONTRIBUTORS.md)). 必要な通知は [NOTICE](NOTICE) にあります。
 
 同梱のフォント、アイコン、画像、その他のアセットは、それぞれ独自のオープンライセンスが適用されます。各アセットの作者、出典、ライセンスは [ATTRIBUTION.md](ATTRIBUTION.md) に記載しています。
 

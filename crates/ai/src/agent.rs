@@ -314,6 +314,9 @@ pub struct AgentLoop {
     failure: Arc<Mutex<Option<TurnFailure>>>,
     /// Build commands that failed in a row in this step (see [`MAX_FAILED_BUILDS`]).
     failed_builds: u32,
+    /// Context windows servers said they have, by chain position: a request that didn't fit
+    /// tells us the real size (#962), which may be smaller than the budget we assumed.
+    server_windows: BTreeMap<usize, u64>,
 }
 
 impl AgentLoop {
@@ -423,6 +426,9 @@ impl AgentLoop {
                 StopReason::PauseTurn => {
                     self.history.push(result.message);
                     self.record_unrun_tools(&uses);
+                    if let Some(follow_up) = result.follow_up {
+                        self.history.push(Msg::user_text(follow_up));
+                    }
                     continue;
                 }
                 StopReason::ToolUse if !uses.is_empty() => {
@@ -470,7 +476,7 @@ impl AgentLoop {
         let backend = self.chain.get(self.current).map(|s| s.name.clone()).unwrap_or_default();
         self.emit(AgentEvent::TurnDone {
             backend,
-            input_tokens: msg_usage.input_tokens,
+            input_tokens: msg_usage.input_tokens.saturating_add(msg_usage.cache_read_tokens).saturating_add(msg_usage.cache_write_tokens),
             output_tokens: msg_usage.output_tokens,
             cost_usd: msg_cost,
             cost_is_estimate: false,
@@ -506,10 +512,15 @@ impl AgentLoop {
     fn context_budget(&self) -> u64 {
         let slot = self.chain.get(self.current);
         let configured = if self.cfg.context_tokens == 0 { slot.map(|s| s.context_tokens).unwrap_or(0) } else { self.cfg.context_tokens };
-        match configured {
-            0 if slot.is_some_and(|s| s.local) => context::LOCAL_CONTEXT_TOKENS,
-            0 => context::CLOUD_CONTEXT_TOKENS,
-            n => n,
+        // A window the server reported replaces our guess (a budget the person set stays the most),
+        // with a quarter of it left free for the answer.
+        let reported = self.server_windows.get(&self.current).map(|window| window - window / 4);
+        match (configured, reported) {
+            (0, Some(room)) => room,
+            (n, Some(room)) => n.min(room),
+            (0, None) if slot.is_some_and(|s| s.local) => context::LOCAL_CONTEXT_TOKENS,
+            (0, None) => context::CLOUD_CONTEXT_TOKENS,
+            (n, None) => n,
         }
     }
 
@@ -597,6 +608,7 @@ impl AgentLoop {
         msg_usage: &mut Usage,
         msg_cost: &mut Option<f64>,
     ) -> Option<crate::model::TurnResult> {
+        let mut refitted = false;
         loop {
             // A fallback can have a smaller window than the backend that just failed.
             if let Some((usage, cost)) = self.fit_context(system, tools) {
@@ -630,6 +642,22 @@ impl AgentLoop {
                 Err(e) => {
                     let name = slot.name.clone();
                     self.host.journal("error", json!({"backend": name, "code": e.code, "message": e.message}));
+                    // The request didn't fit the server's context window, and it said how large that
+                    // is: make room to fit it, measured with the server's own count, and ask once more.
+                    let detail = |k: &str| e.details.as_ref().and_then(|d| d.get(k)).and_then(Value::as_u64);
+                    if !produced
+                        && !refitted
+                        && let Some(window) = detail("context_window")
+                    {
+                        refitted = true;
+                        self.server_windows.insert(self.current, window);
+                        if let Some(asked) = detail("prompt_tokens") {
+                            self.last_input = asked;
+                            self.last_history_estimate = context::estimate_tokens(&self.history);
+                        }
+                        self.emit(AgentEvent::Status { text: format!("{name} has room for {window} tokens; making room…") });
+                        continue;
+                    }
                     if !produced && self.current + 1 < self.chain.len() {
                         self.current += 1;
                         let next = self.chain.get(self.current).map(|s| s.name.clone()).unwrap_or_default();
@@ -816,6 +844,7 @@ impl ApiConversation {
             last_history_estimate: 0,
             failure: failure.clone(),
             failed_builds: 0,
+            server_windows: BTreeMap::new(),
         };
         let busy2 = busy.clone();
         std::thread::Builder::new()
@@ -1034,6 +1063,7 @@ pub(crate) mod tests {
             stop,
             usage: Usage { input_tokens: 10, output_tokens: 5, ..Default::default() },
             model: "claude-opus-5-5".into(),
+            follow_up: None,
         })
     }
 
@@ -1243,7 +1273,8 @@ pub(crate) mod tests {
             assert!(seen[3].len() < seen[1].len() + 2);
         }
         assert!(
-            matches!(events.last(), Some(AgentEvent::TurnDone { input_tokens: 60, output_tokens: 19, cost_usd: Some(cost), .. }) if (cost - 0.00010125).abs() < 1e-12),
+            // Cached tokens count as input (R5.4: Ollama 0.40 reports them, and usage.json left them out).
+            matches!(events.last(), Some(AgentEvent::TurnDone { input_tokens: 70, output_tokens: 19, cost_usd: Some(cost), .. }) if (cost - 0.00010125).abs() < 1e-12),
             "{events:?}"
         );
         {
@@ -1368,8 +1399,18 @@ pub(crate) mod tests {
             last_history_estimate: 0,
             failure: Arc::default(),
             failed_builds: 0,
+            server_windows: BTreeMap::new(),
         };
         let tools = [ToolDef { name: "look".into(), description: "x".repeat(4000), schema: json!({"type": "object"}) }];
+
+        // A window the server reported (#962) replaces the local guess but not a smaller set budget.
+        agent.server_windows.insert(0, 65_536);
+        assert_eq!(agent.context_budget(), 1000, "a budget that was set stays the most");
+        agent.chain[0].context_tokens = 0;
+        assert_eq!(agent.context_budget(), 49_152, "three quarters of the reported window");
+        agent.server_windows.clear();
+        assert_eq!(agent.context_budget(), context::LOCAL_CONTEXT_TOKENS);
+        agent.chain[0].context_tokens = 1000;
 
         assert!(agent.fit_context("A short system prompt.", &[]).is_none());
         assert!(host.journal.lock().unwrap().is_empty(), "a small prompt is not judged");
@@ -1531,6 +1572,64 @@ pub(crate) mod tests {
         assert_eq!(trims.len(), 1, "the short follow-up does not compact the same growth twice");
         assert_eq!(trims[0].1["budget"], budget);
         assert!(trims[0].1["tokens_before"].as_u64().unwrap() > budget);
+    }
+
+    #[test]
+    fn a_request_too_long_for_the_servers_window_is_fitted_and_asked_once_more() {
+        // #962: Ollama on its 64k default refused a 70k request; our 24k-local guess counts
+        // characters, so the server's own count is what the next fit is measured with.
+        let overflow = || {
+            let body = json!({"error": {"message": "request (69944 tokens) exceeds the available context size (65536 tokens), try increasing it"}});
+            Err(crate::http::status_error("Ollama (local)", 400, &body.to_string()))
+        };
+        let answer = || turn(vec![Block::Text { text: "done".into() }], StopReason::EndTurn);
+        for (turns, fits) in [(vec![overflow(), answer()], true), (vec![overflow(), overflow(), answer()], false)] {
+            let dir = tempfile::tempdir().unwrap();
+            let transcript = dir.path().join("transcript.json");
+            let mut history = vec![
+                Msg::user_text("Build it"),
+                Msg { role: Speaker::Assistant, blocks: vec![Block::ToolUse { id: "old".into(), name: "look".into(), input: json!({}) }] },
+                Msg { role: Speaker::User, blocks: vec![Block::ToolResult { tool_use_id: "old".into(), content: "x".repeat(8000), is_error: false }] },
+            ];
+            for _ in 0..context::KEEP_RECENT / 2 {
+                history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: "checked".into() }] });
+                history.push(Msg::user_text("continue"));
+            }
+            context::save(&transcript, &history).unwrap();
+            let host = Arc::new(FakeHost { calls: Mutex::default(), journal: Mutex::default() });
+            let seen = Arc::new(Mutex::new(Vec::new()));
+            let model = Scripted { turns: VecDeque::from(turns), seen: seen.clone() };
+            let chain = vec![ModelSlot { name: "Ollama (local)".into(), model: Box::new(model), local: true, effort: None, max_turns: 5, context_tokens: 0 }];
+            let mut conversation = ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), ..Default::default() }).unwrap();
+            conversation.send("continue");
+            let events = drain_until_done(&mut conversation, |_, _| {});
+            let seen = seen.lock().unwrap();
+            assert_eq!(seen.len(), 2, "asked once more, never again (fits={fits})");
+            let old = |h: &[Msg]| {
+                h.iter()
+                    .flat_map(|m| &m.blocks)
+                    .find_map(|b| match b {
+                        Block::ToolResult { tool_use_id, content, .. } if tool_use_id == "old" => Some(content.len()),
+                        _ => None,
+                    })
+                    .unwrap()
+            };
+            assert_eq!(old(&seen[0]), 8000);
+            assert!(old(&seen[1]) < 8000, "room was made before asking again");
+            assert!(events.iter().any(|e| matches!(e, AgentEvent::Status { text } if text.contains("65536"))), "{events:?}");
+            let journal = host.journal.lock().unwrap();
+            assert!(journal.iter().any(|(kind, entry)| kind == "context" && entry["budget"] == 65536 - 65536 / 4 && entry["tokens_before"] == 69944));
+            let error = events.iter().find_map(|e| match e {
+                AgentEvent::Error { remediation, .. } => Some(remediation.clone().unwrap_or_default()),
+                _ => None,
+            });
+            if fits {
+                assert!(error.is_none(), "{events:?}");
+                assert!(events.iter().any(|e| matches!(e, AgentEvent::TextDelta { text } if text == "done")));
+            } else {
+                assert!(error.is_some_and(|r| r.contains("OLLAMA_CONTEXT_LENGTH")), "{events:?}");
+            }
+        }
     }
 
     #[test]

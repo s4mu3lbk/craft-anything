@@ -117,14 +117,18 @@ fn assets_key_set(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolEr
     if key.is_empty() || key.len() > 512 || key.chars().any(char::is_whitespace) {
         return Err(ToolError::invalid(format!("That doesn't look like a {} key.", to.name())).with_remediation("Copy the key from the provider's dashboard."));
     }
-    let stored_in = hub(ctx)?.set_asset_key(to.id(), key)?;
+    let hub = hub(ctx)?;
+    let stored_in = hub.set_asset_key(to.id(), key)?;
+    crate::keys::refresh_loaded(ctx.session, &hub.keys);
     Ok(ToolOutput::Value(json!({"provider": to.id(), "stored": true, "stored_in": stored_in})))
 }
 
 fn assets_key_remove(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
     let p: ProviderParams = parse_params(params)?;
     let from = provider(ctx, p.provider.as_deref())?;
-    hub(ctx)?.remove_asset_key(from.id())?;
+    let hub = hub(ctx)?;
+    hub.remove_asset_key(from.id())?;
+    crate::keys::refresh_loaded(ctx.session, &hub.keys);
     Ok(ToolOutput::Value(json!({"provider": from.id(), "stored": false})))
 }
 

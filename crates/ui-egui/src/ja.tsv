@@ -39,7 +39,7 @@ Add pictures of the original	元の画像を追加
 Add pictures of the original (optional: screenshots help it look right)	元の画像を追加(任意: スクリーンショットがあると見た目を合わせやすい)
 Added	追加済み
 Added {n} picture(s). The builder uses them from your next change.	画像を {n} 枚追加しました。次の変更からビルダーが使います。
-Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	ディープモードに逆コンパイラを追加します。Craft Anything がダウンロードしてセットアップできます。
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	中まで解析モードに逆コンパイラを追加します。Craft Anything がダウンロードしてセットアップできます。
 Advanced	アドバンスト
 After installing one, look for it again.	インストールしたら、もう一度探してください。
 Agent	エージェント
@@ -123,13 +123,13 @@ Choose what the builder's questions get	ビルダーの質問への回答方法�
 Choose what to recreate, say what you want, then press Start.	何を再現するか選び、欲しいものを伝えて開始を押してください。
 Choose…	選択…
 Classes	クラス
-Clean room	クリーンルーム
-Clean room / Deep	クリーンルーム / ディープ
-Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	クリーンルームは元のコード、ファイル、ページのソースを一切読みません。ディープモードは Craft Anything のすべてのツールでそれらを読みます。
-Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	クリーンルームは元のコード、ファイル、ページのソースを読みません。見えるものから作業します。ディープはすべてのツールで読み、Ghidra があればそれも使います。各検出結果には使用したモードを記録します。
-Clean room on	クリーンルーム オン
-Clean room or Deep	クリーンルームかディープ
-Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	クリーンルーム: 元の中身は一切読みません。見えるものだけから作業します。画像、訪問者から見たページ、動作の観察です。
+Clean room	外から観察
+Clean room / Deep	外から観察 / 中まで解析
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	外から観察モードでは元のコード、ファイル、ページのソースを一切読みません。中まで解析モードでは Craft Anything のすべてのツールでそれらを読みます。
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	外から観察モード(Clean room)では元のコード、ファイル、ページのソースを読みません。見えるものから作業します。中まで解析モード(Deep)ではすべてのツールで読み、Ghidra があればそれも使います。各検出結果には、どちらを使ったかを記録します。
+Clean room on	外から観察モード オン
+Clean room or Deep	外から観察 / 中まで解析
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	外から観察: 元の中身は一切読みません。見えるものだけから作業します。画像、訪問者から見たページ、動作の観察です。
 Clear finished	完了したものを消去
 Close	閉じる
 Close a pinned build	固定したビルドを閉じる
@@ -157,10 +157,10 @@ Craft Anything's records, checks and anything it built in app/ are deleted. Your
 Create the project	プロジェクトを作成
 Custom	カスタム
 Decide yourself	自分で決める
-Deep	ディープ
-Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	ディープモードは Ghidra で逆コンパイルするようになりました。大きなプログラムの初回解析には数分かかることがあります。
-Deep mode on	ディープモード オン
-Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	ディープ: すべてのツールで、コード、ファイル、ページのソースを読みます。Ghidra があればそれも使います。クリックで切り替え。
+Deep	中まで解析
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	中まで解析モードは Ghidra で逆コンパイルするようになりました。大きなプログラムでは、最初の読み込みに数分かかることがあります。
+Deep mode on	中まで解析モード オン
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	中まで解析: すべてのツールで、コード、ファイル、ページのソースを読みます。Ghidra があればそれも使います。クリックで切り替え。
 Delete it	削除
 Delete the project	プロジェクトを削除
 Delete {name}?	{name} を削除しますか?
@@ -241,7 +241,7 @@ Generated art (games)	生成アート(ゲーム)
 Generated assets	生成アセット
 Generated pictures and 3D models are made with fal.ai.	生成画像と 3D モデルは fal.ai で作成します。
 Get Ghidra	Ghidra を入手
-Get Ghidra for Deep mode	ディープモード用に Ghidra を入手
+Get Ghidra for Deep mode	中まで解析モード用に Ghidra を入手
 Get Unity Hub	Unity Hub を入手
 Get a key at {name}	{name} でキーを取得
 Get the Epic Games Launcher	Epic Games Launcher を入手
@@ -252,12 +252,12 @@ Getting Unity Hub	Unity Hub を取得中
 Getting the Epic Games Launcher	Epic Games Launcher を取得中
 Ghidra folder	Ghidra のフォルダ
 Ghidra is ready	Ghidra の準備ができました
-Ghidra is ready. Deep mode uses it from now on.	Ghidra の準備ができました。以後ディープモードで使います。
+Ghidra is ready. Deep mode uses it from now on.	Ghidra の準備ができました。以後中まで解析モードで使います。
 Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra がインストールされていないため、内蔵の逆コンパイラで代用します。設定 → エンジンで入手できます。
 Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra がまだこのコンピュータにないため、内蔵の逆コンパイラで代用します。
 Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra はこのコンピュータのメモリの半分(最大 {gb} GB)を使います。
 Ghidra will use up to {gb} GB of memory.	Ghidra は最大 {gb} GB のメモリを使います。
-Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	NSA が公開している無料のリバースエンジニアリングツール Ghidra を使うと、ディープモードの逆コンパイル結果と型情報がより充実します。
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	NSA が公開している無料のリバースエンジニアリングツール Ghidra を使うと、中まで解析モードの逆コンパイル結果と型情報がより充実します。
 Go home	ホームへ
 Go to offset (0x…)	オフセットへ移動(0x…)
 Go to the project	プロジェクトへ移動
@@ -273,7 +273,7 @@ Hide the answer	回答を隠す
 Hide the console	コンソールを隠す
 Home	ホーム
 How alike a rebuild must look to the original before refining stops.	再構築が元にどれくらい似たら改善を止めるかの基準です。
-How closely may we look at it?	どこまで詳しく見てよいですか?
+How closely may Craft Anything look at it?	どこまで詳しく見てよいですか?
 How do I open an app?	アプリを開くには
 How do the window and the page talk to each other?	ウィンドウとページはどう通信する?
 How is this app built?	このアプリはどうビルドされている?
@@ -289,7 +289,7 @@ I'm learning how things work	仕組みを学んでいる
 I'm new to this	はじめて
 Ideas:	アイデア:
 Imports / Exports	インポート / エクスポート
-In Deep mode this one takes a game's own files out after the study. Click to stop.	ディープモードでは、調査後にゲーム自身のファイルを取り出します。クリックで停止。
+In Deep mode this one takes a game's own files out after the study. Click to stop.	中まで解析モードでは、調査後にゲーム自身のファイルを取り出します。クリックで停止。
 In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	Unity Hub でサインイン(または無料アカウントを作成)し、無料の Personal ライセンスに同意します。次に Installs を開き、Install Editor を押して推奨バージョンを選びます。約 10 GB です。
 In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	ランチャーでサインインし、Unreal Engine を開いて Library を選び、Engine Versions の横の + を押してインストールします。約 60 GB です。
 In use	使用中
@@ -367,7 +367,7 @@ Looked at {a} of {b}	{b} 件中 {a} 件を確認
 Looking for AI on this computer…	このコンピュータの AI を探しています…
 Looking for game engines on this computer…	このコンピュータのゲームエンジンを探しています…
 Looking for the game's files…	ゲームのファイルを探しています…
-Looking inside needs Deep mode	中を覗くにはディープモードが必要です
+Looking inside needs Deep mode	元の中身を読むには中まで解析モードが必要です
 Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	自分が所有している、または調べる許可があるソフトの中を見るのは普通のことで、多くの場合に保護されています(学習、互換性、セキュリティ)。理由を書いておくと遵守しやすくなります。この内容はこのコンピュータから出ません。
 Looking on this computer…	このコンピュータを探しています…
 Made a copy: {name}	コピーを作成しました: {name}
@@ -423,8 +423,9 @@ Nothing allowed yet.	まだ何も許可されていません。
 Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	まだビルドできません。Claude Code をインストールして一度サインインするか、下で API キーを使って AI を追加してください。
 Nothing found	何も見つかりません
 Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	まだ見つかっていません。API キー、ローカルのモデルサーバー(Ollama、LM Studio)、すでにあるエージェントアプリを探します。別のポートや別のコンピュータにあるサーバーは、下でアドレスを指定して追加できます。
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything が持つすべてのツールで、コードとファイルを読みます。私的利用のためのモードです。
 Nothing inside it is read.	中身は一切読みません。
-Nothing inside it is read; we work from what you can see. Your version gets its own art.	中身は読みません。見えるものから作業し、あなたの版には独自のアートを使います。
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	中身は読みません。見えるものから Craft Anything が作業し、あなたの版には独自のアートを使います。
 Nothing made yet. What you make shows up here.	まだ何も作っていません。作ったものがここに並びます。
 Nothing matches the filter.	絞り込みに一致するものがありません。
 Nothing matches.	一致するものがありません。
@@ -594,7 +595,7 @@ Saved in	保存先
 Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	容量を節約します。プログラムとコードはコピーし、依存関係とメディアはプロジェクトと共有します。共有ファイルをその場で書き換えると、こちらにも反映されます。
 Say what you want	欲しいものを伝える
 Say what you want first.	まず欲しいものを伝えてください。
-Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	作りたいものを伝えるか、アプリやファイルをウィンドウにドロップして中を見られます。ディープをオンにしない限り、すべてクリーンルームモードで動きます。
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	作りたいものを伝えるか、アプリやファイルをウィンドウにドロップして中を見られます。中まで解析モードをオンにしない限り、すべて外から観察モードで動きます。
 Screenshots of how it should look. The builder opens each one and matches it.	どう見えるべきかのスクリーンショット。ビルダーが 1 枚ずつ開いて合わせます。
 Sections	セクション
 Security research on software I'm allowed to examine.	調べる許可があるソフトのセキュリティ調査。
@@ -649,7 +650,7 @@ Strings	文字列
 Study apps by running them	アプリを実行して調査
 Studying software to understand it.	ソフトを調べて理解するため。
 Switch Beginner / Experienced	ビギナー / 経験者を切り替え
-Switch Clean room / Deep	クリーンルーム / ディープを切り替え
+Switch Clean room / Deep	外から観察 / 中まで解析を切り替え
 Switch light / dark theme	ライト / ダークテーマを切り替え
 System	システム
 Take back: puts it in the box again	取り消す: 入力欄に戻します
@@ -707,7 +708,7 @@ Try it out, then ask below for any changes.	試してみて、変更は下の欄
 Turn off	オフにする
 Turn off an AI	AI をオフにする
 Turn on	オンにする
-Turn on Deep mode	ディープモードをオンにする
+Turn on Deep mode	中まで解析モードをオンにする
 Turn on an AI	AI をオンにする
 Turning a plugin on or off takes effect from the next start.	プラグインのオン・オフは次回起動から反映されます。
 Type a command or tool…	コマンドまたはツールを入力…
@@ -783,7 +784,7 @@ Which websites does it load?	どのサイトを読み込む?
 Who builds what you make	ビルドを担当するのは
 Who can move funds?	誰が資金を動かせますか?
 Why we ask	なぜ聞くのか
-Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	ない場合、ディープモードは Craft Anything 内蔵の逆コンパイラを使いますが、精度は粗くなります。
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	ない場合、中まで解析モードは Craft Anything 内蔵の逆コンパイラを使いますが、精度は粗くなります。
 Work out a copy's size	コピーのサイズを計算
 Workbench	ワークベンチ
 Worked it out: computed step by step from things we saw.	導いた: 見つけたものから段階的に計算したもの。
@@ -881,3 +882,27 @@ Zoom	拡大/縮小
 Bring all to front	すべてを手前に移動
 Drag to give the plan more or less room; double-click to reset	ドラッグでプランの高さを変更、ダブルクリックで元に戻す
 Copy the message	メッセージをコピー
+Choose what the builder's approvals get	ビルダーの承認の扱いを選ぶ
+Reading the web	Web の閲覧
+Other commands	その他のコマンド
+Files outside the project	プロジェクト外のファイル
+Pushing and publishing	プッシュと公開
+Deleting outside the project	プロジェクト外での削除
+System changes	システムの変更
+Other tools	その他のツール
+Allow	許可
+Ask	確認する
+Refuse	拒否
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	/approvals の後ろに種類と allow、ask、refuse、default のどれかを入力してください（例: /approvals publish ask）。種類: {kinds}。
+There's no kind called {name}. Kinds: {kinds}.	{name} という種類はありません。種類: {kinds}。
+Approvals	承認
+In this project, {kind}: {choice}.	このプロジェクトでは {kind}: {choice}。
+Couldn't change the approvals:	承認を変更できませんでした:
+What the builder may do without asking you, in this project.	このプロジェクトでビルダーが確認なしにしてよいこと。
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	既定は自動モードに従います。オンのときは元に戻せることは実行し、それ以外は拒否します。オフのときはビルダーが確認します。
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room は原本のコード、ファイル、ページのソースを読みません。見えるものだけを使います。Deep はあらゆるツールで読み、IDA または Ghidra がインストールされていればそれも使います。どちらを使ったかをすべての発見に記録します。
+Deep decompiler	Deep デコンパイラー
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	自動は IDA を優先し、次に Ghidra を使います。直接選択することもできます。
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: あらゆるツールでコード、ファイル、ページのソースを読み、外部デコンパイラーがインストールされていればそれも使います。クリックで切り替えます。
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} がインストールされていないため、内蔵デコンパイラーを使います。設定 → エンジンでエンジンを選んでください。
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} はまだこのコンピューターにないため、内蔵デコンパイラーを使います。

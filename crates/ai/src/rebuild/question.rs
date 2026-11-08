@@ -32,7 +32,7 @@ const SCAN_DEPTH: usize = 12;
 /// Folders a build makes again, never listed.
 const SKIPPED: &[&str] = &["node_modules", "target", ".godot", "Library", "Temp", "obj", ".venv", "__pycache__", ".next", ".turbo", ".git"];
 
-const PREAMBLE: &str = "You're answering a question the person asked about the project you built inside Craft Anything. This isn't a task: answer it and stop. Don't create, change or delete any file, don't run anything, and don't carry on the build; if the answer is that something should change, say what you'd change and that they can ask for it as a change. Answer in plain words for someone who doesn't code, briefly, with full paths when they ask where something is.\n\n";
+const PREAMBLE: &str = "You're answering a question the person asked about the project you built inside Craft Anything. This isn't a task: answer it and stop. Don't create, change or delete any file, don't run anything, and don't carry on the build; if the answer is that something should change, say what you'd change and that they can ask for it as a change. Answer in plain words for someone who doesn't code, briefly, with full paths when they ask where something is. You're a short-lived copy with fewer tools than the builder, and the build may still be running beside you. So a tool you can't see here is not a tool the build has lost, and a call with no result here may still be running: never report tools as disconnected or work as cut off because of what you see from here.\n\n";
 
 /// How a question was answered.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -52,6 +52,9 @@ pub struct Answered {
     /// The AI that answered.
     pub backend: String,
     pub cost_usd: Option<f64>,
+    /// The saved builder that was off or gone, when another AI answered in its place.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub builder_notice: Option<String>,
 }
 
 /// Answer `question` about `ws` (see the module docs), with the person's `settings` (taken from
@@ -71,6 +74,7 @@ pub fn ask(
         return Err(ToolError::invalid(format!("A question is 1 to {MAX_QUESTION} characters.")));
     }
     let cfg = crate::AiConfig::from_settings(settings);
+    let builder_notice = super::builder_replacement(&cfg, ws, None).map(|r| super::replaced_builder_notice(&r.saved, &r.used));
     let entry = builder_backend(&cfg, project_builder(&cfg, ws))?;
     let deep = settings.deep_mode;
     let cli = |resume: Option<String>| -> Box<dyn Conversation> {
@@ -139,7 +143,7 @@ pub fn ask(
     // A copy of a session reports the whole session's running cost, not this question's (a
     // live run said $22.67 for a few cents of cache reads): say nothing rather than that.
     let cost_usd = cost_usd.filter(|_| from != AnsweredFrom::BuildersSession);
-    Ok(Answered { answer, from, backend: entry.config.name.clone(), cost_usd })
+    Ok(Answered { answer, from, backend: entry.config.name.clone(), cost_usd, builder_notice })
 }
 
 /// The builder's session, kept in the project, put back where its agent looks when this computer
@@ -276,6 +280,13 @@ fn ago(d: Duration) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A copy of the builder's session has no tool server, and saw the build's tools as gone.
+    #[test]
+    fn a_question_is_told_its_missing_tools_are_not_the_builds() {
+        assert!(PREAMBLE.contains("never report tools as disconnected"));
+        assert!(PREAMBLE.contains("may still be running"));
+    }
 
     /// A question that finds the builder's session missing forgets it, unless a build has saved
     /// another meanwhile: then that one stays.

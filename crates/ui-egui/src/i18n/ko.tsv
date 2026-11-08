@@ -1444,6 +1444,24 @@ Zoom	확대/축소
 Bring all to front	모두 앞으로 가져오기
 Drag to give the plan more or less room; double-click to reset	끌어서 계획이 차지하는 공간을 조절하고, 두 번 클릭하면 원래대로 돌아갑니다
 Copy the message	메시지 복사
+Choose what the builder's approvals get	빌더의 승인 요청을 어떻게 처리할지 고르기
+Reading the web	웹 읽기
+Other commands	그 밖의 명령
+Files outside the project	프로젝트 밖의 파일
+Pushing and publishing	푸시와 게시
+Deleting outside the project	프로젝트 밖 삭제
+System changes	시스템 변경
+Other tools	그 밖의 도구
+Allow	허용
+Ask	묻기
+Refuse	거부
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	/approvals 뒤에 종류와 allow, ask, refuse, default 중 하나를 입력합니다. 예: /approvals publish ask. 종류: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	{name}라는 종류는 없습니다. 종류: {kinds}.
+Approvals	승인
+In this project, {kind}: {choice}.	이 프로젝트에서 {kind}: {choice}.
+Couldn't change the approvals:	승인을 바꾸지 못했습니다:
+What the builder may do without asking you, in this project.	이 프로젝트에서 빌더가 묻지 않고 해도 되는 일입니다.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	기본값은 자동 모드를 따릅니다. 켜져 있으면 되돌릴 수 있는 일은 진행하고 나머지는 거부하며, 꺼져 있으면 빌더가 묻습니다.
 Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	클린룸은 원본의 코드, 파일, 페이지 소스를 절대 읽지 않고 눈에 보이는 것만으로 작업합니다. 심층은 모든 도구로 읽고, IDA나 Ghidra가 설치되어 있으면 함께 씁니다. 발견한 내용마다 어느 쪽을 썼는지 기록됩니다.
 Deep decompiler	심층 디컴파일러
 Automatic prefers IDA, then Ghidra. You can also choose one directly.	자동은 IDA를 먼저, 그다음 Ghidra를 선택합니다. 직접 고를 수도 있습니다.

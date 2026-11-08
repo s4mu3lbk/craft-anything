@@ -361,19 +361,29 @@ impl Process {
     }
 }
 
+/// Programs start under its read side and [`crate::capture`] opens consoles and terminals under its
+/// write side: one being opened briefly has handles that a program started at that moment inherits
+/// (Windows Server 2022's console; a Unix terminal until it's made close-on-exec), and it then can't
+/// close until that program ends. Starts don't wait for each other, and nothing else is taken under it.
+pub(crate) static STARTING: std::sync::RwLock<()> = std::sync::RwLock::new(());
+
 /// Start a program, trying again for about a third of a second while its file is busy. A program
 /// just written (an agent's update, a test's stand-in) can still be open for writing in a child
 /// another thread is starting, and Linux then refuses to run it ("Text file busy").
 fn spawn_retrying<T>(mut spawn: impl FnMut() -> std::io::Result<T>) -> std::io::Result<T> {
+    let mut start = || {
+        let _starting = STARTING.read().unwrap_or_else(PoisonError::into_inner);
+        spawn()
+    };
     let mut wait = Duration::from_millis(5);
     for _ in 0..6 {
-        match spawn() {
+        match start() {
             Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy => std::thread::sleep(wait),
             started => return started,
         }
         wait = wait.saturating_mul(2);
     }
-    spawn()
+    start()
 }
 
 /// The child gets [`search_path`](crate::which::search_path), which is also where a bare program
@@ -385,6 +395,9 @@ fn use_search_path(cmd: &mut std::process::Command) {
 }
 
 fn spawn_error(name: &str, program: &OsStr, cwd: Option<&std::path::Path>, e: std::io::Error, remediation: Option<&str>) -> ToolError {
+    if let Some(interpreter) = crate::which::shim_missing_interpreter(program) {
+        return interpreter_missing_error(name, program, &interpreter, &e);
+    }
     // Unix starts a relative path from the folder the child runs in; Windows from ours.
     let looked_up = if cfg!(unix) { started_from(program, cwd) } else { std::path::PathBuf::from(program) };
     let found = crate::which::which_in(&looked_up.to_string_lossy(), crate::which::search_path()).into_iter().next();
@@ -417,6 +430,17 @@ fn spawn_error_for(name: &str, program: &OsStr, e: std::io::Error, remediation: 
         .with_details(serde_json::json!({"program": program.to_string_lossy(), "reason": "found_but_not_started", "path": path.to_string_lossy()})),
         (kind, _) => spawn_error_kind(name, program, e, kind, remediation),
     }
+}
+
+/// An npm shim whose interpreter isn't anywhere we look. Rust then refuses to hand the `.cmd` an
+/// argument with a line break ("batch file arguments are invalid"), which says nothing about Node.
+/// It's a missing program, so builder turns aren't retried.
+fn interpreter_missing_error(name: &str, program: &OsStr, interpreter: &str, e: &std::io::Error) -> ToolError {
+    ToolError::new(ErrorCode::EngineMissing, format!("{name} was installed with npm and needs `{interpreter}` (Node.js) to run, but `{interpreter}` wasn't found."))
+        .with_remediation(format!(
+            "Install Node.js, or if you use nvm for Windows, run `nvm use <version>` in a terminal opened as administrator. Then restart Craft Anything. Installing {name} without npm also works, when it offers that."
+        ))
+        .with_details(serde_json::json!({"program": program.to_string_lossy(), "reason": "interpreter_missing", "interpreter": interpreter, "error": e.to_string()}))
 }
 
 fn spawn_error_kind(name: &str, program: &OsStr, e: std::io::Error, kind: std::io::ErrorKind, remediation: Option<&str>) -> ToolError {
@@ -795,6 +819,13 @@ impl Supervisor {
                 }
             }
             if self.kill.load(Ordering::SeqCst) || self.cancel.as_ref().is_some_and(|c| c()) {
+                // A program that exited since the check above ended on its own (a launcher that
+                // handed off, or a run that finished): say how, not that it was stopped.
+                if handed_off.is_none()
+                    && let Ok(Some(status)) = self.child.try_wait()
+                {
+                    return Stop::Exited(status);
+                }
                 return handed_off.map_or(Stop::Cancelled, Stop::Exited);
             }
             let elapsed = self.start.elapsed();
@@ -949,7 +980,17 @@ impl Launch {
             const CREATE_NO_WINDOW: u32 = 0x0800_0000;
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
-        let child = spawn_retrying(|| cmd.spawn()).map_err(|e| spawn_error(&name, &self.program, self.cwd.as_deref(), e, self.remediation.as_deref()))?;
+        let mut wrap = process_wrap::std::CommandWrap::from(cmd);
+        #[cfg(unix)]
+        wrap.wrap(process_wrap::std::ProcessGroup::leader());
+        #[cfg(windows)]
+        {
+            wrap.wrap(process_wrap::std::JobObject);
+            if self.hide_console {
+                wrap.wrap(process_wrap::std::CreationFlags(windows::Win32::System::Threading::CREATE_NO_WINDOW));
+            }
+        }
+        let child = spawn_retrying(|| wrap.spawn()).map_err(|e| spawn_error(&name, &self.program, self.cwd.as_deref(), e, self.remediation.as_deref()))?;
         let launched = Launched { pid: child.id(), started: Instant::now(), state: Arc::new(Mutex::new(LaunchState { child: Some(child), ended: None })) };
         // Reap it when it closes. If no thread can be made the child still runs (and `ended`
         // stays unknown); on Unix it stays a zombie until we exit, which is harmless.
@@ -981,7 +1022,7 @@ pub struct Launched {
 
 #[derive(Debug)]
 struct LaunchState {
-    child: Option<std::process::Child>,
+    child: Option<Box<dyn process_wrap::std::ChildWrapper>>,
     ended: Option<Ended>,
 }
 
@@ -1253,6 +1294,156 @@ mod launch_tests {
         assert!(l.ended().unwrap().after < Duration::from_secs(20));
     }
 
+    /// Verify that stopping a watched launch stops its descendant on Unix and Windows.
+    ///
+    /// Wait for the child's startup and heartbeat files, then stop even if they are absent. The
+    /// descendant holds an exclusive lock on `descendant-alive` for its whole life, and the system
+    /// releases it only when the process exits: taking that lock after `stop()` is the exit probe,
+    /// with no timing guess. A descendant that outlived the stop instead finishes its bounded loop
+    /// and writes `descendant-survived` before its lock is released.
+    #[test]
+    fn stopping_a_watched_program_stops_its_descendant() {
+        let dir = tempfile::Builder::new().prefix("watched descendant ").tempdir().unwrap();
+        let l = start_descendant_fixture(dir.path(), true);
+        let (started, heartbeat) = stop_after_descendant_startup(&l, dir.path(), Duration::from_secs(5));
+        assert!(started, "descendant never signalled that it started");
+        assert!(heartbeat, "descendant never produced a heartbeat");
+        // Exclusive locks may need write access (e.g. on NFS), so open for reading and writing.
+        let alive = std::fs::OpenOptions::new().read(true).write(true).open(dir.path().join("descendant-alive")).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(20);
+        loop {
+            match alive.try_lock() {
+                Ok(()) => break,
+                Err(std::fs::TryLockError::WouldBlock) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
+                Err(e) => panic!("descendant still holds its lock after the watched program stopped: {e}"),
+            }
+        }
+        assert!(!dir.path().join("descendant-survived").exists(), "descendant ran to completion after the watched program stopped");
+    }
+
+    /// Wait for bounded startup, snapshot its markers, and stop before callers assert on them.
+    fn stop_after_descendant_startup(launch: &Launched, dir: &std::path::Path, timeout: Duration) -> (bool, bool) {
+        let started = dir.join("descendant-started");
+        let heartbeat = dir.join("descendant-heartbeat");
+        let deadline = Instant::now() + timeout;
+        while (!started.exists() || !heartbeat.exists()) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let markers = (started.exists(), heartbeat.exists());
+        assert!(launch.stop(), "could not stop the watched launch");
+        markers
+    }
+
+    /// Missing startup markers must still stop a live fixture before reporting startup failure.
+    ///
+    /// Wait (bounded) for the parent to say it is waiting, so the stop is proven to end a live
+    /// process; stop before asserting, then require that it never finished on its own.
+    #[test]
+    fn a_descendant_startup_timeout_stops_the_watched_launch() {
+        let dir = tempfile::tempdir().unwrap();
+        let l = start_descendant_fixture(dir.path(), false);
+        let ready = dir.path().join("parent-waiting");
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while !ready.exists() && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let parent_ready = ready.exists();
+        let markers = stop_after_descendant_startup(&l, dir.path(), Duration::from_millis(100));
+        assert!(parent_ready, "the waiting parent never signalled that it was ready");
+        assert_eq!(markers, (false, false));
+        assert!(!l.is_running(), "startup failure left the watched launch running");
+        assert!(!dir.path().join("parent-completed").exists(), "the waiting parent finished on its own instead of being stopped");
+    }
+
+    /// Enable the guarded parent in an isolated directory, with or without child startup.
+    fn start_descendant_fixture(dir: &std::path::Path, start_descendant: bool) -> Launched {
+        std::fs::write(dir.join("descendant-fixture"), if start_descendant { "start" } else { "wait" }).unwrap();
+        Launch::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "process::launch_tests::watched_parent_stand_in"])
+            .cwd(dir)
+            .hide_console()
+            .start_watched()
+            .unwrap()
+    }
+
+    /// Start the bounded child in the watched parent's process group and wait for it.
+    ///
+    /// An exact directory-local guard enables this fixture. The `wait` mode simulates a
+    /// parent that stays alive without starting its child, exercising timeout cleanup: it
+    /// writes `parent-waiting` once running and `parent-completed` only if its wait runs out.
+    #[test]
+    #[ignore = "stand-in invoked by watched descendant tests"]
+    fn watched_parent_stand_in() {
+        match std::fs::read("descendant-fixture").ok().as_deref() {
+            Some(b"start") => {}
+            Some(b"wait") => {
+                std::fs::write("parent-waiting", b"ready").unwrap();
+                std::thread::sleep(Duration::from_secs(5));
+                std::fs::write("parent-completed", b"yes").unwrap();
+                return;
+            }
+            _ => return,
+        }
+        // This process-layer fixture must inherit the parent's group/job. Process and
+        // Launch deliberately create new Unix groups, which would invalidate the test.
+        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+        command
+            .args(["--ignored", "--exact", "process::launch_tests::watched_descendant_stand_in"])
+            .env("CRAFT_ANYTHING_TEST_DESCENDANT", "1")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            command.creation_flags(0x0800_0000);
+        }
+        // The child's heartbeat loop exits after five seconds even if no stop arrives.
+        let mut child = spawn_retrying(|| command.spawn()).unwrap();
+        assert!(child.wait().unwrap().success());
+    }
+
+    /// Provide a child process whose marker files expose whether it survives shutdown.
+    ///
+    /// Return without writing unless `CRAFT_ANYTHING_TEST_DESCENDANT` is exactly `1`, as
+    /// set by the parent test. When enabled, hold an exclusive lock on `descendant-alive` until
+    /// the process exits, write startup and periodic heartbeat files in the working directory,
+    /// then a survival marker (before the lock is released) if the loop reaches its end.
+    #[test]
+    #[ignore = "stand-in invoked by stopping_a_watched_program_stops_its_descendant"]
+    fn watched_descendant_stand_in() {
+        if std::env::var_os("CRAFT_ANYTHING_TEST_DESCENDANT").as_deref() != Some(OsStr::new("1")) {
+            return;
+        }
+        let alive = std::fs::File::create("descendant-alive").unwrap();
+        alive.lock().unwrap();
+        std::fs::write("descendant-started", b"ready").unwrap();
+        for n in 0..100 {
+            std::fs::write("descendant-heartbeat", n.to_string()).unwrap();
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        std::fs::write("descendant-survived", b"yes").unwrap();
+    }
+
+    /// Verify that directly running the ignored fixture without its guard writes no files.
+    ///
+    /// Start the test executable in an empty temporary directory with the guard removed,
+    /// then require a successful exit and an unchanged directory.
+    #[test]
+    fn a_direct_descendant_stand_in_run_writes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        for fixture in ["watched_parent_stand_in", "watched_descendant_stand_in"] {
+            let out = Process::new(std::env::current_exe().unwrap())
+                .args(["--ignored", "--exact", &format!("process::launch_tests::{fixture}")])
+                .env_remove("CRAFT_ANYTHING_TEST_DESCENDANT")
+                .cwd(dir.path())
+                .run()
+                .unwrap();
+            assert!(out.success, "{fixture}: {}", out.stderr_text());
+            assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0, "the unguarded {fixture} wrote files");
+        }
+    }
+
     fn exits_with(code: u8) -> Process {
         let code = format!("exit {code}");
         if cfg!(windows) { Process::new("cmd").args(["/C", &code]) } else { Process::new("sh").args(["-c", &code]) }
@@ -1262,8 +1453,23 @@ mod launch_tests {
     fn a_launcher_that_hands_off_keeps_its_group_until_stopped() {
         // Plain: a clean exit ends the run.
         assert!(exits_with(0).run().unwrap().success);
-        // Handing off: the launcher's clean exit doesn't, so the browser it started lives on.
-        let mut p = exits_with(0).hands_off().spawn().unwrap();
+        // Handing off: the launcher's clean exit doesn't, so the browser it started lives on. The
+        // launcher leaves a mark as its last step and the kill waits for it: on a busy machine
+        // `cmd` could still be starting when a fixed 500 ms was up, and a launcher stopped before
+        // it handed off is a cancelled run, not a clean one.
+        let dir = tempfile::tempdir().unwrap();
+        let mark = dir.path().join("handed-off");
+        let launcher = if cfg!(windows) {
+            Process::new("cmd").args(["/C", "type nul > handed-off & exit 0"])
+        } else {
+            Process::new("sh").args(["-c", ": > handed-off; exit 0"])
+        };
+        let mut p = launcher.cwd(dir.path()).hands_off().spawn().unwrap();
+        let start = std::time::Instant::now();
+        while !mark.exists() && start.elapsed() < Duration::from_secs(20) {
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(mark.exists(), "the launcher never ran");
         assert!(p.wait_timeout(Duration::from_millis(500)).is_none(), "a clean hand-off ended the run");
         assert!(p.kill_and_wait(Duration::from_secs(5)));
         assert!(p.wait().unwrap().success);
@@ -1300,6 +1506,19 @@ mod launch_tests {
 #[cfg(test)]
 mod error_tests {
     use super::*;
+
+    /// An npm shim whose Node is missing is a missing program, named, with what to do about it.
+    #[test]
+    fn a_shim_without_its_interpreter_says_so() {
+        let e = std::io::Error::new(std::io::ErrorKind::InvalidInput, "batch file arguments are invalid");
+        let err = interpreter_missing_error("Claude Code", OsStr::new("claude"), "node", &e);
+        assert_eq!(err.code, ErrorCode::EngineMissing);
+        assert!(err.message.contains("needs `node`") && !err.message.contains("batch file"), "{}", err.message);
+        assert!(err.remediation.as_deref().is_some_and(|r| r.contains("nvm use")), "{:?}", err.remediation);
+        let details = err.details.unwrap();
+        assert_eq!((details["reason"].as_str(), details["interpreter"].as_str()), (Some("interpreter_missing"), Some("node")));
+        assert_eq!(details["error"].as_str(), Some("batch file arguments are invalid"));
+    }
 
     /// A busy program file is tried again; any other error, or a file that stays busy, is returned.
     #[test]

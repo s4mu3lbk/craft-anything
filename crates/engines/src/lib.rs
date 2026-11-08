@@ -48,6 +48,32 @@ pub fn display_name(id: &str) -> &'static str {
     engine(id).map(|e| e.name).unwrap_or("an external tool")
 }
 
+/// What to tell the person when an engine wasn't found, as (reason, remediation): `set` is the path
+/// in Settings → Engines, which wasn't there, and `flatpak` whether this app runs in that sandbox.
+pub fn not_found_help(id: &str, set: Option<&Path>, flatpak: bool) -> (String, String) {
+    let name = display_name(id);
+    // Settings → Engines can only install what has pins; these the person installs themselves.
+    let manual = engine(id).is_some_and(|e| matches!(e.install, Install::Manual));
+    let reason = match set {
+        Some(p) => format!("This needs {name}, and the path set for it in Settings → Engines ({}) isn't there.", p.display()),
+        None => format!("This needs {name} installed."),
+    };
+    const CORRECT: &str = "Correct the path in Settings → Engines, or clear it to look in the usual places.";
+    let sandbox = (flatpak && manual).then(|| {
+        format!(
+            "This app is running as a Flatpak, and its sandbox can't see programs in your system's folders, so a path to one won't work. To use {name} from your computer, run the AppImage, .deb, .rpm or tarball version instead."
+        )
+    });
+    let remediation = match (set, sandbox) {
+        (Some(_), Some(sandbox)) => format!("{CORRECT} {sandbox}"),
+        (Some(_), None) => CORRECT.to_string(),
+        (None, Some(sandbox)) => sandbox,
+        (None, None) if manual => format!("Install {name}, then set its path in Settings → Engines if it still isn't found."),
+        (None, None) => format!("Install {name} from Settings → Engines."),
+    };
+    (reason, remediation)
+}
+
 /// Find an engine: user override, then the managed store (`<store>/<id>/bin/<exe>`), then PATH,
 /// then its standard install folders, then the folders where an unpacked copy is usually kept.
 pub fn locate(id: &str, overrides: &dyn ToolPathLookup, store: &Path) -> Option<PathBuf> {
@@ -179,6 +205,37 @@ mod tests {
         // (Unless this computer has Ghidra on PATH or from a system package.)
         let installed = find_on_path(&[exe]).is_some() || well_known("ghidra").iter().any(|p| p.is_file());
         assert!(locate("ghidra", &NoOverrides, empty.path()).is_none() || installed);
+    }
+
+    /// #841: a path set for a browser was ignored without a word, and the message offered an
+    /// install that Settings can't do.
+    #[test]
+    fn a_missing_engine_is_explained_by_why_it_was_not_found() {
+        let set = Path::new("/usr/bin/brave");
+        let (reason, fix) = not_found_help("chromium", Some(set), true);
+        assert!(reason.contains(&set.display().to_string()), "{reason}");
+        // The path may only be mistyped, and one in the home folder can work, so correcting it comes first.
+        assert!(fix.starts_with("Correct the path") && fix.contains("Flatpak") && fix.contains("AppImage"), "{fix}");
+        // A Flatpak can't reach a browser with no path set either, and there's no path to correct.
+        let (_, fix) = not_found_help("chromium", None, true);
+        assert!(fix.contains("Flatpak") && !fix.contains("Correct the path"), "{fix}");
+
+        let (reason, fix) = not_found_help("chromium", Some(set), false);
+        assert!(reason.contains("isn't there") && fix.contains("Correct the path") && !fix.contains("Flatpak"), "{reason} {fix}");
+
+        let (_, fix) = not_found_help("chromium", None, false);
+        assert!(fix.starts_with("Install a Chromium-based browser,") && !fix.contains("from Settings"), "{fix}");
+
+        // What Settings can install still says so, and a sandbox doesn't stop it.
+        for flatpak in [false, true] {
+            assert_eq!(not_found_help("adb", None, flatpak).1, "Install Android platform tools (adb) from Settings → Engines.");
+        }
+    }
+
+    #[test]
+    fn browsers_are_looked_for_under_their_linux_package_names() {
+        let exes = engine("chromium").unwrap().exes;
+        assert!(["google-chrome-stable", "brave-browser", "microsoft-edge"].iter().all(|x| exes.contains(x)), "{exes:?}");
     }
 
     #[test]

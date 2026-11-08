@@ -21,17 +21,6 @@
 # A `[[library]]` is a component or styling library asked for on top of a stack ("shadcn",
 # "tailwind"): its `steps` are added to the stack's for the `stacks` it works with.
 #
-# A `[[toolchain]]` says how a project builds and tests itself, by the file that names the tool
-# (the first in this order wins), so a person's own project can be checked in any language.
-# `build` and `test` are a program and its arguments, run in the project's folder; `no_tests` is
-# what its output says when no tests ran, which isn't a failure (with `test_script`, the
-# package.json script that is its tests, whole scripts that are only placeholders: whether there
-# are any is read from the file, as a script that runs others can print the same);
-# `local_programs` are the
-# project's own copies of the program, used first when one's there (`.bat`, `.cmd` and `.exe`
-# ones on Windows, the others elsewhere); `windows_program` is its name on Windows, where it
-# differs.
-
 [[stack]]
 name = "Builder's choice"
 found_by = ["package.json", "Cargo.toml", "go.mod", "pom.xml", "build.gradle", "build.gradle.kts", "*.sln", "*.csproj", "Gemfile", "composer.json", "CMakeLists.txt", "Makefile"]
@@ -115,60 +104,3 @@ name = "Tailwind CSS"
 asked_by = [" tailwind ", " tailwindcss "]
 stacks = ["Next.js + TypeScript", "React + TypeScript (Vite)", "Electron", "Builder's choice"]
 steps = "Style with Tailwind CSS (v4, through @tailwindcss/postcss for Next.js or @tailwindcss/vite for Vite), with the original's colours, fonts, text sizes, spacing and breakpoints from capture.json as theme tokens in an @theme block."
-
-[[toolchain]]
-name = "Rust"
-found_by = ["Cargo.toml"]
-build = ["cargo", "build", "--quiet"]
-test = ["cargo", "test", "--quiet"]
-
-[[toolchain]]
-name = "Node.js"
-found_by = ["package.json"]
-build = ["npm", "run", "build", "--if-present"]
-test = ["npm", "test"]
-test_script = "test"
-no_tests = ['echo "Error: no test specified" && exit 1']
-windows_program = "npm.cmd"
-
-[[toolchain]]
-name = "Python"
-found_by = ["pyproject.toml", "requirements.txt", "setup.py"]
-build = ["python3", "-m", "compileall", "-q", "-x", '[\\/](\.?venv|node_modules|\.git)[\\/]', "."]
-test = ["python3", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
-no_tests = ["no tests ran", "No module named pytest"]
-local_programs = [".venv/bin/python", "venv/bin/python", ".venv/Scripts/python.exe", "venv/Scripts/python.exe"]
-windows_program = "python"
-
-[[toolchain]]
-name = "Go"
-found_by = ["go.mod"]
-build = ["go", "build", "./..."]
-test = ["go", "test", "./..."]
-
-[[toolchain]]
-name = ".NET"
-found_by = ["*.sln", "*.csproj"]
-build = ["dotnet", "build", "--nologo", "-v", "q"]
-test = ["dotnet", "test", "--nologo", "-v", "q"]
-
-[[toolchain]]
-name = "Maven"
-found_by = ["pom.xml"]
-build = ["mvn", "-q", "-B", "compile"]
-test = ["mvn", "-q", "-B", "test"]
-local_programs = ["mvnw", "mvnw.cmd"]
-
-[[toolchain]]
-name = "Gradle"
-found_by = ["build.gradle", "build.gradle.kts"]
-build = ["gradle", "-q", "assemble"]
-test = ["gradle", "-q", "test"]
-local_programs = ["gradlew", "gradlew.bat"]
-
-[[toolchain]]
-name = "Make"
-found_by = ["Makefile"]
-build = ["make"]
-test = ["make", "test"]
-no_tests = ["make: *** No rule to make target `test'.", "make: *** No rule to make target 'test'.", "make: don't know how to make test."]

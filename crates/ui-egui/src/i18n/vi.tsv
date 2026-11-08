@@ -1,0 +1,1470 @@
+# vi: original Vietnamese UI translations (address the person as "bạn"). Licensed MIT OR Apache-2.0.
+# UTF-8: English source<TAB>translation. Keep placeholders and escapes intact.
+OpenCode default	Mặc định của OpenCode
+Model default	Mô hình mặc định
+Thinking depth	Mức độ suy nghĩ
+OpenCode model	Mô hình OpenCode
+Remote program	Chương trình từ xa
+Reload models	Tải lại mô hình
+Apply	Áp dụng
+No chat models are visible in {agent}. Check its setup, then reload.	Không thấy mô hình trò chuyện nào trong {agent}. Hãy kiểm tra phần thiết lập của nó rồi tải lại.
+The saved model is no longer visible. Choose another model or the {agent} default.	Mô hình đã lưu không còn hiển thị. Hãy chọn mô hình khác hoặc mặc định của {agent}.
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode không có mô hình trò chuyện nào hiển thị. Hãy kết nối một nhà cung cấp trong OpenCode rồi tải lại.
+The saved model is no longer visible. Choose another model or the OpenCode default.	Mô hình đã lưu không còn hiển thị. Hãy chọn mô hình khác hoặc mặc định của OpenCode.
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	Mức độ suy nghĩ đã lưu không dùng được với mô hình này. Hãy chọn mặc định của nó hoặc một mức được cung cấp.
+List an agent's models	Liệt kê các mô hình của một tác tử
+Choose an agent's model and thinking	Chọn mô hình và mức suy nghĩ của một tác tử
+ GB	 GB
+ and {n} more	 và {n} mục nữa
+ {ascii}	 {ascii}
+ · ${c:.2}	 · ${c:.2}
+ · ssh {h}	 · ssh {h}
+(1 picture attached)	(đã đính kèm 1 ảnh)
+({n} pictures attached)	(đã đính kèm {n} ảnh)
+, ${c:.4}	, ${c:.4}
+.NET application graph	Sơ đồ ứng dụng .NET
+.NET apps	Ứng dụng .NET
+.NET assembly overview	Tổng quan assembly .NET
+.NET native calls	Lệnh gọi native của .NET
+.NET types and methods	Kiểu và phương thức .NET
+/btw {}	/btw {}
+0x… or number	0x… hoặc số
+A .NET program (C#, F# or VB)	Một chương trình .NET (C#, F# hoặc VB)
+A DOS program	Một chương trình DOS
+A Java program	Một chương trình Java
+A Linux (or Unix) program	Một chương trình Linux (hoặc Unix)
+A Mac or iPhone program	Một chương trình Mac hoặc iPhone
+A SQLite database (how an app stores its data)	Một cơ sở dữ liệu SQLite (cách ứng dụng lưu dữ liệu)
+A WebAssembly module (code that runs in a browser)	Một mô-đun WebAssembly (mã chạy trong trình duyệt)
+A Windows program	Một chương trình Windows
+A ZIP archive	Một tệp nén ZIP
+A bundle of ready-made code that many programs share.	Một gói mã viết sẵn mà nhiều chương trình dùng chung.
+A coding agent such as Claude Code builds it, and an AI answers your questions in plain words. Change this any time in Settings → AI.	Một tác tử lập trình như Claude Code sẽ xây dựng, còn AI trả lời câu hỏi của bạn bằng lời lẽ dễ hiểu. Bạn có thể đổi bất cứ lúc nào trong Cài đặt → AI.
+A command's output shows here when it finishes.	Kết quả của lệnh sẽ hiện ở đây khi lệnh chạy xong.
+A copy to try something else from here.	Một bản sao để bạn thử hướng khác từ đây.
+A file of machine code that a computer can run directly, like an .exe or an app.	Một tệp mã máy mà máy tính có thể chạy trực tiếp, như tệp .exe hoặc một ứng dụng.
+A file that a computer can run as a program.	Một tệp mà máy tính có thể chạy như một chương trình.
+A file that links packed web code back to the original, readable source files.	Một tệp nối mã web đã được đóng gói về các tệp nguồn gốc dễ đọc.
+A file we don't recognise yet	Một tệp mà chúng tôi chưa nhận ra
+A first look at a file you're unsure about, without running it.	Xem sơ qua một tệp mà bạn chưa chắc, mà không cần chạy nó.
+A folder	Một thư mục
+A folder has no bytes of its own	Thư mục không có byte riêng
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	Một công cụ dịch ngược miễn phí của NSA. Chế độ Chuyên sâu dùng nó để có thêm chi tiết; chế độ Phòng sạch không bao giờ dùng.
+A frozen copy (recommended)	Bản sao đóng băng (khuyên dùng)
+A frozen copy takes {size}. That's a lot of space: a light copy takes {light}.	Bản sao đóng băng chiếm {size}. Như vậy khá nhiều dung lượng: bản sao nhẹ chỉ chiếm {light}.
+A frozen copy takes {size}; a light copy takes {light}.	Bản sao đóng băng chiếm {size}; bản sao nhẹ chiếm {light}.
+A game	Một trò chơi
+A game's files	Các tệp của một trò chơi
+A light copy	Bản sao nhẹ
+A locked room for running a program so it can't touch the rest of your computer.	Một căn phòng khóa kín để chạy chương trình mà nó không thể chạm vào phần còn lại của máy tính bạn.
+A map of which functions call which other functions.	Một sơ đồ cho biết hàm nào gọi hàm nào.
+A name the program's author gave to a function or variable that survived in the file.	Tên mà tác giả chương trình đặt cho một hàm hoặc biến và vẫn còn sót lại trong tệp.
+A named piece of a program that does one job, like "add two numbers" or "save the file".	Một phần có tên của chương trình, làm đúng một việc, như "cộng hai số" hay "lưu tệp".
+A number that says where something is in a program's memory, like a house number.	Một con số cho biết thứ gì đó nằm ở đâu trong bộ nhớ của chương trình, giống như số nhà.
+A piece of text stored inside a program, like a message, a web address or a file name.	Một đoạn văn bản lưu bên trong chương trình, như một thông báo, địa chỉ web hay tên tệp.
+A program, an app bundle, an APK, a JavaScript bundle, a folder… or drop it on the window.	Một chương trình, gói ứng dụng, tệp APK, gói JavaScript, một thư mục… hoặc thả nó vào cửa sổ.
+A recording of network traffic	Bản ghi lưu lượng mạng
+A region of a program as it sits in memory while running.	Một vùng của chương trình khi nó nằm trong bộ nhớ lúc đang chạy.
+A region of a program file with one purpose: code, text, pictures, settings.	Một vùng của tệp chương trình có một mục đích riêng: mã, văn bản, hình ảnh, cài đặt.
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	Một quy tắc kinh nghiệm. Thường đúng, đôi khi sai, nên chúng tôi gắn nhãn kết quả là phỏng đoán tốt nhất.
+A saved, checkable record of something we found, with how sure we are and where we found it.	Một bản ghi đã lưu, có thể kiểm tra, về điều chúng tôi tìm thấy, kèm mức độ chắc chắn và nơi tìm thấy.
+A script or web page	Một tập lệnh hoặc trang web
+A set of commands a program offers to other programs.	Một tập hợp lệnh mà một chương trình cung cấp cho các chương trình khác.
+A simple snake game	Một trò chơi rắn săn mồi đơn giản
+A small download (under 200 MB). Free, no account needed.	Bản tải về nhỏ (dưới 200 MB). Miễn phí, không cần tài khoản.
+A small file that lists what an app is called, what it needs and what it's allowed to do.	Một tệp nhỏ liệt kê tên ứng dụng, thứ nó cần và những gì nó được phép làm.
+A smart contract (EVM bytecode)	Một hợp đồng thông minh (bytecode EVM)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	Cách viết các byte thành mã hai ký tự (00 đến FF). Đây là cách xem thô nhất của một tệp.
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	Một cách xây dựng ứng dụng máy tính từ các trang web. Về cơ bản, ứng dụng là một trang web có trình duyệt riêng.
+A website	Một trang web
+A website for my bakery	Một trang web cho tiệm bánh của tôi
+AI	AI
+AI cost	Chi phí AI
+AI cost (estimate)	Chi phí AI (ước tính)
+AI cost (part estimate)	Chi phí AI (ước tính một phần)
+AI model file	Tệp mô hình AI
+AI name	Tên AI
+AI use this session	Mức dùng AI trong phiên này
+API boundary	Ranh giới API
+API key	Khóa API
+API key (stored in your system keychain)	Khóa API (lưu trong chuỗi khóa hệ thống của bạn)
+API key, if it needs one	Khóa API, nếu cần
+About 10 GB. Free for personal use with a Unity account.	Khoảng 10 GB. Miễn phí cho mục đích cá nhân với tài khoản Unity.
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	Khoảng 60 GB, một tài khoản Epic Games và công cụ C++ của Visual Studio.
+Add	Thêm
+Add Visual Studio's C++ tools	Thêm công cụ C++ của Visual Studio
+Add a brain	Thêm một bộ não
+Add a fal.ai key	Thêm khóa fal.ai
+Add a folder…	Thêm một thư mục…
+Add a plugin	Thêm một plugin
+Add an AI brain and I'll read this evidence for you, answer follow-up questions and point at the proof.	Hãy thêm một bộ não AI, chúng tôi sẽ đọc bằng chứng này giúp bạn, trả lời các câu hỏi tiếp theo và chỉ ra nơi có bằng chứng.
+Add an AI by its address	Thêm một AI bằng địa chỉ của nó
+Add another	Thêm cái khác
+Add it again, to choose another account's folder for it.	Hãy thêm lại để chọn thư mục của một tài khoản khác cho nó.
+Add more info. The builder reads it at its next step.	Thêm thông tin. Trình xây dựng sẽ đọc nó ở bước tiếp theo.
+Add pictures	Thêm ảnh
+Add pictures of the original	Thêm ảnh của bản gốc
+Add pictures of the original (optional: screenshots help it look right)	Thêm ảnh của bản gốc (tùy chọn: ảnh chụp màn hình giúp nó trông giống hơn)
+Add to a running build	Thêm vào lượt xây dựng đang chạy
+Added	Đã thêm
+Added {n} picture(s). The builder uses them from your next change.	Đã thêm {n} ảnh. Trình xây dựng sẽ dùng chúng từ thay đổi tiếp theo của bạn.
+Address to file offset	Địa chỉ sang vị trí trong tệp
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	Thêm trình dịch ngược của nó vào Chế độ Chuyên sâu. Craft Anything có thể tải về và thiết lập giúp bạn.
+Advanced	Nâng cao
+After installing one, look for it again.	Sau khi cài một cái, hãy tìm lại.
+Agent	Tác tử
+Allow generated assets	Cho phép tài nguyên do AI tạo ra
+Allow once	Cho phép một lần
+Allowed for this project	Đã cho phép cho dự án này
+Allowed for this project.	Đã cho phép cho dự án này.
+Allowed in	Được cho phép trong
+Allowed once	Đã cho phép một lần
+Allowed once.	Đã cho phép một lần.
+Also list projects from	Cũng liệt kê các dự án từ
+Always for this project	Luôn cho phép với dự án này
+An Android app	Một ứng dụng Android
+An Android app package: the file you install on a phone.	Một gói ứng dụng Android: tệp bạn cài lên điện thoại.
+An Apple settings file (plist)	Một tệp cài đặt của Apple (plist)
+An app	Một ứng dụng
+An app or a file	Một ứng dụng hoặc một tệp
+Analyse a JavaScript app	Phân tích một ứng dụng JavaScript
+Analyse a page's JavaScript	Phân tích JavaScript của một trang
+Android app code (DEX)	Mã ứng dụng Android (DEX)
+Android app components	Thành phần của ứng dụng Android
+Android app package	Gói ứng dụng Android
+Android apps	Ứng dụng Android
+Android class	Lớp Android
+Android method bytecode	Bytecode phương thức Android
+Android resources	Tài nguyên Android
+Annotate function	Chú thích hàm
+Another build is working, so this one waits its turn.	Một lượt xây dựng khác đang chạy, nên lượt này sẽ chờ đến phiên.
+Answer a project's question	Trả lời câu hỏi của một dự án
+Answer any of them in a message below.	Hãy trả lời bất kỳ câu nào trong một tin nhắn bên dưới.
+Answered by {name}	Được trả lời bởi {name}
+Answers come from {brain}. To build, set up a coding agent in Settings → AI.	Câu trả lời đến từ {brain}. Để xây dựng, hãy thiết lập một tác tử lập trình trong Cài đặt → AI.
+App	Ứng dụng
+App details on device	Chi tiết ứng dụng trên thiết bị
+Apple apps	Ứng dụng Apple
+Apply model options	Áp dụng tùy chọn mô hình
+Approve an agent action	Phê duyệt một hành động của tác tử
+Apps and games: keep refining until they look this alike to your pictures. Off, the likeness is only reported.	Ứng dụng và trò chơi: tiếp tục tinh chỉnh cho đến khi giống với ảnh của bạn ở mức này. Khi tắt, độ giống chỉ được báo cáo.
+Architectures	Kiến trúc
+Archive	Tệp nén
+Archives	Các tệp nén
+Ask a question	Đặt câu hỏi
+Ask about a build	Hỏi về một lượt xây dựng
+Ask about the build	Hỏi về lượt xây dựng
+Ask about the build, e.g. "where are the latest files?" Nothing changes and no build starts.	Hỏi về lượt xây dựng, ví dụ "các tệp mới nhất ở đâu?" Không có gì thay đổi và không có lượt xây dựng nào bắt đầu.
+Ask about this game	Hỏi về trò chơi này
+Ask anything, e.g. "What does this program do?"	Hỏi bất cứ điều gì, ví dụ "Chương trình này làm gì?"
+Ask before running anything	Hỏi trước khi chạy bất cứ thứ gì
+Ask each time	Hỏi mỗi lần
+Ask first	Hỏi trước
+Ask for a change	Yêu cầu một thay đổi
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	Yêu cầu một thay đổi, ví dụ "nút lớn hơn" hoặc "thêm chế độ tối"
+Ask for a change, e.g. "make it faster" or "add a high-score table"	Yêu cầu một thay đổi, ví dụ "làm cho nhanh hơn" hoặc "thêm bảng điểm cao"
+Ask for a change, e.g. "make the header blue" or "add a contact form"	Yêu cầu một thay đổi, ví dụ "đổi phần đầu trang thành màu xanh" hoặc "thêm biểu mẫu liên hệ"
+Ask in your own words. Every answer shows how sure we are, and the proof.	Hãy hỏi bằng lời của bạn. Mỗi câu trả lời đều cho thấy mức độ chắc chắn của chúng tôi và bằng chứng.
+Ask me	Hỏi tôi
+Ask the agent about this	Hỏi tác tử về điều này
+Ask the agent about this target. It cites evidence for every claim.	Hỏi tác tử về mục tiêu này. Tác tử dẫn bằng chứng cho mọi nhận định.
+Ask the agent…	Hỏi tác tử…
+Ask the person	Hỏi người đó
+Ask: "How does the % key work?"	Hỏi: "Phím % hoạt động thế nào?"
+Ask: "Is it safe to run?"	Hỏi: "Chạy nó có an toàn không?"
+Ask: "What does it send over the internet?"	Hỏi: "Nó gửi gì qua internet?"
+Asking for its models…	Đang hỏi danh sách mô hình của nó…
+Asset catalog	Danh mục tài nguyên
+At most this many rounds of fixes after the first build.	Tối đa chừng này vòng sửa lỗi sau lượt xây dựng đầu tiên.
+Attach pictures	Đính kèm ảnh
+Attach pictures (or drop or paste them here)	Đính kèm ảnh (hoặc thả hay dán vào đây)
+Auto mode	Chế độ tự động
+Automatic	Tự động
+Automatic ({name})	Tự động ({name})
+Back	Quay lại
+Best guess	Phỏng đoán tốt nhất
+Best guess: a reasonable reading, but not proven.	Phỏng đoán tốt nhất: một cách hiểu hợp lý, nhưng chưa được chứng minh.
+Binary layout	Bố cục nhị phân
+Blocked	Bị chặn
+Bookmark	Đánh dấu
+Budget for a new project	Ngân sách cho một dự án mới
+Bug report	Báo cáo lỗi
+Build	Xây dựng
+Build a rebuild ledger	Tạo một sổ dựng lại
+Build a stand-in backend	Xây dựng một backend thay thế
+Build with	Xây dựng bằng
+Build with this	Xây dựng bằng cái này
+Build with {name}	Xây dựng bằng {name}
+Build with {name} instead	Xây dựng bằng {name} thay thế
+Build without it	Xây dựng mà không dùng nó
+Builder's questions:	Câu hỏi của trình xây dựng:
+Building	Đang xây dựng
+Building needs a coding agent on this computer (Claude Code, Codex or Gemini CLI: install one and sign in to it once in its own window), or an AI with an API key. Craft Anything never sees your account.	Việc xây dựng cần một tác tử lập trình trên máy tính này (Claude Code, Codex hoặc Gemini CLI: cài một cái và đăng nhập một lần trong cửa sổ riêng của nó), hoặc một AI có khóa API. Craft Anything không bao giờ nhìn thấy tài khoản của bạn.
+Building needs a coding agent such as Claude Code, or an AI with an API key.	Việc xây dựng cần một tác tử lập trình như Claude Code, hoặc một AI có khóa API.
+Builds	Các lượt xây dựng
+Builds and answers may use it again.	Các lượt xây dựng và câu trả lời có thể dùng lại nó.
+Builds at once	Xây dựng ngay lập tức
+Builds keep going without stopping to ask you before an action. The builder still never deletes outside its project, changes system settings or publishes anything, and stays within each project's asset budget.	Các lượt xây dựng tiếp tục chạy mà không dừng lại hỏi bạn trước mỗi hành động. Trình xây dựng vẫn không bao giờ xóa bên ngoài dự án của nó, thay đổi cài đặt hệ thống hay đăng tải bất cứ thứ gì, và luôn nằm trong ngân sách tài nguyên của từng dự án.
+Builds use this one. Click to choose automatically again.	Các lượt xây dựng dùng cái này. Nhấn để chọn tự động lại.
+Built by	Xây dựng bởi
+Built with	Xây dựng bằng
+Built with {stack}, as you asked, so no game engine is needed.	Được xây dựng bằng {stack} theo yêu cầu của bạn, nên không cần công cụ làm trò chơi.
+Call graph	Đồ thị lời gọi
+Call path	Đường gọi
+Call the build done	Coi lượt xây dựng là xong
+Called done. A new message carries on from here.	Đã coi là xong. Một tin nhắn mới sẽ tiếp tục từ đây.
+Cancel	Hủy
+Cancel: don't use this folder	Hủy: không dùng thư mục này
+Capture a website for rebuilding	Ghi lại một trang web để dựng lại
+Capture inventories	Ghi lại các danh mục
+Capture menus, dialogs and tabs	Ghi lại menu, hộp thoại và tab
+Change	Thay đổi
+Change a setting	Đổi một cài đặt
+Change an AI's model	Đổi mô hình của một AI
+Change how hard an AI thinks	Đổi mức độ suy nghĩ của một AI
+Change it	Đổi nó
+Change…	Thay đổi…
+Check	Kiểm tra
+Check .NET native calls	Kiểm tra lệnh gọi native của .NET
+Check a rebuild claim	Kiểm tra một nhận định về bản dựng lại
+Check a scripted web session	Kiểm tra một phiên web theo kịch bản
+Check an answer	Kiểm tra một câu trả lời
+Check decompiled C#	Kiểm tra C# đã dịch ngược
+Check my build	Kiểm tra bản xây dựng của tôi
+Check the JEB connection	Kiểm tra kết nối JEB
+Check the asset keys	Kiểm tra các khóa tài nguyên
+Check the setup	Kiểm tra thiết lập
+Check {n}	Kiểm tra lần {n}
+Check {n}: about {s}% like the original	Kiểm tra lần {n}: giống bản gốc khoảng {s}%
+Checked against Godot's official checksums before it's used.	Được đối chiếu với checksum chính thức của Godot trước khi sử dụng.
+Checking	Đang kiểm tra
+Choose a file	Chọn một tệp
+Choose a folder…	Chọn một thư mục…
+Choose a function, string or section to see it here.	Chọn một hàm, chuỗi hoặc vùng để xem ở đây.
+Choose an AI's job	Chọn công việc cho AI
+Choose the folder Ghidra is installed in.	Chọn thư mục đã cài Ghidra.
+Choose what the builder's questions get	Chọn cách xử lý các câu hỏi của trình xây dựng
+Choose what to recreate, say what you want, then press Start.	Chọn thứ cần dựng lại, nói bạn muốn gì, rồi nhấn Bắt đầu.
+Choose…	Chọn…
+Classes	Lớp
+Claude Code folder (CLAUDE_CONFIG_DIR)	Thư mục Claude Code (CLAUDE_CONFIG_DIR)
+Clean room	Phòng sạch
+Clean room / Deep	Phòng sạch / Chuyên sâu
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	Phòng sạch không bao giờ đọc mã, tệp hay mã nguồn trang của bản gốc. Chế độ Chuyên sâu đọc chúng bằng mọi công cụ mà Craft Anything có.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	Phòng sạch không bao giờ đọc mã, tệp hay mã nguồn trang của bản gốc: chỉ làm việc từ những gì bạn nhìn thấy. Chuyên sâu đọc chúng bằng mọi công cụ, và cả Ghidra nếu đã cài. Mỗi phát hiện đều ghi lại cách nào đã được dùng.
+Clean room on	Phòng sạch đang bật
+Clean room or Deep	Phòng sạch hoặc Chuyên sâu
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	Phòng sạch: không đọc bất cứ thứ gì bên trong bản gốc. Chúng tôi làm việc từ những gì bạn nhìn thấy: hình ảnh, trang như người truy cập thấy, và quan sát nó chạy.
+Clear finished	Xóa mục đã xong
+Close	Đóng
+Close a Frida session	Đóng một phiên Frida
+Close a GDB session	Đóng một phiên GDB
+Close a Rizin debug session	Đóng một phiên gỡ lỗi Rizin
+Close a pinned build	Đóng một bản dựng đã ghim
+Close it	Đóng nó
+Close it first.	Hãy đóng nó trước.
+Close the website	Đóng trang web
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	Mã được dựng lại từ một chương trình trông giống ngôn ngữ C. Gần với những gì chương trình làm, nhưng không phải mã nguồn gốc của nó.
+Code signature	Chữ ký mã
+Coding agent app	Ứng dụng tác tử lập trình
+Command palette (Ctrl/⌘ K)	Bảng lệnh (Ctrl/⌘ K)
+Commands:	Lệnh:
+Compare WebAssembly interfaces	So sánh giao diện WebAssembly
+Compare module exports	So sánh các mục xuất của mô-đun
+Compare two .NET builds	So sánh hai bản dựng .NET
+Compare two app versions	So sánh hai phiên bản ứng dụng
+Compare two artifacts	So sánh hai tạo phẩm
+Compare two evidence bundles	So sánh hai gói bằng chứng
+Compare two functions	So sánh hai hàm
+Compare two page captures	So sánh hai bản chụp trang
+Compare two runs	So sánh hai lần chạy
+Compare two screenshots	So sánh hai ảnh chụp màn hình
+Comparing and rebuilding	So sánh và dựng lại
+Compiled Python file	Tệp Python đã biên dịch
+Connect	Kết nối
+Connect agent apps	Kết nối các ứng dụng tác tử
+Connect to a browser	Kết nối với trình duyệt
+Connect {name}	Kết nối {name}
+Connected devices	Thiết bị đã kết nối
+Connected phone	Điện thoại đã kết nối
+Context window	Cửa sổ ngữ cảnh
+Continue	Tiếp tục
+Contradicted	Bị mâu thuẫn
+Control-flow graph: a map of every path a function can take, like a flowchart.	Đồ thị luồng điều khiển: bản đồ mọi đường đi mà một hàm có thể theo, giống như sơ đồ khối.
+Copies share the files it saves beside itself.	Các bản sao dùng chung những tệp mà nó lưu bên cạnh.
+Copy a file off the phone	Sao chép một tệp từ điện thoại ra
+Copy a file to the phone	Sao chép một tệp vào điện thoại
+Copy an app off the phone	Sao chép một ứng dụng từ điện thoại ra
+Copy the command	Sao chép lệnh
+Copy the evidence id	Sao chép mã bằng chứng
+Couldn't add the pictures:	Không thể thêm các hình ảnh:
+Couldn't answer:	Không thể trả lời:
+Couldn't attach the pictures:	Không thể đính kèm các hình ảnh:
+Couldn't look through that folder.	Không thể duyệt thư mục đó.
+Couldn't open it.	Không thể mở nó.
+Couldn't open the folder.	Không thể mở thư mục.
+Couldn't open {}: {}	Không thể mở {}: {}
+Couldn't start a worker thread: {e}	Không thể khởi động luồng xử lý: {e}
+Couldn't start it.	Không thể khởi động nó.
+Coverage unknown	Chưa rõ mức bao phủ
+Craft Anything	Craft Anything
+Craft Anything can't build with {engine}, so Unity is the closest match.	Craft Anything không thể xây dựng bằng {engine}, nên Unity là lựa chọn gần nhất.
+Craft Anything or the computer closed while it was working. Everything so far is kept; Continue picks up where it stopped.	Craft Anything hoặc máy tính đã đóng khi đang làm việc. Mọi thứ đến lúc này đều được giữ lại; Tiếp tục sẽ làm tiếp từ chỗ đã dừng.
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything đọc mã và tệp của nó bằng mọi công cụ mình có. Chỉ dùng cho riêng bạn.
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything đọc mã, tệp và mã nguồn trang của bản gốc bằng mọi công cụ mình có, và cả Ghidra nếu đã cài.
+Craft Anything report.md	Craft Anything report.md
+Craft Anything's records, checks and anything it built in app/ are deleted. Your own files in the folder stay as they are.	Các bản ghi, lần kiểm tra của Craft Anything và mọi thứ nó đã xây dựng trong app/ sẽ bị xóa. Các tệp của riêng bạn trong thư mục vẫn giữ nguyên.
+Crash dump	Bản dump sự cố
+Create the project	Tạo dự án
+Critical	Nghiêm trọng
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	Tham chiếu chéo: một nơi trong chương trình dùng hoặc gọi thứ bạn đang xem.
+Cross-references	Tham chiếu chéo
+Cross-references: the places in the program that use or call the thing you're looking at.	Tham chiếu chéo: những nơi trong chương trình dùng hoặc gọi thứ bạn đang xem.
+Current document	Tài liệu hiện tại
+Cursor address	Địa chỉ con trỏ
+Cursor function	Hàm tại con trỏ
+Custom	Tùy chỉnh
+Cutter command	Lệnh Cutter
+DOS load image	Ảnh nạp DOS
+Databases	Cơ sở dữ liệu
+Decide yourself	Tự quyết định
+Decode a radio recording	Giải mã bản ghi vô tuyến
+Decompile	Dịch ngược
+Decompile Java with Vineflower	Dịch ngược Java bằng Vineflower
+Decompile many	Dịch ngược nhiều hàm
+Decompile with JEB	Dịch ngược bằng JEB
+Deep	Chuyên sâu
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	Chế độ Chuyên sâu giờ dịch ngược bằng Ghidra. Lần xem đầu tiên một chương trình lớn có thể mất vài phút.
+Deep mode on	Chế độ Chuyên sâu đang bật
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	Chuyên sâu: chúng tôi đọc mã, tệp và mã nguồn trang của nó bằng mọi công cụ mình có, và cả Ghidra nếu đã cài. Nhấn để chuyển.
+Default	Mặc định
+Delete a project	Xóa một dự án
+Delete it	Xóa nó
+Delete the project	Xóa dự án
+Delete {name}?	Xóa {name}?
+Deleted.	Đã xóa.
+Deleted. Your own files are still in the folder.	Đã xóa. Các tệp của riêng bạn vẫn còn trong thư mục.
+Delete…	Xóa…
+Deliberately scrambled to make it hard to read, without changing what it does.	Cố ý xáo trộn để khó đọc, mà không thay đổi những gì nó làm.
+Demangle Swift symbols	Giải mã tên ký hiệu Swift
+Details	Chi tiết
+Details about the selected item appear here.	Chi tiết về mục đã chọn sẽ hiện ở đây.
+Detect	Phát hiện
+Device details	Chi tiết thiết bị
+Device features	Tính năng thiết bị
+Device folder	Thư mục trên thiết bị
+Device log	Nhật ký thiết bị
+Disassemble sBPF code	Phân rã mã sBPF
+Disassembly	Mã phân rã
+Disconnect agent apps	Ngắt kết nối các ứng dụng tác tử
+Dismiss	Bỏ qua
+Dispatch metadata	Siêu dữ liệu điều phối
+Display info	Thông tin màn hình
+Do you have permission?	Bạn có quyền không?
+Does it talk to the internet?	Nó có kết nối internet không?
+Does it track me?	Nó có theo dõi tôi không?
+Don't allow	Không cho phép
+Don't ask again (you can change this in Settings)	Không hỏi lại (bạn có thể đổi trong Cài đặt)
+Done	Xong
+Download	Tải xuống
+Download Godot {v}	Tải Godot {v}
+Download Unity Hub	Tải Unity Hub
+Download and use Ghidra	Tải và dùng Ghidra
+Download it from unity.com and install it.	Tải nó từ unity.com và cài đặt.
+Download it from unrealengine.com and install it.	Tải nó từ unrealengine.com và cài đặt.
+Download the Epic Games Launcher	Tải Epic Games Launcher
+Downloads keep going in the background.	Việc tải xuống vẫn tiếp tục chạy nền.
+Drive an app's screen	Điều khiển màn hình của ứng dụng
+Drop a calculator app (or any small program) on the window.	Thả một ứng dụng máy tính (hoặc bất kỳ chương trình nhỏ nào) vào cửa sổ.
+Drop a file or app anywhere in this window.	Thả một tệp hoặc ứng dụng vào bất kỳ đâu trong cửa sổ này.
+Drop the file on the window. We only read it; nothing runs.	Thả tệp vào cửa sổ. Chúng tôi chỉ đọc nó; không có gì được chạy.
+Drop to attach	Thả để đính kèm
+Drop to open it	Thả để mở
+Duplicate	Nhân bản
+Duplicate a project	Nhân bản một dự án
+Duplicate the project	Nhân bản dự án
+Each answer says how sure we are: Seen it, Worked it out or Best guess.	Mỗi câu trả lời cho biết chúng tôi chắc đến đâu: Đã thấy, Suy ra hoặc Đoán tốt nhất.
+Edit a project file	Sửa một tệp của dự án
+Edit them in place	Sửa trực tiếp tại chỗ
+Effort:	Mức nỗ lực:
+Electron and JavaScript	Electron và JavaScript
+Electron fuses	Cầu chì Electron
+Engines	Engine
+Engines and settings	Engine và cài đặt
+Enter a full web address, like example.com or https://example.com/page.	Nhập địa chỉ web đầy đủ, ví dụ example.com hoặc https://example.com/page.
+Enter to send · Shift+Enter for a new line	Enter để gửi · Shift+Enter để xuống dòng
+Epic's own installer. It only opens if Epic's signature checks out.	Trình cài đặt của chính Epic. Nó chỉ mở nếu chữ ký của Epic hợp lệ.
+Essentials	Thiết yếu
+Every build of this project.	Mọi bản dựng của dự án này.
+Every finding is saved here with how sure we are.	Mọi phát hiện đều được lưu ở đây cùng mức độ chắc chắn của chúng tôi.
+Every tool as well: a workbench with functions, bytes, references and evidence.	Cả mọi công cụ nữa: một bàn làm việc với hàm, byte, tham chiếu và bằng chứng.
+Everything found so far, as a Markdown file.	Mọi thứ đã tìm thấy đến giờ, dưới dạng tệp Markdown.
+Everything so far is kept. Continue picks up where it stopped.	Mọi thứ đến lúc này đều được giữ lại. Tiếp tục sẽ làm tiếp từ chỗ đã dừng.
+Evidence	Bằng chứng
+Evidence ledger	Sổ bằng chứng
+Evidence so far	Bằng chứng đến giờ
+Explain a function	Giải thích một hàm
+Explain like I'm new	Giải thích như thể tôi là người mới
+Export a report	Xuất báo cáo
+Export a report (Markdown)	Xuất báo cáo (Markdown)
+Export captured scripts	Xuất các script đã thu được
+Export evidence	Xuất bằng chứng
+Export report	Xuất báo cáo
+Extended	Mở rộng
+Extract an archive	Giải nén một kho lưu trữ
+Extract firmware	Trích xuất firmware
+Extract with this	Trích xuất bằng công cụ này
+Extracts	Phần trích xuất
+File formats	Định dạng tệp
+Files packed inside a file	Các tệp được đóng gói bên trong một tệp
+Filter	Lọc
+Filter by name	Lọc theo tên
+Filter the files	Lọc các tệp
+Filter…	Lọc…
+Find Android classes	Tìm lớp Android
+Find Java classes	Tìm lớp Java
+Find a call path	Tìm đường gọi
+Find a game's files	Tìm các tệp của trò chơi
+Find an app	Tìm một ứng dụng
+Find in-page MCP tools	Tìm công cụ MCP trong trang
+Find it automatically	Tự động tìm
+Find out how any software works, then craft your own.	Tìm hiểu cách mọi phần mềm hoạt động, rồi tạo ra phần mềm của riêng bạn.
+Find the original source line	Tìm dòng mã nguồn gốc
+Firmware regions	Vùng firmware
+Fold the sidebar	Thu gọn thanh bên
+Folders of projects, and projects started in a folder you picked. Removing one only takes it off the list.	Các thư mục chứa dự án, và các dự án bắt đầu trong thư mục bạn đã chọn. Gỡ một mục chỉ xóa nó khỏi danh sách.
+Follow the installer that opened. Come back here when it's done.	Làm theo trình cài đặt vừa mở. Quay lại đây khi xong.
+Follow the steps on rustup.rs, then come back here.	Làm theo các bước trên rustup.rs, rồi quay lại đây.
+For everything you make, like the switch in the title bar.	Áp dụng cho mọi thứ bạn tạo, giống như nút chuyển trên thanh tiêu đề.
+For example: a website for my bakery	Ví dụ: một trang web cho tiệm bánh của tôi
+For example: recreate this website	Ví dụ: dựng lại trang web này
+For example: the same app, but simpler	Ví dụ: cùng ứng dụng đó, nhưng đơn giản hơn
+For example: the same game, with a high-score table	Ví dụ: cùng trò chơi đó, kèm bảng điểm cao
+Force-stop an app	Buộc dừng một ứng dụng
+Forget the key	Quên khóa
+Found on this computer	Tìm thấy trên máy tính này
+Found {} AI option(s) on this computer	Tìm thấy {} tùy chọn AI trên máy tính này
+Frida devices	Thiết bị Frida
+Frida instrumentation	Công cụ đo đạc Frida
+Frida processes	Tiến trình Frida
+Frida session status	Trạng thái phiên Frida
+From	Từ
+Frozen copy	Bản sao cố định
+Function address	Địa chỉ hàm
+Function assembly	Mã assembly của hàm
+Function dossier	Hồ sơ hàm
+Function info	Thông tin hàm
+Function instructions	Lệnh của hàm
+Function references	Tham chiếu của hàm
+Functions	Hàm
+GDB command	Lệnh GDB
+GDB session status	Trạng thái phiên GDB
+Game assets	Tài nguyên trò chơi
+Game engines	Engine trò chơi
+Game files	Tệp trò chơi
+General	Chung
+Generate a 3D model	Tạo một mô hình 3D
+Generate a picture	Tạo một hình ảnh
+Generate custom pictures and models	Tạo hình ảnh và mô hình tùy chỉnh
+Generated art (games)	Hình ảnh được tạo (trò chơi)
+Generated assets	Tài nguyên được tạo
+Generated pictures and 3D models are made with fal.ai.	Hình ảnh và mô hình 3D được tạo bằng fal.ai.
+Get Ghidra	Lấy Ghidra
+Get Ghidra for Deep mode	Lấy Ghidra cho chế độ Chuyên sâu
+Get Unity Hub	Lấy Unity Hub
+Get a key at {name}	Lấy khóa tại {name}
+Get the Epic Games Launcher	Lấy Epic Games Launcher
+Get {name}	Lấy {name}
+Getting Ghidra	Đang lấy Ghidra
+Getting Godot	Đang lấy Godot
+Getting Unity Hub	Đang lấy Unity Hub
+Getting the Epic Games Launcher	Đang lấy Epic Games Launcher
+Ghidra	Ghidra
+Ghidra folder	Thư mục Ghidra
+Ghidra is ready	Ghidra đã sẵn sàng
+Ghidra is ready. Deep mode uses it from now on.	Ghidra đã sẵn sàng. Chế độ Chuyên sâu sẽ dùng nó từ bây giờ.
+Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra chưa được cài, nên trình dịch ngược tích hợp sẽ thay thế. Tải về tại Cài đặt → Engines.
+Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra chưa có trên máy tính này, nên trình dịch ngược tích hợp sẽ thay thế.
+Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra sẽ dùng một nửa bộ nhớ của máy tính này (tối đa {gb} GB).
+Ghidra will use up to {gb} GB of memory.	Ghidra sẽ dùng tối đa {gb} GB bộ nhớ.
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	Ghidra, một công cụ dịch ngược miễn phí của NSA, giúp Chế độ Chuyên sâu có mã dịch ngược và kiểu dữ liệu phong phú hơn.
+Go home	Về trang chủ
+Go program details	Chi tiết chương trình Go
+Go to address	Đi tới địa chỉ
+Go to offset (0x…)	Đi tới offset (0x…)
+Go to the project	Đi tới dự án
+Good enough	Đủ tốt
+Got it	Đã hiểu
+Graph	Đồ thị
+Half of this computer's memory, up to {gb} GB.	Một nửa bộ nhớ của máy tính này, tối đa {gb} GB.
+Here's a first look:	Đây là cái nhìn đầu tiên:
+Here's what I found on that page:	Đây là những gì tôi tìm thấy trên trang đó:
+Hex	Hex
+Hide pinned builds	Ẩn các bản dựng đã ghim
+Hide the answer	Ẩn câu trả lời
+Hide the console	Ẩn bảng điều khiển
+High	Cao
+Home	Trang chủ
+How alike a rebuild must look to the original before refining stops.	Bản dựng lại phải giống bản gốc đến mức nào thì việc tinh chỉnh mới dừng.
+How closely may Craft Anything look at it?	Craft Anything được phép xem xét nó kỹ đến mức nào?
+How complete is the rebuild	Bản dựng lại hoàn chỉnh đến đâu
+How do I open an app?	Làm sao để mở một ứng dụng?
+How do the window and the page talk to each other?	Cửa sổ và trang trò chuyện với nhau bằng cách nào?
+How does the % key work?	Phím % hoạt động như thế nào?
+How is this app built?	Ứng dụng này được xây dựng ra sao?
+How is this app put together?	Ứng dụng này được ghép lại như thế nào?
+How many projects may build at the same time. More wait their turn.	Số dự án được dựng cùng lúc. Các dự án khác sẽ chờ đến lượt.
+How should the builder use them?	Trình xây dựng nên dùng chúng như thế nào?
+I have Ghidra	Tôi đã có Ghidra
+I have permission	Tôi có quyền
+I want to make things work together	Tôi muốn làm cho các thứ hoạt động cùng nhau
+I'm checking whether it's safe	Tôi đang kiểm tra xem có an toàn không
+I'm keeping old software alive	Tôi đang giữ cho phần mềm cũ tiếp tục sống
+I'm learning how things work	Tôi đang tìm hiểu cách mọi thứ hoạt động
+I'm new to this	Tôi mới làm quen
+ILSpy decompile	Dịch ngược bằng ILSpy
+Ideas:	Gợi ý:
+Identify a Flutter build	Nhận diện một bản dựng Flutter
+Import a source folder	Nhập một thư mục mã nguồn
+Import evidence	Nhập bằng chứng
+Imports / Exports	Imports / Exports
+In Deep mode this one takes a game's own files out after the study. Click to stop.	Trong Chế độ Chuyên sâu, mục này lấy các tệp riêng của trò chơi ra sau khi tìm hiểu. Nhấp để dừng.
+In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	Trong Unity Hub: đăng nhập (hoặc tạo tài khoản miễn phí) và chấp nhận giấy phép Personal miễn phí. Sau đó mở Installs, bấm Install Editor và chọn phiên bản được khuyên dùng. Khoảng 10 GB.
+In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	Trong trình khởi chạy: đăng nhập, mở Unreal Engine, rồi vào Library và bấm + cạnh Engine Versions để cài một phiên bản. Khoảng 60 GB.
+In use	Đang dùng
+Inside	Bên trong
+Inspect a Dart AOT snapshot	Kiểm tra một ảnh chụp Dart AOT
+Inspect a network recording	Kiểm tra một bản ghi mạng
+Inspect a web page	Kiểm tra một trang web
+Inspect an Electron page	Kiểm tra một trang Electron
+Inspect data	Kiểm tra dữ liệu
+Inspect instruction	Kiểm tra lệnh
+Inspector	Trình kiểm tra
+Install Rust	Cài Rust
+Install Unity Hub	Cài Unity Hub
+Install Visual Studio Community (free) and tick "Game development with C++".	Cài Visual Studio Community (miễn phí) và đánh dấu "Game development with C++".
+Install Xcode	Cài Xcode
+Install an app	Cài một ứng dụng
+Install an engine	Cài một engine
+Install the launcher	Cài trình khởi chạy
+Installed	Đã cài
+Installed apps	Ứng dụng đã cài
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	Giao tiếp liên tiến trình: cách hai phần của một ứng dụng (hoặc hai ứng dụng) gửi tin nhắn cho nhau.
+Interface Builder documents	Tài liệu Interface Builder
+Interrupted	Bị gián đoạn
+Inventory an archive or app bundle	Kiểm kê một kho lưu trữ hoặc gói ứng dụng
+Investigating	Đang điều tra
+Investigation so far	Điều tra cho đến giờ
+Is Apktool available?	Apktool có sẵn không?
+Is adb available?	adb có sẵn không?
+Is an asset key set up?	Đã thiết lập khóa tài sản chưa?
+Is anything in here a program?	Có thứ gì trong đây là chương trình không?
+Is anything sensitive saved in plain text?	Có thông tin nhạy cảm nào được lưu dưới dạng văn bản thuần không?
+Is it safe to look inside programs?	Xem bên trong chương trình có an toàn không?
+Is it safe to run?	Chạy có an toàn không?
+Is there any readable text inside?	Bên trong có văn bản đọc được không?
+Is this file safe to open?	Mở tệp này có an toàn không?
+It closed straight away.	Nó đã đóng ngay lập tức.
+It closed straight away. It said:	Nó đã đóng ngay lập tức. Nó báo:
+It isn't on this computer yet. Craft Anything can download Ghidra {version} and the Java runtime it needs (about {mb} MB), check both against their publishers' checksums, and set them up in its own folder. Nothing else on your computer changes.	Nó chưa có trên máy tính này. Craft Anything có thể tải Ghidra {version} và môi trường chạy Java cần thiết (khoảng {mb} MB), đối chiếu cả hai với mã kiểm tra (checksum) của nhà phát hành, rồi cài vào thư mục riêng của mình. Không có gì khác trên máy tính của bạn bị thay đổi.
+It isn't on this computer yet. Install Ghidra {version} from its release page, then choose its folder.	Nó chưa có trên máy tính này. Hãy cài Ghidra {version} từ trang phát hành của nó, rồi chọn thư mục của nó.
+It's already open.	Nó đã được mở.
+It's already open. Right-click it to open another copy.	Nó đã được mở. Nhấp chuột phải vào nó để mở thêm một bản sao khác.
+It's done	Xong rồi
+It's mine, or I'm allowed to look	Của tôi, hoặc tôi được phép xem
+Its copy is deleted, with anything it saved there. The project itself stays as it is.	Bản sao của nó sẽ bị xóa, cùng mọi thứ nó đã lưu ở đó. Bản thân dự án vẫn giữ nguyên.
+Its folder is deleted with everything in it: what was built, the checks and the conversation.	Thư mục của nó sẽ bị xóa cùng mọi thứ bên trong: những gì đã dựng, các lần kiểm tra và cuộc trò chuyện.
+Its own code	Mã riêng của nó
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	Đăng nhập, cài đặt và cuộc trò chuyện riêng của nó: mỗi thư mục khác là một tài khoản khác. Để trống: dùng thư mục thông thường của nó.
+Java archive overview	Tổng quan kho Java
+Java class	Lớp Java
+Java method bytecode and pseudo-Java	Bytecode của phương thức Java và mã giả Java
+Java program code (one class)	Mã chương trình Java (một lớp)
+Java programs	Chương trình Java
+Java runtime	Môi trường chạy Java
+Jobs	Tác vụ
+Jobs ({n_jobs})	Tác vụ ({n_jobs})
+Jobs ({n})	Tác vụ ({n})
+Just a question: nothing was changed. Answered by	Chỉ là một câu hỏi: không có gì bị thay đổi. Được trả lời bởi
+Just ask	Cứ hỏi
+Just look inside	Chỉ xem bên trong
+Work on my project	Làm việc trên dự án của tôi
+Work on a project you already have	Làm việc trên một dự án bạn đã có
+Pick its folder, say what you want, then press Start.	Chọn thư mục của dự án, nói bạn muốn gì, rồi bấm Bắt đầu.
+Where is your project?	Dự án của bạn ở đâu?
+Choose your project's folder…	Chọn thư mục dự án của bạn…
+For example: add a dark mode	Ví dụ: thêm chế độ tối
+Pick your project's folder first.	Hãy chọn thư mục dự án của bạn trước.
+Pick your project's folder	Chọn thư mục dự án của bạn
+That folder is empty. Pick the folder your project's files are in.	Thư mục đó trống. Hãy chọn thư mục chứa các tệp của dự án bạn.
+Keep going without asking	Tiếp tục mà không hỏi
+Keep it	Giữ lại
+Keep it in the sidebar to open any time, whatever later builds change.	Giữ nó ở thanh bên để mở bất cứ lúc nào, dù các lần dựng sau có thay đổi gì.
+Keep the build as it is and stop offering to carry on.	Giữ nguyên bản dựng như hiện tại và ngừng đề nghị tiếp tục.
+Keep this version in the sidebar to open any time.	Giữ phiên bản này ở thanh bên để mở bất cứ lúc nào.
+Keeps this version exactly as it is now. Later builds can't change or break it, and anything it saves stays with the copy.	Giữ nguyên phiên bản này như hiện tại. Các lần dựng sau không thể thay đổi hay làm hỏng nó, và mọi thứ nó lưu sẽ nằm cùng bản sao.
+Key saved	Đã lưu khóa
+Keyed archive	Kho có khóa
+Kind	Loại
+Language	Ngôn ngữ
+Last: {what}	Gần nhất: {what}
+Launch an app	Khởi chạy một ứng dụng
+Leave a few GB for the rest of your computer.	Hãy chừa lại vài GB cho phần còn lại của máy tính.
+Leave a path empty to use the managed install. We never need environment variables.	Để trống đường dẫn để dùng bản cài do ứng dụng quản lý. Chúng tôi không bao giờ cần biến môi trường.
+Leave empty to use the one Craft Anything sets up.	Để trống để dùng bản mà Craft Anything thiết lập.
+Let a project generate assets	Cho phép dự án tạo tài sản
+Let's go	Bắt đầu thôi
+Lets the builder make realistic 3D models and textures for games, {model} a model, with a {budget} budget per project.	Cho phép trình xây dựng tạo mô hình 3D và kết cấu (texture) chân thực cho trò chơi, {model} một mô hình, với ngân sách {budget} cho mỗi dự án.
+Library resolution	Phân giải thư viện
+Light copy: shares big files with the project	Bản sao nhẹ: dùng chung các tệp lớn với dự án
+Likeness	Độ giống
+Line up code and behaviour	Đối chiếu mã và hành vi
+Line up source with the bundle	Đối chiếu mã nguồn với gói
+List Electron pages	Liệt kê các trang Electron
+List JEB units	Liệt kê các đơn vị JEB
+List JS runtime targets	Liệt kê các mục tiêu JS runtime
+List a Unity assets file	Liệt kê một tệp tài sản Unity
+List a Unity bundle	Liệt kê một gói Unity
+List a game's archives	Liệt kê các kho lưu trữ của trò chơi
+List a node's event listeners	Liệt kê các trình lắng nghe sự kiện của một nút
+List an AI's models	Liệt kê các mô hình của một AI
+List an Unreal IoStore container	Liệt kê một vùng chứa Unreal IoStore
+List an Unreal pak	Liệt kê một tệp pak của Unreal
+List bookmarks	Liệt kê dấu trang
+List browser pages	Liệt kê các trang trình duyệt
+List documents	Liệt kê tài liệu
+List engines	Liệt kê các engine
+List functions	Liệt kê các hàm
+List names	Liệt kê tên
+List open targets	Liệt kê các mục tiêu đang mở
+List pinned builds	Liệt kê các bản dựng đã ghim
+List plugins	Liệt kê các plugin
+List project files	Liệt kê các tệp của dự án
+List projects	Liệt kê các dự án
+List questions about a build	Liệt kê các câu hỏi về một bản dựng
+List radio decoders	Liệt kê các bộ giải mã radio
+List segments	Liệt kê các phân đoạn
+List shared Cutter sessions	Liệt kê các phiên Cutter dùng chung
+List strings	Liệt kê các chuỗi
+Live: the project's latest build	Trực tiếp: bản dựng mới nhất của dự án
+Load a picture	Tải một bức ảnh
+Load a screenshot	Tải một ảnh chụp màn hình
+Load model options	Tải các tùy chọn mô hình
+Loading…	Đang tải…
+Log	Nhật ký
+Look again	Xem lại
+Look at a game	Xem một trò chơi
+Look at a website	Xem một trang web
+Look at the game	Xem trò chơi
+Look for AI on this computer	Tìm AI trên máy tính này
+Look for game engines	Tìm các engine trò chơi
+Look for projects again	Tìm lại các dự án
+Looked at everything	Đã xem toàn bộ
+Looked at part of it	Đã xem một phần
+Looked at {a} of {b}	Đã xem {a} trên {b}
+Looking for AI on this computer…	Đang tìm AI trên máy tính này…
+Looking for game engines on this computer…	Đang tìm các engine trò chơi trên máy tính này…
+Looking for the game's files…	Đang tìm các tệp của trò chơi…
+Looking inside needs Deep mode	Xem bên trong cần Chế độ Chuyên sâu
+Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	Xem bên trong phần mềm bạn sở hữu hoặc được phép nghiên cứu là việc bình thường và thường được bảo vệ (học tập, tương thích, bảo mật). Nêu lý do giúp bạn tuân thủ điều đó; thông tin này chỉ nằm trên máy tính này.
+Looking on this computer…	Đang tìm trên máy tính này…
+Low	Thấp
+Mach-O structure	Cấu trúc Mach-O
+Made a copy: {name}	Đã tạo một bản sao: {name}
+Made with fal.ai and paid from your account: {model} a 3D model, {picture} a picture. Off, the game is built without them.	Được tạo bằng fal.ai và tính phí vào tài khoản của bạn: {model} một mô hình 3D, {picture} một bức ảnh. Khi tắt, trò chơi được dựng mà không có chúng.
+Made with {engine}	Được tạo bằng {engine}
+Made without looking inside the original.	Được tạo mà không xem bên trong bản gốc.
+Make a game that plays like this	Tạo một trò chơi chơi giống thế này
+Make a simpler version of this game	Tạo một phiên bản đơn giản hơn của trò chơi này
+Make my own version	Tạo phiên bản của riêng tôi
+Make my own version of this app	Tạo phiên bản ứng dụng này của riêng tôi
+Making my own thing talk to something else.	Làm cho sản phẩm của tôi giao tiếp được với thứ khác.
+Many source files packed into one big file so an app or web page loads faster.	Nhiều tệp mã nguồn được gói vào một tệp lớn để ứng dụng hoặc trang web tải nhanh hơn.
+Map a HarmonyOS app	Lập bản đồ một ứng dụng HarmonyOS
+Map a page's module graph	Lập bản đồ đồ thị mô-đun của một trang
+Map an Android app	Lập bản đồ một ứng dụng Android
+Map an Apple app	Lập bản đồ một ứng dụng Apple
+Markdown	Markdown
+Match functions between two builds	So khớp các hàm giữa hai bản dựng
+Match my pictures	Khớp ảnh của tôi
+Match static code to what ran	Khớp mã tĩnh với những gì đã chạy
+Maximise	Phóng to
+May I run "{title}"?	Tôi có được chạy "{title}" không?
+May I {action}?	Tôi có được {action} không?
+Measure which code ran	Đo xem mã nào đã chạy
+Medium	Trung bình
+Memory for Ghidra	Bộ nhớ cho Ghidra
+Minimise	Thu nhỏ
+Mode	Chế độ
+Model	Mô hình
+Model options	Tùy chọn mô hình
+Model: {model}	Mô hình: {model}
+Modules	Mô-đun
+More detail	Thêm chi tiết
+More makes a big program's first look faster.	Nhiều hơn giúp lần xem đầu tiên của một chương trình lớn nhanh hơn.
+More memory makes Ghidra's first look at a big program faster; leave some for the rest of the computer. Used from the next time Ghidra starts.	Nhiều bộ nhớ hơn giúp lần xem đầu tiên của Ghidra với chương trình lớn nhanh hơn; hãy chừa lại một ít cho phần còn lại của máy tính. Áp dụng từ lần khởi động Ghidra tiếp theo.
+Name (optional)	Tên (không bắt buộc)
+Name an address	Đặt tên cho một địa chỉ
+Name at address	Tên tại địa chỉ
+Name many addresses	Đặt tên cho nhiều địa chỉ
+Names the program's author gave to functions or variables that survived in the file.	Những tên mà tác giả chương trình đặt cho hàm hoặc biến và còn sót lại trong tệp.
+Needs a fal.ai key. Until then the game is built without them.	Cần khóa fal.ai. Cho đến lúc đó, trò chơi được dựng mà không có chúng.
+Needs you	Cần bạn
+Network	Mạng
+New	Mới
+New project	Dự án mới
+New projects go in	Dự án mới được lưu trong
+Next address	Địa chỉ tiếp theo
+No AI (built-in engines only)	Không dùng AI (chỉ dùng engine tích hợp)
+No AI brain is set up, so answers come straight from the built-in engines. Add one any time for plain-words explanations.	Chưa thiết lập bộ não AI nào, nên câu trả lời đến thẳng từ các engine tích hợp. Bạn có thể thêm bất cứ lúc nào để có lời giải thích bằng ngôn từ dễ hiểu.
+No AI for now	Tạm thời không dùng AI
+No AI is set up yet. The built-in engines still work; an AI adds plain-words answers.	Chưa thiết lập AI nào. Các engine tích hợp vẫn hoạt động; AI sẽ bổ sung câu trả lời bằng ngôn từ dễ hiểu.
+No Unreal or Unity archives were found. Pick the folder the game is installed in.	Không tìm thấy kho lưu trữ Unreal hoặc Unity nào. Hãy chọn thư mục cài đặt trò chơi.
+No coding agent was found on this computer yet.	Chưa tìm thấy tác tử lập trình nào trên máy tính này.
+No evidence yet	Chưa có bằng chứng
+No game files here	Không có tệp trò chơi ở đây
+No jobs yet. Long tasks show their progress here, and you can cancel them.	Chưa có tác vụ nào. Các việc dài sẽ hiện tiến độ ở đây và bạn có thể hủy chúng.
+No matches	Không có kết quả khớp
+No open questions	Không có câu hỏi nào đang mở
+No plugins yet.	Chưa có plugin nào.
+No result yet	Chưa có kết quả
+No targets	Không có mục tiêu
+No tool named {tool}	Không có công cụ nào tên {tool}
+None	Không có
+None yet. Screenshots help it look right.	Chưa có. Ảnh chụp màn hình giúp kết quả trông đúng hơn.
+Not allowed	Không được phép
+Not allowed.	Không được phép.
+Not available yet	Chưa khả dụng
+Not compared yet: {what}	Chưa so sánh: {what}
+Not installed	Chưa cài đặt
+Not now	Để sau
+Nothing allowed yet.	Chưa cho phép gì cả.
+Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	Chưa thể xây dựng gì: hãy cài Claude Code (và đăng nhập một lần), hoặc thêm một AI bằng khóa API bên dưới.
+Nothing found	Không tìm thấy gì
+Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	Chưa tìm thấy gì. Chúng tôi tìm khóa API, máy chủ mô hình cục bộ (Ollama, LM Studio) và các ứng dụng tác tử bạn đã có. Nếu có một cái ở cổng khác hoặc máy tính khác, bạn có thể thêm bằng địa chỉ của nó bên dưới.
+Nothing inside it is read.	Chúng tôi không đọc bất cứ thứ gì bên trong.
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	Chúng tôi không đọc bất cứ thứ gì bên trong; Craft Anything chỉ làm việc dựa trên những gì bạn nhìn thấy. Phiên bản của bạn sẽ có hình ảnh riêng.
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	Chúng tôi không đọc bất cứ thứ gì bên trong bản gốc: không đọc mã, tệp hay mã nguồn trang. Craft Anything chỉ làm việc dựa trên những gì bạn nhìn thấy: hình ảnh, trang như khách truy cập thấy, và quan sát nó chạy.
+Nothing made yet. What you make shows up here.	Chưa tạo gì cả. Những gì bạn tạo sẽ hiện ở đây.
+Nothing matches the filter.	Không có gì khớp với bộ lọc.
+Nothing matches.	Không có gì khớp.
+Nothing new for {time}. Long steps can be quiet; if it stays like this, press Pause.	Chưa có gì mới trong {time}. Các bước dài đôi khi khá im ắng; nếu vẫn như vậy, hãy nhấn Tạm dừng.
+Nothing open	Chưa mở gì
+Nothing open yet	Chưa mở gì
+Nothing selected	Chưa chọn gì
+Nothing to show	Không có gì để hiển thị
+Nothing uses it until it's on again; it keeps its key.	Sẽ không có gì dùng nó cho đến khi bật lại; khóa của nó vẫn được giữ.
+Nothing — start fresh	Không gì cả — bắt đầu mới
+Now	Bây giờ
+Now: {what} ({time})	Bây giờ: {what} ({time})
+Objective-C classes	Lớp Objective-C
+Objective-C protocols	Giao thức Objective-C
+Observe a JS runtime	Quan sát môi trường chạy JS
+Of this, {cost} was charged to an API key.	Trong đó, {cost} đã tính vào khóa API.
+Off	Tắt
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Ollama hoặc LM Studio trên máy tính khác, hoặc bất kỳ dịch vụ nào dùng API OpenAI.
+On	Bật
+One line, in plain words. It stays on this computer and is never sent anywhere.	Một dòng, bằng lời đơn giản. Nội dung này chỉ nằm trên máy tính này và không bao giờ được gửi đi đâu.
+One-shot instrumentation	Gắn mã theo dõi một lần
+Only for Ghidra. Empty = managed.	Chỉ dành cho Ghidra. Để trống = do chúng tôi quản lý.
+Only its name changes; its folder stays where it is.	Chỉ tên thay đổi; thư mục của nó vẫn ở nguyên chỗ cũ.
+Only take pictures out of games you made, or whose owner allows it. A game's art is usually protected by copyright and by the game's licence.	Chỉ lấy hình ảnh từ trò chơi do bạn làm ra, hoặc khi chủ sở hữu cho phép. Hình ảnh của trò chơi thường được bảo vệ bởi bản quyền và giấy phép của trò chơi.
+Only the pin goes; the project and its app stay as they are.	Chỉ ghim bị gỡ; dự án và ứng dụng của nó vẫn giữ nguyên.
+Open	Mở
+Open "Show me the proof" to see the exact code we found, and how sure we are.	Mở "Cho tôi xem bằng chứng" để xem đoạn mã chính xác chúng tôi tìm thấy và mức độ chắc chắn.
+Open Ghidra's release page	Mở trang phát hành của Ghidra
+Open Unity Hub	Mở Unity Hub
+Open a calculator app and find the code behind one button.	Mở một ứng dụng máy tính bỏ túi và tìm đoạn mã đằng sau một nút bấm.
+Open a file in JEB	Mở tệp trong JEB
+Open a file or drop one here.	Mở một tệp hoặc thả tệp vào đây.
+Open a file…	Mở một tệp…
+Open a folder or app bundle	Mở một thư mục hoặc gói ứng dụng
+Open a folder or app bundle…	Mở một thư mục hoặc gói ứng dụng…
+Open a folder…	Mở một thư mục…
+Open a pinned build	Mở một bản dựng đã ghim
+Open a project's folder	Mở thư mục của một dự án
+Open a website	Mở một trang web
+Open an app or file	Mở một ứng dụng hoặc tệp
+Open an engine's app	Mở ứng dụng của một engine
+Open another copy	Mở một bản sao khác
+Open another target	Mở mục tiêu khác
+Open files, folders or apps; you can have several open at once.	Mở tệp, thư mục hoặc ứng dụng; bạn có thể mở nhiều thứ cùng lúc.
+Open folder	Mở thư mục
+Open in the workbench	Mở trong Bàn làm việc
+Open it	Mở nó
+Open log	Mở nhật ký
+Open one of the files inside it to see its bytes.	Mở một trong các tệp bên trong để xem các byte của nó.
+Open questions	Câu hỏi đang mở
+Open something	Mở một thứ gì đó
+Open something first: drop a file or app here, or choose "Just look inside" on New project. Then I can look inside it.	Hãy mở một thứ trước: thả tệp hoặc ứng dụng vào đây, hoặc chọn "Chỉ xem bên trong" ở mục Dự án mới. Sau đó tôi có thể xem bên trong nó.
+Open something to start	Mở một thứ gì đó để bắt đầu
+Open the Epic Games Launcher	Mở Epic Games Launcher
+Open the app	Mở ứng dụng
+Open the app you're curious about.	Mở ứng dụng mà bạn tò mò.
+Open the download page	Mở trang tải xuống
+Open the folder	Mở thư mục
+Open the installer app	Mở ứng dụng cài đặt
+Open the website	Mở trang web
+Open {name}	Mở {name}
+Opened {name}	Đã mở {name}
+Opened {name}. Taking a first look…	Đã mở {name}. Đang xem qua lần đầu…
+Opened {}	Đã mở {}
+Opening {name}…	Đang mở {name}…
+Open…	Mở…
+Or type your answer…	Hoặc nhập câu trả lời của bạn…
+Original	Bản gốc
+Other pages of a website studied and compared besides the one you gave.	Các trang khác của trang web được tìm hiểu và so sánh, ngoài trang bạn đã đưa.
+Overview	Tổng quan
+Packet capture overview	Tổng quan bắt gói tin
+Packet fields	Các trường của gói tin
+Page through evidence	Xem lần lượt từng trang bằng chứng
+Part of the app got stuck, so it was stopped and the rest carried on. Your work is kept.	Một phần của ứng dụng bị treo nên đã được dừng lại, phần còn lại vẫn chạy tiếp. Công việc của bạn được giữ nguyên.
+Part of the app is stuck. Restarting clears it, and your work is kept.	Một phần của ứng dụng đang bị treo. Khởi động lại sẽ khắc phục, và công việc của bạn được giữ nguyên.
+Part of this screen hit a bug and was skipped. Your work is safe.	Một phần của màn hình này gặp lỗi và đã bị bỏ qua. Công việc của bạn vẫn an toàn.
+Paste pictures	Dán hình ảnh
+Paste your API key (kept in your system keychain)	Dán khóa API của bạn (được lưu trong chuỗi khóa hệ thống)
+Paste your {name} key	Dán khóa {name} của bạn
+Path	Đường dẫn
+Pause	Tạm dừng
+Pausing…	Đang tạm dừng…
+Pause the build first, then delete the project.	Hãy tạm dừng bản dựng trước, rồi xóa dự án.
+Pause the build first.	Hãy tạm dừng bản dựng trước.
+Paused	Đã tạm dừng
+Paused.	Đã tạm dừng.
+Pick a folder with projects in it	Chọn một thư mục chứa các dự án
+Pick a game's folder	Chọn thư mục của một trò chơi
+Pick another folder…	Chọn thư mục khác…
+Pick another game	Chọn trò chơi khác
+Pick something on the left	Chọn một mục ở bên trái
+Pick the app or game folder	Chọn thư mục ứng dụng hoặc trò chơi
+Pick the app, game or file to rebuild	Chọn ứng dụng, trò chơi hoặc tệp cần dựng lại
+Pick the folder for this project	Chọn thư mục cho dự án này
+Pick the game's folder	Chọn thư mục của trò chơi
+Picture a program's window	Chụp cửa sổ của một chương trình
+Picture model	Mô hình hình ảnh
+Pictures	Hình ảnh
+Pictures can't be saved from IoStore containers yet; you can see what's inside.	Hiện chưa thể lưu hình ảnh từ các container IoStore; bạn vẫn có thể xem bên trong có gì.
+Pictures of the original	Hình ảnh của bản gốc
+Pieces of text stored inside a program, like messages, web addresses or file names.	Các đoạn văn bản được lưu bên trong một chương trình, như thông báo, địa chỉ web hoặc tên tệp.
+Pin a build	Ghim một bản dựng
+Pin a project's build	Ghim bản dựng của một dự án
+Pin it	Ghim nó
+Pin name	Tên ghim
+Pin removed.	Đã gỡ ghim.
+Pin this build	Ghim bản dựng này
+Pinned	Đã ghim
+Pinned builds	Bản dựng đã ghim
+Pinned: {name}. Open it from the sidebar any time.	Đã ghim: {name}. Bạn có thể mở nó từ thanh bên bất cứ lúc nào.
+Plain words, big buttons, and I'll explain everything.	Lời lẽ đơn giản, nút bấm lớn, và tôi sẽ giải thích mọi thứ.
+Plain words, short sentences, and every technical word explained.	Lời lẽ đơn giản, câu ngắn, và mọi thuật ngữ kỹ thuật đều được giải thích.
+Plan	Lập kế hoạch
+Plan connecting agent apps	Lập kế hoạch kết nối các ứng dụng tác tử
+Play a project's result	Chạy thử kết quả của một dự án
+Play the game	Chơi trò chơi
+Plugin added. Read its tools to start using them.	Đã thêm plugin. Hãy đọc các công cụ của nó để bắt đầu dùng.
+Plugin arguments	Đối số của plugin
+Plugin command or address	Lệnh hoặc địa chỉ của plugin
+Plugin id	ID plugin
+Plugin removed.	Đã gỡ plugin.
+Plugins	Plugin
+Plugins add tools Craft Anything offers as its own: MCP servers (a command or an address; read their tools after adding) or WebAssembly components (a .wasm file, which can't touch your files or the network).	Plugin thêm các công cụ mà Craft Anything cung cấp như của chính nó: máy chủ MCP (một lệnh hoặc một địa chỉ; hãy đọc các công cụ của chúng sau khi thêm) hoặc thành phần WebAssembly (một tệp .wasm, không thể chạm vào tệp của bạn hay mạng).
+Plugins added here always ask before each call.	Plugin thêm ở đây luôn hỏi trước mỗi lần gọi.
+Plugins read. Their new tools are offered from the next start.	Đã đọc plugin. Các công cụ mới của chúng sẽ có từ lần khởi động tiếp theo.
+Preserving software that's no longer supported.	Bảo tồn phần mềm không còn được hỗ trợ.
+Preview a project's website	Xem trước trang web của một dự án
+Preview the website	Xem trước trang web
+Previous address	Địa chỉ trước đó
+Program: found automatically	Chương trình: tự động tìm thấy
+Program: {path}	Chương trình: {path}
+Programs (native code)	Chương trình (mã gốc)
+Progress	Tiến độ
+Project details	Chi tiết dự án
+Project name	Tên dự án
+Projects	Dự án
+Projects and builds	Dự án và bản dựng
+Property list	Danh sách thuộc tính
+Pseudo-C	Pseudo-C
+Purpose	Mục đích
+Raise the asset budget	Tăng ngân sách tài nguyên
+Raise the budget by {amount}	Tăng ngân sách thêm {amount}
+Raw machine code	Mã máy thô
+Read AI settings	Đọc cài đặt AI
+Read a Unity game's IL2CPP metadata	Đọc siêu dữ liệu IL2CPP của một trò chơi Unity
+Read a game's files	Đọc các tệp của một trò chơi
+Read a project file	Đọc một tệp dự án
+Read a setting	Đọc một cài đặt
+Read an app's screen	Đọc màn hình của một ứng dụng
+Read bytes	Đọc byte
+Read comment	Đọc chú thích
+Read inline comment	Đọc chú thích nội tuyến
+Read its tools	Đọc các công cụ của nó
+Read pinned builds	Đọc các bản dựng đã ghim
+Read projects	Đọc các dự án
+Read the journal	Đọc nhật ký
+Read the plugin's tools	Đọc các công cụ của plugin
+Read the project	Đọc dự án
+Reading what's inside…	Đang đọc nội dung bên trong…
+Ready	Sẵn sàng
+Ready: {what} is on this computer.	Sẵn sàng: {what} đã có trên máy tính này.
+Reasoning	Suy luận
+Rebuild status	Trạng thái dựng lại
+Record a finding	Ghi lại một phát hiện
+Record a hypothesis	Ghi lại một giả thuyết
+Record an open question	Ghi lại một câu hỏi đang mở
+Recover readable sources	Khôi phục mã nguồn đọc được
+Recreate it with darker colours	Tạo lại với màu tối hơn
+Recreate just its main feature	Chỉ tạo lại tính năng chính của nó
+Recreate this website	Tạo lại trang web này
+Recreated games are built with the original's own engine when it's here (Unity, Unreal or Godot), else Unity, and Rust as the last resort.	Trò chơi được tạo lại sẽ dùng chính engine của bản gốc nếu có trên máy (Unity, Unreal hoặc Godot), nếu không thì dùng Unity, và Rust là phương án cuối cùng.
+References to a name	Các chỗ tham chiếu đến một tên
+Refining rounds	Số vòng tinh chỉnh
+Refresh plugins	Làm mới plugin
+Regions of a program file, each with one purpose: code, text, pictures, settings.	Các vùng của một tệp chương trình, mỗi vùng có một mục đích: mã, văn bản, hình ảnh, cài đặt.
+Reload	Tải lại
+Remember permission	Ghi nhớ quyền
+Remove	Gỡ bỏ
+Remove a pin	Gỡ một ghim
+Remove a pinned build	Gỡ một bản dựng đã ghim
+Remove a plugin	Gỡ một plugin
+Remove an AI	Gỡ một AI
+Remove an app	Gỡ một ứng dụng
+Remove an asset key	Gỡ một khóa tài nguyên
+Remove bookmark	Gỡ dấu trang
+Remove it	Gỡ nó
+Remove it and its key	Gỡ nó và khóa của nó
+Remove {name}	Gỡ {name}
+Remove {name}?	Gỡ {name}?
+Remove…	Gỡ bỏ…
+Rename	Đổi tên
+Rename a pinned build	Đổi tên một bản dựng đã ghim
+Rename a project	Đổi tên một dự án
+Rename the pin	Đổi tên ghim
+Rename the project	Đổi tên dự án
+Rename…	Đổi tên…
+Reset	Đặt lại
+Resolve a call	Xác định đích của một lời gọi
+Resolved	Đã xác định
+Resources	Tài nguyên
+Restart	Khởi động lại
+Restore	Khôi phục
+Result	Kết quả
+Resume a Frida session	Tiếp tục một phiên Frida
+Rizin command	Lệnh Rizin
+Rizin debug command	Lệnh gỡ lỗi Rizin
+Rizin debug session status	Trạng thái phiên gỡ lỗi Rizin
+Rough guide:	Hướng dẫn sơ bộ:
+Run	Chạy
+Run a Frida script	Chạy một tập lệnh Frida
+Run a build command	Chạy một lệnh dựng
+Run a scripted Electron session	Chạy một phiên Electron theo kịch bản
+Run a scripted web session	Chạy một phiên web theo kịch bản
+Run a tool from the command palette (Ctrl/⌘ K), or pick a finding in the Evidence panel.	Chạy một công cụ từ bảng lệnh (Ctrl/⌘ K), hoặc chọn một phát hiện trong bảng Bằng chứng.
+Run and watch a program	Chạy và quan sát một chương trình
+Run to study	Chạy để tìm hiểu
+Running	Đang chạy
+Running processes	Tiến trình đang chạy
+Running programs	Chương trình đang chạy
+Running {id}	Đang chạy {id}
+Runs its tools without asking	Chạy công cụ mà không hỏi bạn
+Runs the first-run steps next time.	Lần sau sẽ chạy các bước lần đầu.
+Rust program details	Chi tiết chương trình Rust
+SHA-256	SHA-256
+SQLite database contents	Nội dung cơ sở dữ liệu SQLite
+Safety	An toàn
+Save	Lưu
+Save a picture	Lưu một hình ảnh
+Save a report	Lưu một báo cáo
+Save an asset key	Lưu khóa tài nguyên
+Save picture	Lưu hình ảnh
+Save settings	Lưu cài đặt
+Save the key	Lưu khóa
+Save the picture	Lưu hình ảnh
+Save the report	Lưu báo cáo
+Saved	Đã lưu
+Saved in	Đã lưu trong
+Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	Tiết kiệm dung lượng: sao chép chương trình và mã, còn các phần phụ thuộc và phương tiện thì dùng chung với dự án. Nếu một tệp dùng chung bị ghi đè trực tiếp, thay đổi cũng áp dụng ở đây.
+Say what you want	Nói bạn muốn gì
+Say what you want first.	Hãy nói bạn muốn gì trước.
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	Hãy nói bạn muốn tạo gì, hoặc thả một ứng dụng hay tệp vào cửa sổ để xem bên trong. Mọi thứ chạy ở chế độ Phòng sạch trừ khi bạn bật Chuyên sâu.
+Screenshot	Ảnh chụp màn hình
+Screenshot a page	Chụp màn hình một trang
+Screenshots of how it should look. The builder opens each one and matches it.	Ảnh chụp màn hình về giao diện mong muốn. Trình xây dựng sẽ mở từng ảnh và làm cho khớp.
+Search for bytes	Tìm byte
+Search functions	Tìm hàm
+Search strings	Tìm chuỗi
+Sections	Các phần
+Security research on software I'm allowed to examine.	Nghiên cứu bảo mật trên phần mềm mà tôi được phép xem xét.
+See how a page is built: its layout, styles, scripts and the requests it makes.	Xem một trang được dựng thế nào: bố cục, kiểu dáng, tập lệnh và các yêu cầu mà trang gửi đi.
+See how a program works: what it does, what it talks to, what's inside.	Xem một chương trình hoạt động ra sao: nó làm gì, nói chuyện với ai, bên trong có gì.
+See what a game packs and save its pictures as PNG files. Only for games you made, or whose owner lets you.	Xem một trò chơi đóng gói những gì và lưu hình ảnh của nó thành tệp PNG. Chỉ dành cho trò chơi do bạn làm, hoặc được chủ sở hữu cho phép.
+See what a game packs, and save its pictures as PNG files.	Xem một trò chơi đóng gói những gì và lưu hình ảnh của nó thành tệp PNG.
+See what a stand-in was asked	Xem bản thay thế đã được hỏi gì
+See which servers an app talks to, and what it says.	Xem một ứng dụng nói chuyện với máy chủ nào và nói những gì.
+Seen it	Đã thấy
+Seen it: read directly from the file, page or capture.	Đã thấy: đọc trực tiếp từ tệp, trang hoặc bản ghi.
+Selected	Đã chọn
+Selection	Vùng chọn
+Send	Gửi
+Send (Enter)	Gửi (Enter)
+Send now	Gửi ngay
+Server address	Địa chỉ máy chủ
+Session status	Trạng thái phiên
+Set a project's asset budget	Đặt ngân sách tài nguyên cho một dự án
+Set an AI's folder	Đặt thư mục của một AI
+Set an AI's program	Đặt chương trình của một AI
+Set model options	Đặt tùy chọn mô hình
+Set one up	Thiết lập một cái
+Set up a brain…	Thiết lập một AI…
+Set up a builder	Thiết lập một trình xây dựng
+Settings	Cài đặt
+Show a build's activity	Hiện hoạt động của một bản dựng
+Show a project	Hiện một dự án
+Show folder	Hiện thư mục
+Show me everything	Cho tôi xem mọi thứ
+Show me the proof	Cho tôi xem bằng chứng
+Show model options	Hiện tùy chọn mô hình
+Show pinned builds	Hiện các bản dựng đã ghim
+Show settings	Hiện cài đặt
+Show the answer	Hiện câu trả lời
+Show the console	Hiện bảng điều khiển
+Show the folder	Hiện thư mục
+Show the ones that are met	Hiện những mục đã đạt
+Show the sidebar	Hiện thanh bên
+Show the welcome again	Hiện lại màn hình chào mừng
+Showing	Đang hiện
+Sign in and add the Unity Editor	Đăng nhập và thêm Unity Editor
+Sign in and install Unreal Engine	Đăng nhập và cài Unreal Engine
+Simple	Đơn giản
+Simple: say what you want and it's handled for you. Advanced: every tool, the evidence and the logs.	Đơn giản: bạn nói muốn gì, chúng tôi lo phần còn lại. Nâng cao: mọi công cụ, bằng chứng và nhật ký.
+Since Craft Anything opened.	Từ khi Craft Anything mở.
+Size	Kích thước
+Skip setup	Bỏ qua thiết lập
+Smart contract interface	Giao diện hợp đồng thông minh
+Software I made, bought, or have permission to examine.	Phần mềm do tôi làm, mua, hoặc được phép xem xét.
+Solana program (sBPF)	Chương trình Solana (sBPF)
+Some plugins couldn't be read:	Không đọc được một số plugin:
+Something a program borrows from the operating system or a library, like "open a file".	Thứ mà chương trình mượn từ hệ điều hành hoặc một thư viện, như "mở một tệp".
+Something a program or library offers for other programs to use.	Thứ mà một chương trình hoặc thư viện cung cấp để các chương trình khác dùng.
+Source	Nguồn
+Standard	Tiêu chuẩn
+Start	Bắt đầu
+Start a Frida session	Bắt đầu một phiên Frida
+Start a GDB session	Bắt đầu một phiên GDB
+Start a Rizin debug session	Bắt đầu một phiên gỡ lỗi Rizin
+Start a rebuild	Bắt đầu dựng lại
+Start a stand-in backend	Khởi động một backend thay thế
+Start an activity	Bắt đầu một hoạt động
+Start building	Bắt đầu xây dựng
+Start from them	Bắt đầu từ đó
+Start it	Khởi động
+Start with Simple mode; you can set up AI later in Settings.	Hãy bắt đầu với chế độ Đơn giản; bạn có thể thiết lập AI sau trong Cài đặt.
+Starting…	Đang khởi động…
+Starting… it opens in its own window.	Đang khởi động… nó sẽ mở trong cửa sổ riêng.
+Still working. Bigger jobs can take a few minutes.	Vẫn đang xử lý. Việc lớn hơn có thể mất vài phút.
+Stop	Dừng
+Stop a pinned build	Dừng một bản dựng đã ghim
+Stop a rebuild	Dừng việc dựng lại
+Stop a stand-in backend	Dừng một backend thay thế
+Stop generated assets	Dừng các tài nguyên được tạo
+Stop listing {folder}	Ngừng liệt kê {folder}
+Stopped here	Đã dừng tại đây
+Stops the current step and sends your notes straight away.	Dừng bước hiện tại và gửi ghi chú của bạn ngay.
+Strings	Chuỗi
+Studio	Studio
+Studio (dark)	Studio (tối)
+Studio Light	Studio Light
+Study	Tìm hiểu
+Study apps by running them	Tìm hiểu ứng dụng bằng cách chạy chúng
+Studying	Đang tìm hiểu
+Studying software to understand it.	Tìm hiểu phần mềm để hiểu nó.
+Summarise what changed	Tóm tắt những gì đã thay đổi
+Swift types	Kiểu Swift
+Switch Beginner / Experienced	Chuyển Người mới / Có kinh nghiệm
+Switch Clean room / Deep	Chuyển Phòng sạch / Chuyên sâu
+Switch light / dark theme	Chuyển giao diện sáng / tối
+Switch target	Chuyển mục tiêu
+System	Hệ thống
+System services	Dịch vụ hệ thống
+Take a texture out of an Unreal game	Lấy một texture ra khỏi trò chơi Unreal
+Take an asset out of a Unity game	Lấy một tài nguyên ra khỏi trò chơi Unity
+Take back a note	Rút lại một ghi chú
+Take back: puts it in the box again	Rút lại: đưa nó về lại khung nhập
+Take files out of an Unreal pak	Lấy tệp ra khỏi một gói pak của Unreal
+Take out packed files	Lấy các tệp đã đóng gói ra
+Target	Mục tiêu
+Targets	Các mục tiêu
+That folder already has {names}, where Craft Anything keeps its own files. Pick another folder, or move those out first.	Thư mục đó đã có {names}, là nơi Craft Anything lưu tệp riêng của mình. Hãy chọn thư mục khác, hoặc chuyển chúng đi trước.
+That folder is already a project, so it's open now.	Thư mục đó đã là một dự án, nên giờ nó đang được mở.
+The Rust toolchain (rustup.rs).	Bộ công cụ Rust (rustup.rs).
+The builder answers its own questions and says what it chose ("I decided: …"), so you can change it.	Trình xây dựng tự trả lời các câu hỏi của mình và cho biết nó đã chọn gì ("Tôi quyết định: …"), nên bạn có thể thay đổi.
+The builder makes the game's 3D models and textures from descriptions of original designs, paid from your fal.ai account. Models are low-poly so the game runs fast. A textured model costs {model} and a picture {picture}. Each project has a {budget} budget, and you're asked before it goes over. The key is kept in your system keychain.	Trình xây dựng tạo mô hình 3D và texture cho trò chơi từ mô tả về các thiết kế gốc, trả phí từ tài khoản fal.ai của bạn. Mô hình có ít đa giác để trò chơi chạy nhanh. Một mô hình có texture tốn {model} và một hình ảnh tốn {picture}. Mỗi dự án có ngân sách {budget}, và bạn sẽ được hỏi trước khi vượt mức. Khóa được lưu trong chuỗi khóa hệ thống của bạn.
+The builder reads them (code, notes, pictures) and builds the app in a new app folder beside them. Your files stay as they are.	Trình xây dựng đọc chúng (mã, ghi chú, hình ảnh) và dựng ứng dụng trong một thư mục ứng dụng mới ngay cạnh. Tệp của bạn được giữ nguyên.
+The builder will decide its questions and tell you what it chose.	Trình xây dựng sẽ tự quyết định các câu hỏi và cho bạn biết nó đã chọn gì.
+The builder works on these files directly and keeps what works. Craft Anything adds a few records of its own beside them.	Trình xây dựng làm việc trực tiếp trên các tệp này và giữ lại những gì hoạt động. Craft Anything thêm vài bản ghi riêng của mình bên cạnh chúng.
+The builder's questions	Câu hỏi của trình xây dựng
+The builder's questions come to you as cards, and it waits for your answer.	Câu hỏi của trình xây dựng sẽ đến với bạn dưới dạng thẻ, và nó chờ câu trả lời của bạn.
+The builder's questions will come to you.	Câu hỏi của trình xây dựng sẽ được gửi đến bạn.
+The built-in engines still show you everything they find.	Các bộ máy tích hợp sẵn vẫn cho bạn thấy mọi thứ chúng tìm được.
+The clipboard can't be read:	Không đọc được bộ nhớ tạm:
+The code	Mã
+The code format Android apps use.	Định dạng mã mà các ứng dụng Android dùng.
+The coding agent's estimate at API prices, not your bill. A subscription isn't charged this.	Ước tính của tác tử lập trình theo giá API, không phải hóa đơn của bạn. Gói đăng ký không bị tính khoản này.
+The download keeps going in the background.	Quá trình tải vẫn tiếp tục ở nền.
+The first instruction a program runs when it starts.	Lệnh đầu tiên mà một chương trình chạy khi khởi động.
+The full toolset, evidence and logs.	Bộ công cụ đầy đủ, bằng chứng và nhật ký.
+The installer is open. Follow its steps, then come back here.	Trình cài đặt đang mở. Hãy làm theo các bước, rồi quay lại đây.
+The lowest-level human-readable form of machine code: one small instruction per line.	Dạng mã máy ở mức thấp nhất mà con người đọc được: mỗi dòng là một lệnh nhỏ.
+The names were removed from the program before it was shipped, so we have to work them out.	Tên đã bị xóa khỏi chương trình trước khi phát hành, nên chúng tôi phải suy ra.
+The packed contents of an Electron app (a website inside a desktop app)	Nội dung đã đóng gói của một ứng dụng Electron (một trang web nằm trong ứng dụng máy tính)
+The pasted picture wasn't attached: another screen was opened meanwhile.	Hình ảnh đã dán chưa được đính kèm: một màn hình khác đã được mở trong lúc đó.
+The picture on the clipboard is too large.	Hình ảnh trong bộ nhớ tạm quá lớn.
+The program's machine code written out as one tiny instruction per line.	Mã máy của chương trình được viết ra, mỗi dòng một lệnh nhỏ.
+The project's name and round	Tên và vòng của dự án
+The raw result	Kết quả thô
+The smallest unit of data in a file: a number from 0 to 255.	Đơn vị dữ liệu nhỏ nhất trong một tệp: một số từ 0 đến 255.
+The smallest units of data in a file: numbers from 0 to 255.	Các đơn vị dữ liệu nhỏ nhất trong một tệp: những số từ 0 đến 255.
+The {name} view isn't available yet in this build.	Chế độ xem {name} chưa có trong bản dựng này.
+The {} view isn't available yet in this build.	Chế độ xem {} chưa có trong bản dựng này.
+Theme	Giao diện
+There's no /{name} command. You can use {commands}.	Không có lệnh /{name}. Bạn có thể dùng {commands}.
+There's no AI brain set up yet, so here's what the built-in engines found:	Chưa thiết lập AI nào, nên đây là những gì các bộ máy tích hợp sẵn tìm thấy:
+There's no picture on the clipboard to paste.	Không có hình ảnh nào trong bộ nhớ tạm để dán.
+They're my app: edit them in place	Đó là ứng dụng của tôi: sửa trực tiếp
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	Những thứ mà một chương trình mượn từ hệ điều hành hoặc thư viện, như "mở một tệp" hay "vẽ một cửa sổ".
+Things a program or library offers for other programs to use.	Những thứ mà một chương trình hoặc thư viện cung cấp để các chương trình khác dùng.
+Things we couldn't establish yet are listed here, with what would settle them.	Những gì chúng tôi chưa xác lập được sẽ được liệt kê ở đây, cùng với điều gì sẽ giải quyết chúng.
+This answer won't be there after a restart:	Câu trả lời này sẽ không còn sau khi khởi động lại:
+This build stopped part-way	Bản dựng này đã dừng giữa chừng
+This can't be undone.	Việc này không thể hoàn tác.
+This folder already has files	Thư mục này đã có tệp
+This is a big one. You can leave this open and come back later.	Việc này khá lớn. Bạn có thể để màn hình này mở và quay lại sau.
+This is outside what the builder may do on its own. Nothing happens until you say so.	Việc này nằm ngoài những gì trình xây dựng được tự làm. Sẽ không có gì xảy ra cho đến khi bạn đồng ý.
+This keeps going in the background, and each download is checked against its publisher's checksum before it's used.	Việc này tiếp tục ở nền, và mỗi bản tải về được kiểm tra với checksum của nhà phát hành trước khi dùng.
+This project is waiting its turn. Send your message once it starts.	Dự án này đang chờ đến lượt. Hãy gửi tin nhắn của bạn khi nó bắt đầu.
+This runs code from the target or changes a device. Clicking Run is your OK.	Việc này chạy mã từ mục tiêu hoặc thay đổi một thiết bị. Nhấn Chạy là bạn đã đồng ý.
+This runs code from the target or changes a device. Nothing runs until you say so.	Việc này chạy mã từ mục tiêu hoặc thay đổi một thiết bị. Sẽ không có gì chạy cho đến khi bạn đồng ý.
+This tool takes no settings.	Công cụ này không có cài đặt.
+This updates by itself when it's done.	Mục này tự cập nhật khi xong.
+This view arrives with the next engines. The Hex and Result views work today.	Chế độ xem này sẽ có cùng các bộ máy tiếp theo. Chế độ xem Hex và Kết quả hoạt động ngay bây giờ.
+Those aren't pictures we can use (PNG, JPEG, WebP or GIF, up to 20 MB).	Đó không phải là hình ảnh mà chúng tôi dùng được (PNG, JPEG, WebP hoặc GIF, tối đa 20 MB).
+Time spent	Thời gian đã dùng
+Tip: press Ctrl/⌘ K to run any tool.	Mẹo: nhấn Ctrl/⌘ K để chạy bất kỳ công cụ nào.
+Tokens	Token
+Tools may now run code from what you open without asking. Turn this back on unless you're sure.	Công cụ giờ có thể chạy mã từ thứ bạn mở mà không hỏi. Hãy bật lại, trừ khi bạn chắc chắn.
+Tools that run code from a target or change a phone always ask first, unless you allowed them for a project.	Các công cụ chạy mã từ một mục tiêu hoặc thay đổi điện thoại luôn hỏi trước, trừ khi bạn đã cho phép chúng cho một dự án.
+Trace a UI action	Lần theo một thao tác giao diện
+Trace a feature	Lần theo một tính năng
+Try again	Thử lại
+Try asking	Thử hỏi
+Try it out, then ask below for any changes.	Hãy dùng thử, rồi hỏi bên dưới nếu muốn thay đổi gì.
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	Biến mã máy của một chương trình trở lại thành thứ đọc giống mã nguồn. Đây là bản dựng lại, không phải bản gốc.
+Turn off	Tắt
+Turn off an AI	Tắt một AI
+Turn on	Bật
+Turn on Deep mode	Bật chế độ Chuyên sâu
+Turn on an AI	Bật một AI
+Turning a plugin on or off takes effect from the next start.	Việc bật hoặc tắt plugin có hiệu lực từ lần khởi động sau.
+Type a command or tool…	Nhập lệnh hoặc công cụ…
+Type the website's address:	Nhập địa chỉ của trang web:
+Type your question after /btw.	Hãy nhập câu hỏi của bạn sau /btw.
+Unity assets	Tài nguyên Unity
+Unity bundle	Gói Unity
+Unity's own installer. It only opens if Unity's signature checks out.	Trình cài đặt riêng của Unity. Nó chỉ mở nếu chữ ký của Unity hợp lệ.
+Unknown	Không rõ
+Unknown: we couldn't establish this yet.	Không rõ: chúng tôi chưa xác lập được điều này.
+Unknowns	Chưa biết
+Unload a Frida script	Gỡ một tập lệnh Frida
+Unreal IoStore	Unreal IoStore
+Unreal builds games with Apple's Xcode, free in the App Store.	Unreal dựng trò chơi bằng Xcode của Apple, miễn phí trên App Store.
+Unreal is here, but it also needs Visual Studio's C++ tools.	Unreal đã có ở đây, nhưng cũng cần các công cụ C++ của Visual Studio.
+Unreal pak	Gói pak của Unreal
+Update a finding	Cập nhật một phát hiện
+Update a hypothesis	Cập nhật một giả thuyết
+Update an open question	Cập nhật một câu hỏi còn mở
+Update the checklist	Cập nhật danh sách kiểm tra
+Update the plan	Cập nhật kế hoạch
+Use	Dùng
+Use an API key…	Dùng khóa API…
+Use as a goal	Dùng làm mục tiêu
+Use the projects folder	Dùng thư mục dự án
+Use this	Dùng cái này
+Use {name}	Dùng {name}
+Value flow	Luồng giá trị
+Version	Phiên bản
+Waiting	Đang chờ
+Waiting for another build to finish: this one starts next.	Đang chờ một bản dựng khác xong: bản này sẽ bắt đầu tiếp theo.
+Waiting for other builds to finish: {n} in line.	Đang chờ các bản dựng khác xong: còn {n} đang xếp hàng.
+Waiting: the builder reads it at its next step. Up arrow to edit.	Đang chờ: trình xây dựng sẽ đọc nó ở bước tiếp theo. Nhấn mũi tên lên để sửa.
+Waiting: the builder reads these at its next step. Up arrow to edit the last.	Đang chờ: trình xây dựng sẽ đọc những mục này ở bước tiếp theo. Nhấn mũi tên lên để sửa mục cuối.
+Want answers in plain words?	Muốn câu trả lời dễ hiểu?
+Watch a Mac app's calls	Theo dõi các lệnh gọi của một ứng dụng Mac
+Watch a page over time	Theo dõi một trang theo thời gian
+We didn't find an AI on this computer yet	Chúng tôi chưa tìm thấy AI nào trên máy tính này
+We list the web addresses and messages we can see inside it. Watching it live needs your OK first.	Chúng tôi liệt kê các địa chỉ web và thông điệp mà chúng tôi thấy bên trong nó. Theo dõi trực tiếp cần bạn đồng ý trước.
+We only read it; nothing runs. Every answer shows how sure we are.	Chúng tôi chỉ đọc; không có gì được chạy. Mỗi câu trả lời cho thấy chúng tôi chắc đến đâu.
+WebAssembly module	Mô-đun WebAssembly
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly: mã biên dịch nhanh chạy bên trong trình duyệt web.
+Website address	Địa chỉ trang web
+Website pages	Các trang của trang web
+Websites	Trang web
+Welcome	Chào mừng
+What a new game may spend on generated pictures and 3D models before you're asked. Each project keeps its own.	Số tiền một trò chơi mới được dùng cho ảnh và mô hình 3D do AI tạo trước khi hỏi bạn. Mỗi dự án có mức riêng.
+What a program exports	Chương trình xuất ra những gì
+What a program imports	Chương trình nhập vào những gì
+What are its main parts?	Các phần chính của nó là gì?
+What brings you here?	Bạn đến đây để làm gì?
+What can Craft Anything do?	Craft Anything làm được những gì?
+What data was sent?	Dữ liệu nào đã được gửi đi?
+What do you want to look inside?	Bạn muốn xem bên trong cái gì?
+What do you want to make?	Bạn muốn tạo gì?
+What do you want to recreate?	Bạn muốn dựng lại gì?
+What does it need from the page?	Nó cần gì từ trang này?
+What does it send over the internet?	Nó gửi gì qua internet?
+What does this app do?	Ứng dụng này làm gì?
+What does this app store?	Ứng dụng này lưu trữ gì?
+What does this contract do?	Hợp đồng này làm gì?
+What does this module do?	Mô-đun này làm gì?
+What does this program do?	Chương trình này làm gì?
+What does {what} do?	{what} làm gì?
+What happened in this build	Điều gì đã xảy ra trong bản dựng này
+What is it	Nó là gì
+What is this?	Đây là gì?
+What it calls	Nó gọi những gì
+What kind of file is this?	Đây là loại tệp gì?
+What permissions does it ask for?	Nó xin những quyền nào?
+What pictures and textures are made with.	Công cụ dùng để tạo ảnh và chất liệu bề mặt.
+What settings are in here?	Ở đây có những cài đặt nào?
+What tables are in here?	Ở đây có những bảng nào?
+What we couldn't check	Những gì chúng tôi không kiểm tra được
+What would you like to find out?	Bạn muốn tìm hiểu điều gì?
+What would you like to know about {name}?	Bạn muốn biết điều gì về {name}?
+What's at this address	Có gì tại địa chỉ này
+What's in this folder?	Trong thư mục này có gì?
+What's inside this archive?	Bên trong tệp nén này có gì?
+Whatever Settings → AI builds with.	Bất cứ thứ gì Cài đặt → AI dùng để xây dựng.
+When a folder you pick has files	Khi thư mục bạn chọn có sẵn tệp
+When the builder needs a choice made: show it to you and wait, or let it decide and say what it chose. Each project can choose for itself under its prompt box.	Khi trình xây dựng cần một lựa chọn: hiện cho bạn và chờ, hoặc để nó tự quyết rồi cho bạn biết nó đã chọn gì. Mỗi dự án có thể tự chọn ngay dưới ô lời nhắc.
+When you rebuild an app or game, start it once to picture its window and compare the rebuild with it. It runs that program.	Khi bạn dựng lại một ứng dụng hoặc trò chơi, hãy chạy bản gốc một lần để chụp cửa sổ của nó và so sánh với bản dựng lại. Việc này sẽ chạy chương trình đó.
+Where am I	Tôi đang ở đâu
+Where is Ghidra installed?	Ghidra được cài ở đâu?
+Where is the program?	Chương trình nằm ở đâu?
+Where should new projects go?	Dự án mới nên lưu ở đâu?
+Where we found it	Nơi chúng tôi tìm thấy
+Whether they're the app to edit in place, or material the app starts from beside them.	Cho biết chúng là ứng dụng để sửa trực tiếp, hay chỉ là tư liệu để ứng dụng được dựng cạnh đó và bắt đầu từ chúng.
+Which AI answers your questions	AI nào trả lời câu hỏi của bạn
+Which file is the main program?	Tệp nào là chương trình chính?
+Which files does it read or write?	Nó đọc hoặc ghi những tệp nào?
+Which function is this in	Nằm trong hàm nào
+Which servers does it talk to?	Nó trao đổi với những máy chủ nào?
+Which servers were contacted?	Những máy chủ nào đã được liên hệ?
+Which websites does it load?	Nó tải những trang web nào?
+Who builds what you make	Ai xây dựng thứ bạn tạo
+Who calls it	Ai gọi nó
+Who can move funds?	Ai có thể chuyển tiền?
+Who signed this Windows program	Ai đã ký chương trình Windows này
+Who uses this Android class?	Ai dùng lớp Android này?
+Who uses this Java class?	Ai dùng lớp Java này?
+Why we ask	Vì sao chúng tôi hỏi
+Window / focus info	Thông tin cửa sổ / tiêu điểm
+Windows resources	Tài nguyên Windows
+Wireshark tools check	Kiểm tra công cụ Wireshark
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	Nếu không có nó, Chế độ Chuyên sâu sẽ dùng trình dịch ngược riêng của Craft Anything, kết quả thô hơn.
+Work out a copy's size	Tính dung lượng của một bản sao
+Work out what an installed app is built on	Tìm ra ứng dụng đã cài được xây dựng trên nền tảng nào
+Workbench	Bàn làm việc
+Worked it out	Suy ra
+Worked it out: computed step by step from things we saw.	Suy ra: được tính từng bước từ những gì chúng tôi đã thấy.
+Worked through {n} steps	Đã làm qua {n} bước
+Working on it	Đang xử lý
+Working on your answer	Đang soạn câu trả lời cho bạn
+Working out how much space a copy takes…	Đang tính một bản sao chiếm bao nhiêu dung lượng…
+Working…	Đang xử lý…
+Working… ({n} steps so far)	Đang xử lý… (đã {n} bước)
+Write a project file	Ghi tệp dự án
+Write a readable report	Viết báo cáo dễ đọc
+Write comment	Viết chú thích
+Write inline comment	Viết chú thích trên dòng
+Write pseudo-C to a folder	Ghi mã giả C vào một thư mục
+Write the brief	Viết bản tóm tắt
+Write the handoff	Viết bản bàn giao
+Wrote {what} to {}	Đã ghi {what} vào {}
+You answered: {a}	Bạn đã trả lời: {a}
+You can add a Claude, ChatGPT or OpenRouter key, a local model (Ollama, LM Studio) or an agent you already use, later in Settings → AI.	Bạn có thể thêm khóa Claude, ChatGPT hoặc OpenRouter, một mô hình chạy trên máy (Ollama, LM Studio) hoặc một tác tử bạn đã dùng, sau này trong Cài đặt → AI.
+You chose:	Bạn đã chọn:
+You're all set	Mọi thứ đã sẵn sàng
+Your app is ready	Ứng dụng của bạn đã sẵn sàng
+Your brains	Bộ não AI của bạn
+Your fal.ai key	Khóa fal.ai của bạn
+Your game is ready	Trò chơi của bạn đã sẵn sàng
+Your message wasn't sent: another project was opened while its pictures were copied.	Tin nhắn của bạn chưa được gửi: một dự án khác đã được mở trong lúc ảnh đang được sao chép.
+Your own tool installs (optional)	Các công cụ bạn tự cài (không bắt buộc)
+Your project starts as soon as it's done.	Dự án của bạn sẽ bắt đầu ngay khi xong.
+Your version	Phiên bản của bạn
+Your website is ready	Trang web của bạn đã sẵn sàng
+a new folder in {dir}	một thư mục mới trong {dir}
+a picture	một bức ảnh
+about ${n}	khoảng ${n}
+address, e.g. http://192.168.1.20:11434/v1	địa chỉ, ví dụ http://192.168.1.20:11434/v1
+and {n} more	và {n} mục nữa
+arguments (optional)	đối số (không bắt buộc)
+call graph	đồ thị lời gọi
+clean room	phòng sạch
+command, https:// address or .wasm file	lệnh, địa chỉ https:// hoặc tệp .wasm
+deep mode	chế độ chuyên sâu
+entry point	điểm vào
+files	tệp
+findings	phát hiện
+first run	lần chạy đầu tiên
+found on this computer; set up when you start	tìm thấy trên máy này; sẽ được thiết lập khi bạn bắt đầu
+from the builder's own memory of the build	từ trí nhớ của chính trình xây dựng về bản dựng
+from the project's files	từ các tệp của dự án
+id, e.g. docs	id, ví dụ docs
+is required	là bắt buộc
+isn't available yet	chưa có sẵn
+job result	kết quả tác vụ
+job {title} panicked: {what}	tác vụ {title} gặp sự cố nghiêm trọng: {what}
+just now	vừa xong
+managed	được quản lý
+model (optional)	mô hình (không bắt buộc)
+must be a number	phải là một số
+must be a whole number	phải là số nguyên
+name, e.g. Studio box	tên, ví dụ Studio box
+number	số
+objdump output	kết quả objdump
+or start with /btw to just ask	hoặc bắt đầu bằng /btw để chỉ hỏi
+pinned builds couldn't be read: {}	không đọc được các bản dựng đã ghim: {}
+say how to use the files there	cho biết cách dùng các tệp ở đó
+scene	cảnh
+scenes	các cảnh
+source map	source map
+start page	trang bắt đầu
+the app is built beside your files, starting from them	ứng dụng được dựng cạnh các tệp của bạn, bắt đầu từ chúng
+the built-in engines	các engine tích hợp sẵn
+the prompt box changed height	ô lời nhắc đã đổi chiều cao
+title bar	thanh tiêu đề
+under $0.01	dưới $0.01
+yesterday	hôm qua
+your files there are the app, edited in place	các tệp của bạn ở đó chính là ứng dụng, được sửa trực tiếp
+{:.1} GB	{:.1} GB
+{:.1}M	{:.1}M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend}: {input_tokens} vào / {output_tokens} ra{cost}
+{cost} (estimate)	{cost} (ước tính)
+{c} · {size}	{c} · {size}
+{done} of {all} done	Đã xong {done}/{all}
+{gb} GB for bigger ones	{gb} GB cho các chương trình lớn hơn
+{gb} GB for programs up to {size}	{gb} GB cho chương trình đến {size}
+{gb} GB up to {size}	{gb} GB cho đến {size}
+{held} of {n} requirements met	Đã đạt {held}/{n} yêu cầu
+{id} · {summary}	{id} · {summary}
+{in} in, {out} out.	{in} vào, {out} ra.
+{k}: {s}	{k}: {s}
+{lbl}  {}	{lbl}  {}
+{line}, and {n} more	{line} và {n} mục nữa
+{mb} MB	{mb} MB
+{name} builds what you make.	{name} xây dựng thứ bạn tạo.
+{name} builds what you make; answers come from {brain}.	{name} xây dựng thứ bạn tạo; câu trả lời đến từ {brain}.
+{name} can't be attached: a message takes pictures up to 20 MB.	Không thể đính kèm {name}: mỗi tin nhắn nhận ảnh tối đa 20 MB.
+{name} can't be attached: it isn't a PNG, JPEG, GIF or WebP picture.	Không thể đính kèm {name}: đây không phải ảnh PNG, JPEG, GIF hoặc WebP.
+{name} is ready	{name} đã sẵn sàng
+{name} is ready.	{name} đã sẵn sàng.
+{name} isn't available yet in this build.	{name} chưa có trong bản dựng này.
+{name} isn't on this computer yet.	{name} chưa có trên máy này.
+{name} key	Khóa {name}
+{n} actions done so far	Đã thực hiện {n} thao tác
+{n} days ago	{n} ngày trước
+{n} h ago	{n} giờ trước
+{n} item(s)	{n} mục
+{n} job(s) running	{n} tác vụ đang chạy
+{n} min ago	{n} phút trước
+{n} picture(s) to match.	{n} ảnh cần đối chiếu.
+{n} step(s) didn't work and were retried or skipped.	{n} bước không thành công và đã được thử lại hoặc bỏ qua.
+{n} tokens	{n} token
+{n} · ${spent:.2} of ${budget:.2}	{n} · ${spent:.2} trên ${budget:.2}
+{n} · ${spent} of ${budget}	{n} · ${spent} trên ${budget}
+{scenes} {}	{scenes} {}
+{text}, {}	{text}, {}
+{title} hit a bug and stopped safely. ({what})	{title} gặp lỗi và đã dừng an toàn. ({what})
+{title} {id}	{title} {id}
+{title} · {:.0}%	{title} · {:.0}%
+{tool} finished	{tool} đã xong
+{tool}: {}	{tool}: {}
+{what} panicked: {msg}	{what} gặp sự cố nghiêm trọng: {msg}
+{} GB	{} GB
+{} isn't available yet in this build.	{} chưa có trong bản dựng này.
+{} item(s)	{} mục
+{} key	Khóa {}
+{} report.md	{} report.md
+{} {name}	{} {name}
+{} {said}	{} {said}
+{} {then}	{} {then}
+{} {v}	{} {v}
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+{}: {e}	{}: {e}
+{}: {some}{more}.	{}: {some}{more}.
+{}: {state}	{}: {state}
+{}h {:02}m	{}h {:02}m
+{}m {:02}s	{}m {:02}s
+— use the filter to find the rest.	— dùng bộ lọc để tìm phần còn lại.
+… {n} more	… còn {n} mục
+… {n} older	… {n} mục cũ hơn
+… {} more	… còn {} mục
+… {} older	… {} mục cũ hơn
+← Back	← Quay lại
+↑↓ to move · Enter to run · Esc to close	↑↓ để di chuyển · Enter để chạy · Esc để đóng
+Providers	Nhà cung cấp
+Harnesses	Khung chạy tác tử
+Nothing of this kind was found.	Không tìm thấy mục nào thuộc loại này.
+Another model	Mô hình khác
+Fold a project's plan	Thu gọn kế hoạch của dự án
+Fold the plan	Thu gọn kế hoạch
+The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.	Ứng dụng Claude cho máy tính đã được cài, nhưng việc xây dựng cần Claude Code, một công cụ dòng lệnh riêng. Hãy cài Claude Code, đăng nhập một lần trong terminal rồi kiểm tra lại.
+Unreal is here, but its bundled Clang C++ toolchain wasn't found.	Unreal đã có ở đây, nhưng không tìm thấy bộ công cụ Clang C++ đi kèm.
+Add Unreal's Linux C++ toolchain	Thêm bộ công cụ C++ cho Linux của Unreal
+Run Engine/Build/BatchFiles/Linux/SetupToolchain.sh in the engine folder to install its bundled Clang toolchain. If you built Unreal from source, Setup.sh downloads the native toolchain instead. A system Clang may not match the engine's version.	Chạy Engine/Build/BatchFiles/Linux/SetupToolchain.sh trong thư mục engine để cài bộ công cụ Clang đi kèm. Nếu bạn tự dựng Unreal từ mã nguồn, Setup.sh sẽ tải bộ công cụ gốc thay thế. Clang của hệ thống có thể không khớp với phiên bản của engine.
+Unreal is here, but it also needs Xcode.	Unreal đã có ở đây, nhưng còn cần Xcode.
+About 60 GB, an Epic Games account, and Xcode.	Khoảng 60 GB, một tài khoản Epic Games và Xcode.
+File	Tệp
+View	Xem
+Window	Cửa sổ
+Help	Trợ giúp
+Command palette	Bảng lệnh
+Craft Anything on GitHub	Craft Anything trên GitHub
+Report a problem…	Báo cáo sự cố…
+Quit Craft Anything	Thoát Craft Anything
+About Craft Anything	Giới thiệu Craft Anything
+Services	Dịch vụ
+Hide Craft Anything	Ẩn Craft Anything
+Hide others	Ẩn các ứng dụng khác
+Show all	Hiện tất cả
+Close window	Đóng cửa sổ
+Full screen	Toàn màn hình
+Zoom	Thu phóng
+Bring all to front	Đưa tất cả lên trước
+Drag to give the plan more or less room; double-click to reset	Kéo để mở rộng hoặc thu hẹp phần kế hoạch; nhấp đúp để đặt lại
+Copy the message	Sao chép tin nhắn
+Choose what the builder's approvals get	Chọn cách xử lý các phê duyệt của trình xây dựng
+Reading the web	Đọc web
+Other commands	Lệnh khác
+Files outside the project	Tệp ngoài dự án
+Pushing and publishing	Push và xuất bản
+Deleting outside the project	Xóa ngoài dự án
+System changes	Thay đổi hệ thống
+Other tools	Công cụ khác
+Allow	Cho phép
+Ask	Hỏi
+Refuse	Từ chối
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	Sau /approvals, hãy nhập một loại và allow, ask, refuse hoặc default, ví dụ /approvals publish ask. Các loại: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	Không có loại nào tên {name}. Các loại: {kinds}.
+Approvals	Phê duyệt
+In this project, {kind}: {choice}.	Trong dự án này, {kind}: {choice}.
+Couldn't change the approvals:	Không thể thay đổi phê duyệt:
+What the builder may do without asking you, in this project.	Những gì trình xây dựng được làm mà không cần hỏi bạn, trong dự án này.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	Mặc định theo chế độ tự động: khi bật, việc có thể hoàn tác sẽ được làm và phần còn lại bị từ chối; khi tắt, trình xây dựng sẽ hỏi.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room không bao giờ đọc mã, tệp hoặc mã nguồn của bản gốc: chỉ dùng những gì bạn thấy. Deep đọc chúng bằng mọi công cụ và bằng IDA hoặc Ghidra khi có một cái được cài đặt. Mỗi phát hiện đều ghi lại cái nào đã được dùng.
+Deep decompiler	Trình dịch ngược Deep
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Tự động ưu tiên IDA, sau đó Ghidra. Bạn cũng có thể chọn trực tiếp một cái.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: chúng tôi đọc mã, tệp và mã nguồn của nó bằng mọi công cụ sẵn có và bằng trình dịch ngược bên ngoài khi có một cái được cài đặt. Nhấn để chuyển.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} chưa được cài đặt, nên trình dịch ngược tích hợp sẽ thay thế. Chọn một engine trong Cài đặt → Engines.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} chưa có trên máy này, nên trình dịch ngược tích hợp sẽ thay thế.

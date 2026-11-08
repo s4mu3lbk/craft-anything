@@ -817,7 +817,7 @@ pub fn installer(b: Builder) -> Option<(&'static str, &'static str, &'static str
         return None;
     }
     match b {
-        Builder::Unity => Some(("https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup.exe", "UnityHubSetup.exe", "Unity Technologies")),
+        Builder::Unity => Some(("https://public-cdn.cloud.unity3d.com/hub/prod/UnityHubSetup-x64.exe", "UnityHubSetup-x64.exe", "Unity Technologies")),
         Builder::Unreal => Some((
             "https://launcher-public-service-prod06.ol.epicgames.com/launcher/api/installer/download/EpicGamesLauncherInstaller.msi",
             "EpicGamesLauncherInstaller.msi",

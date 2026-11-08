@@ -21,9 +21,12 @@ pub fn agent(connect: Duration, first_byte: Duration, body: Duration) -> ureq::A
         .new_agent()
 }
 
-/// The agent for streamed model turns.
-pub fn stream_agent() -> ureq::Agent {
-    agent(Duration::from_secs(15), Duration::from_secs(300), Duration::from_secs(60 * 60))
+/// How long a streamed answer may take unless its AI sets `timeout_secs`.
+pub const STREAM_BODY: Duration = Duration::from_secs(60 * 60);
+
+/// The agent for streamed model turns; `body` bounds the whole answer.
+pub fn stream_agent(body: Duration) -> ureq::Agent {
+    agent(Duration::from_secs(15), Duration::from_secs(300), body)
 }
 
 /// The agent for quick calls (model lists, probes).
@@ -40,9 +43,11 @@ fn net_error(what: &str, e: ureq::Error) -> ToolError {
 
 /// Turn a non-2xx response into a plain error. Keys are never echoed.
 pub fn status_error(what: &str, status: u16, body: &str) -> ToolError {
-    let detail: String = serde_json::from_str::<Value>(body)
-        .ok()
-        .map(|value| response_detail(&value).unwrap_or_else(|| "The service didn't provide an error message.".into()))
+    // Gemini's OpenAI-compatible endpoint wraps its error in a one-item array.
+    let parsed = serde_json::from_str::<Value>(body).ok().map(|v| if let Value::Array(a) = &v { a.first().cloned().unwrap_or(v) } else { v });
+    let detail: String = parsed
+        .as_ref()
+        .map(|value| response_detail(value).unwrap_or_else(|| "The service didn't provide an error message.".into()))
         .unwrap_or_else(|| body.chars().take(300).collect())
         .chars()
         .take(1000)
@@ -55,12 +60,39 @@ pub fn status_error(what: &str, status: u16, body: &str) -> ToolError {
         500..=599 => (ErrorCode::EngineMissing, "The service is having trouble. Try again soon, or use another backend."),
         _ => (ErrorCode::BadInput, "The request was rejected; see the message."),
     };
-    let provider = serde_json::from_str::<Value>(body)
-        .ok()
+    let provider = parsed
+        .as_ref()
         .and_then(|v| v.pointer("/error/code").and_then(Value::as_str).or_else(|| v.pointer("/error/type").and_then(Value::as_str)).map(str::to_string));
-    ToolError::new(code, format!("{what} answered {status}: {detail}"))
-        .with_remediation(remediation)
-        .with_details(serde_json::json!({"status": status, "provider_error": provider}))
+    let overflow = context_overflow(&detail);
+    let remediation = match overflow {
+        Some((window, _)) => format!(
+            "The conversation is longer than the model's context window ({window} tokens). Give the model a larger context \
+             in its server (Ollama: the Context length setting or OLLAMA_CONTEXT_LENGTH; LM Studio: the model's Context Length), \
+             or set context_tokens for this AI in Settings → AI so less is sent."
+        ),
+        None => remediation.to_string(),
+    };
+    ToolError::new(code, format!("{what} answered {status}: {detail}")).with_remediation(remediation).with_details(serde_json::json!({
+        "status": status,
+        "provider_error": provider,
+        "context_window": overflow.map(|o| o.0),
+        "prompt_tokens": overflow.and_then(|o| o.1),
+    }))
+}
+
+/// The context window a server says a request didn't fit in, and the request's size when it says
+/// that too (#962). Local servers word it as llama.cpp does ("request (69944 tokens) exceeds the
+/// available context size (65536 tokens)"), OpenAI-style ones as "maximum context length is 8192
+/// tokens ... you requested 9000 tokens".
+pub fn context_overflow(message: &str) -> Option<(u64, Option<u64>)> {
+    let m = message.to_ascii_lowercase();
+    let after = |marker: &str| -> Option<u64> {
+        let (_, rest) = m.split_once(marker)?;
+        let digits: String = rest.trim_start().chars().take_while(char::is_ascii_digit).collect();
+        digits.parse().ok().filter(|n| *n > 0)
+    };
+    let window = after("available context size (").or_else(|| after("maximum context length is"))?;
+    Some((window, after("request (").or_else(|| after("requested"))))
 }
 
 /// Read only the human-readable fields, never serialise an arbitrary provider payload.
@@ -155,6 +187,19 @@ const MAX_SSE_LINE: usize = 8 * 1024 * 1024;
 /// Most data retained for one event, including newlines between its `data:` fields.
 const MAX_SSE_EVENT_DATA: usize = 8 * 1024 * 1024;
 
+/// A stream that stopped mid-answer. One that ran out of time says how to give it more (#1096).
+fn stream_broke_off(e: std::io::Error) -> ToolError {
+    let e = ureq::Error::from(e);
+    let err = ToolError::new(ErrorCode::EngineMissing, format!("The stream broke off: {e}"));
+    match e {
+        ureq::Error::Timeout(ureq::Timeout::RecvBody) => err.with_remediation(
+            "The answer took longer than this AI's time limit (one hour unless set). A slow local model may need longer: set \
+             timeout_secs (in seconds) for this AI under [[ai.backends]] in config.toml.",
+        ),
+        _ => err,
+    }
+}
+
 /// Parse an SSE stream, calling `f` for each event. `f` returns false to stop early.
 /// Handles CRLF, multi-line `data:`, comments (`:`), and a final event without a blank line.
 pub fn parse_sse<R: Read>(r: R, mut f: impl FnMut(SseEvent) -> Result<bool, ToolError>) -> Result<(), ToolError> {
@@ -164,10 +209,7 @@ pub fn parse_sse<R: Read>(r: R, mut f: impl FnMut(SseEvent) -> Result<bool, Tool
     let mut line = Vec::new();
     loop {
         line.clear();
-        let n = (&mut reader)
-            .take(MAX_SSE_LINE as u64)
-            .read_until(b'\n', &mut line)
-            .map_err(|e| ToolError::new(ErrorCode::EngineMissing, format!("The stream broke off: {e}")))?;
+        let n = (&mut reader).take(MAX_SSE_LINE as u64).read_until(b'\n', &mut line).map_err(stream_broke_off)?;
         if n == 0 {
             break;
         }
@@ -219,6 +261,22 @@ pub fn parse_sse<R: Read>(r: R, mut f: impl FnMut(SseEvent) -> Result<bool, Tool
 mod tests {
     use super::*;
 
+    /// #1096: a stream that ran out of time says which setting gives it more; another break doesn't.
+    #[test]
+    fn a_stream_that_ran_out_of_time_says_how_to_give_it_more() {
+        struct Fails(fn() -> ureq::Error);
+        impl Read for Fails {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err((self.0)().into_io())
+            }
+        }
+        let timed_out = parse_sse(Fails(|| ureq::Error::Timeout(ureq::Timeout::RecvBody)), |_| Ok(true)).unwrap_err();
+        assert!(timed_out.message.contains("timeout"), "{}", timed_out.message);
+        assert!(timed_out.remediation.as_deref().is_some_and(|r| r.contains("timeout_secs")), "{timed_out:?}");
+        let cut = parse_sse(Fails(|| ureq::Error::ConnectionFailed), |_| Ok(true)).unwrap_err();
+        assert!(cut.remediation.is_none(), "{cut:?}");
+    }
+
     fn collect(s: &str) -> Vec<SseEvent> {
         let mut v = Vec::new();
         parse_sse(s.as_bytes(), |e| {
@@ -227,6 +285,26 @@ mod tests {
         })
         .unwrap();
         v
+    }
+
+    #[test]
+    fn a_full_context_window_is_read_from_the_servers_words() {
+        let ollama = "request (69944 tokens) exceeds the available context size (65536 tokens), try increasing it";
+        assert_eq!(context_overflow(ollama), Some((65536, Some(69944))));
+        let openai = "This model's maximum context length is 8192 tokens. However, you requested 9000 tokens (8000 in the messages).";
+        assert_eq!(context_overflow(openai), Some((8192, Some(9000))));
+        assert_eq!(context_overflow("maximum context length is 4096 tokens"), Some((4096, None)));
+        for other in ["Invalid request: the message at position 64 must not be empty", "context size (abc tokens)", "", "available context size ("] {
+            assert_eq!(context_overflow(other), None, "{other:?}");
+        }
+        let body = serde_json::json!({"error": {"message": ollama}}).to_string();
+        let e = status_error("Ollama (local)", 400, &body);
+        let details = e.details.unwrap();
+        assert_eq!((details["context_window"].as_u64(), details["prompt_tokens"].as_u64()), (Some(65536), Some(69944)));
+        assert!(e.remediation.unwrap().contains("OLLAMA_CONTEXT_LENGTH"));
+        let plain = status_error("Ollama (local)", 400, r#"{"error":{"message":"bad"}}"#);
+        assert!(plain.details.unwrap()["context_window"].is_null());
+        assert_eq!(plain.remediation.as_deref(), Some("The request was rejected; see the message."));
     }
 
     #[test]
@@ -379,6 +457,8 @@ mod tests {
 
     #[test]
     fn status_errors_are_plain() {
+        let e = status_error("Gemini", 400, r#"[{"error":{"code":400,"message":"Function call is missing a thought_signature"}}]"#);
+        assert_eq!(e.message, "Gemini answered 400: Function call is missing a thought_signature");
         let e = status_error("Anthropic", 401, r#"{"error":{"message":"invalid x-api-key"}}"#);
         assert_eq!(e.code, ErrorCode::NoPermission);
         assert!(e.message.contains("invalid x-api-key"));

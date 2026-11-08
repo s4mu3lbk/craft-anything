@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 const MAX_PHDRS: usize = 4096;
 const MAX_DYN: usize = 65_536;
 const MAX_NOTES: usize = 100_000;
+const MAX_FILE_MAPPINGS: usize = 65_536;
 
 /// Endian/class-aware reads over an ELF image.
 #[derive(Clone, Copy)]
@@ -971,16 +972,24 @@ pub fn parse_core(data: &[u8]) -> Result<CoreDump, FormatError> {
                         core.signal = Some(SigInfo { signo, name: signal_name(signo), code, errno, fault_addr: fault, meaning: signal_meaning(signo, code) });
                     }
                     0x4649_4c45 => {
-                        let count = usize::try_from(d.word(0).unwrap_or(0)).unwrap_or(0).min(65_536);
+                        let declared = d.word(0).unwrap_or(0);
+                        let count = usize::try_from(declared).unwrap_or(usize::MAX);
                         let page = d.word(ws).unwrap_or(4096);
                         let table = 2 * ws;
-                        let mut names_off = table.saturating_add(count.saturating_mul(3 * ws));
-                        for i in 0..count {
-                            let o = table + i * 3 * ws;
-                            let (Some(s), Some(en), Some(po)) = (d.word(o), d.word(o + ws), d.word(o + 2 * ws)) else { break };
-                            let path = d.r.cstr(names_off, 4096).unwrap_or_default();
-                            names_off = names_off.saturating_add(path.len() + 1);
-                            core.mapped_files.push(MappedFile { start: s, end: en, file_offset: po.saturating_mul(page), path });
+                        let names_off = count.checked_mul(3 * ws).and_then(|bytes| table.checked_add(bytes)).filter(|&off| off <= desc.len());
+                        if let Some(mut names_off) = names_off {
+                            if count > MAX_FILE_MAPPINGS {
+                                core.warnings.push(format!("NT_FILE lists {declared} mappings; reading the first {MAX_FILE_MAPPINGS}"));
+                            }
+                            for i in 0..count.min(MAX_FILE_MAPPINGS) {
+                                let o = table + i * 3 * ws;
+                                let (Some(s), Some(en), Some(po)) = (d.word(o), d.word(o + ws), d.word(o + 2 * ws)) else { break };
+                                let path = d.r.cstr(names_off, 4096).unwrap_or_default();
+                                names_off = names_off.saturating_add(path.len() + 1);
+                                core.mapped_files.push(MappedFile { start: s, end: en, file_offset: po.saturating_mul(page), path });
+                            }
+                        } else {
+                            core.warnings.push("NT_FILE mapping table runs past the note; skipped its mappings".into());
                         }
                     }
                     6 => {

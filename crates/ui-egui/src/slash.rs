@@ -6,10 +6,12 @@
 pub enum Command {
     /// Ask about the build without building (see `just_ask`).
     Btw,
+    /// Choose what one kind of the builder's actions gets in this project (see `approvals`).
+    Approvals,
 }
 
 /// Every command, by the name typed after the slash.
-const COMMANDS: &[(&str, Command)] = &[("btw", Command::Btw)];
+const COMMANDS: &[(&str, Command)] = &[("btw", Command::Btw), ("approvals", Command::Approvals)];
 
 /// How a message reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +38,7 @@ pub fn read(text: &str) -> Typed<'_> {
     }
 }
 
-/// The commands, to say what can be typed: "/btw".
+/// The commands, to say what can be typed: "/btw, /approvals".
 pub fn names() -> String {
     COMMANDS.iter().map(|(n, _)| format!("/{n}")).collect::<Vec<_>>().join(", ")
 }
@@ -73,6 +75,7 @@ mod tests {
     fn a_partial_name_completes_only_when_one_command_matches() {
         assert_eq!(complete("b"), Some("btw"));
         assert_eq!(complete("bt"), Some("btw"));
+        assert_eq!(complete("ap"), Some("approvals"));
         assert_eq!(complete(""), None);
         assert_eq!(complete("x"), None);
     }

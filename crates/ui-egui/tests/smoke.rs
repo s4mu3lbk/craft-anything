@@ -1,5 +1,6 @@
 //! UI smoke tests: every screen draws, the main controls work, and nothing blocks or panics.
 
+use craft_anything_ai::{BackendConfig, BackendKind};
 use craft_anything_engine::{Mode, TargetKind};
 use craft_anything_ui_egui::state::{ChatItem, FirstRunStep, RailKind, Screen};
 use craft_anything_ui_egui::{CraftApp, demo};
@@ -31,12 +32,15 @@ fn wait(h: &mut Harness<'static, CraftApp>, done: impl Fn(&CraftApp) -> bool) ->
     false
 }
 
+/// First run goes from the welcome to the AI step, with the window controls there throughout.
 #[test]
 fn first_run_walks_through_four_screens() {
     let mut h = harness(|| demo::app(demo::engine(Mode::Beginner, false)));
     h.run_steps(3);
-    // The window controls are there from the first screen (the native frame is off).
-    h.get_by_label("Close");
+    // The window controls are there from the first screen (the native frame is off; macOS draws its own).
+    if !craft_anything_ui_egui::titlebar::NATIVE_FRAME {
+        h.get_by_label("Close");
+    }
     h.get_by_label("I'm new to this").click();
     h.run_steps(3);
     assert_eq!(h.state().state.first_run, FirstRunStep::Brain);
@@ -730,6 +734,76 @@ fn the_builders_questions_can_come_to_the_person_for_one_project() {
 }
 
 #[test]
+fn approvals_are_chosen_from_the_prompt_box_and_its_menu() {
+    use craft_anything_engine::workspace::{ActionKind, Approval, TargetRef, Workspace};
+    let d = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+    let root = ws.root.clone();
+    let mut h = harness(move || {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        a.workspace = Some(ws);
+        a.state.screen = Screen::Project;
+        a
+    });
+    h.run_steps(2);
+    let saved = |kind| Workspace::open(&root).unwrap().manifest.approvals.get(&kind).copied();
+    let feed_before = h.state().state.feed.len();
+    // /approvals changes one kind and sends nothing to the builder.
+    h.state_mut().state.project_input = "/approvals push ask".into();
+    h.run_steps(1);
+    h.get_by_label("Send (Enter)").click();
+    assert!(wait(&mut h, |_| saved(ActionKind::Publish) == Some(Approval::Ask)), "saved in the project");
+    assert!(h.state().state.project_input.is_empty(), "the box is cleared");
+    assert_eq!(h.state().state.feed.len(), feed_before, "nothing joined the build's conversation");
+    assert!(!h.state().runs.is_busy(&root), "no build started");
+    // One it can't read stays in the box to be fixed.
+    h.state_mut().state.project_input = "/approvals push".into();
+    h.run_steps(1);
+    h.get_by_label("Send (Enter)").click();
+    h.run_steps(2);
+    assert_eq!(h.state().state.project_input, "/approvals push");
+    h.state_mut().state.project_input.clear();
+    // The messages those left sit over the row under the box, where a click lands.
+    h.state_mut().state.toasts.clear();
+    h.run_steps(2);
+    // The menu under the box: one row per kind, and a click saves it.
+    h.get_by_label("Approvals").click();
+    h.run_steps(2);
+    assert!(egui::Popup::is_id_open(&h.ctx, egui::Id::new("project-approvals")), "the menu opened");
+    h.get_by_label("Reading the web");
+    h.get_by_label("Pushing and publishing");
+    let refuse = h.get_all_by_label("Refuse").count();
+    assert_eq!(refuse, craft_anything_engine::workspace::ACTION_KINDS.len(), "a switch for every kind");
+    h.get_all_by_label("Refuse").next().unwrap().click();
+    assert!(wait(&mut h, |_| saved(ActionKind::Web) == Some(Approval::Refuse)), "the first row is the web");
+    assert_eq!(saved(ActionKind::Publish), Some(Approval::Ask), "the other kinds keep theirs");
+}
+
+#[test]
+fn an_approval_that_cant_be_saved_isnt_shown_as_chosen() {
+    use craft_anything_engine::workspace::{TargetRef, Workspace};
+    let d = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+    let file = ws.root.join("craft.json");
+    let mut h = harness(move || {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        a.workspace = Some(ws);
+        a.state.screen = Screen::Project;
+        a
+    });
+    h.run_steps(2);
+    // A newer Craft Anything saved it meanwhile: this one only reads it, so the choice is refused.
+    let newer = std::fs::read_to_string(&file).unwrap().replacen("\"version\": 3", "\"version\": 99", 1);
+    assert!(newer.contains("\"version\": 99"));
+    std::fs::write(&file, newer).unwrap();
+    h.state_mut().state.project_input = "/approvals push allow".into();
+    h.run_steps(1);
+    h.get_by_label("Send (Enter)").click();
+    assert!(wait(&mut h, |a| a.state.toasts.iter().any(|(t, _)| t.starts_with("Couldn't change the approvals:"))), "says it wasn't saved");
+    assert!(h.state().workspace.as_ref().unwrap().manifest.approvals.is_empty(), "the menu shows what's kept, not what was asked");
+}
+
+#[test]
 fn a_question_about_the_build_is_answered_without_building() {
     use craft_anything_engine::workspace::{TargetRef, Workspace};
     let d = tempfile::tempdir().unwrap();
@@ -914,6 +988,43 @@ fn asking_without_ai_runs_the_built_in_engines() {
     assert!(h.state().state.settings_open);
 }
 
+/// An AI that is turned off, picked in the titlebar: the chat says which one and that it is off. The
+/// built-in engines don't answer as though none were set up — that is the test above, where the
+/// backend is None.
+#[test]
+fn asking_an_ai_that_is_turned_off_says_so_instead_of_looking_alone() {
+    let mut h = harness(|| {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        demo::deep(&mut a);
+        for (name, enabled) in [("On", true), ("Off", false)] {
+            let config = BackendConfig {
+                name: name.into(),
+                kind: BackendKind::OpenaiCompatible,
+                model: "m".into(),
+                base_url: Some("http://127.0.0.1:9/v1".into()),
+                ssh_host: None,
+                enabled,
+            };
+            a.hub.add_backend(config, None).unwrap();
+        }
+        a.state.backend = Some("Off".into());
+        a.state.screen = Screen::Ask;
+        a
+    });
+    h.run_steps(3);
+    h.state_mut().send("What does this program do?");
+    h.run_steps(6);
+    let (said, add) = {
+        let chat = &h.state().state.chat;
+        (
+            chat.iter().any(|i| matches!(i, ChatItem::Error { message, .. } if message.contains("Off") && message.contains("turned off"))),
+            chat.iter().any(|i| matches!(i, ChatItem::AddBrain)),
+        )
+    };
+    assert!(said, "the chat says which AI is turned off");
+    assert!(!add, "an AI is set up, so there is nothing to add");
+}
+
 #[test]
 fn opening_a_file_lands_on_ask_with_a_first_look() {
     let dir = tempfile::tempdir().unwrap();
@@ -1044,6 +1155,23 @@ fn workbench_lists_fall_back_gracefully() {
 }
 
 #[test]
+fn the_agent_console_status_stays_clear_of_its_tabs_when_narrow() {
+    let mut h = harness_sized(egui::vec2(1000.0, 500.0), || {
+        let mut a = demo::app(demo::engine(Mode::Experienced, true));
+        demo::fill_workbench(&mut a);
+        a
+    });
+    h.run_steps(4);
+    let log = h.get_by_label("Log").rect();
+    let row = log.y_range();
+    let status: Vec<_> = h.query_all_by_label_contains("findings").map(|n| n.rect()).filter(|r| row.contains(r.center().y)).collect();
+    assert!(!status.is_empty(), "the status is on the tabs' row");
+    for s in status {
+        assert!(log.right() <= s.left(), "the Log tab ends at {} and the status starts at {}", log.right(), s.left());
+    }
+}
+
+#[test]
 fn the_agent_console_keeps_its_size() {
     // The console's history and prompt box came out 17 points taller than the panel, so the panel
     // grew by that every frame until its maximum, and then the top of its tabs was cut off.
@@ -1059,6 +1187,83 @@ fn the_agent_console_keeps_its_size() {
     let top = h.get_by_label("Agent").rect().top();
     h.run_steps(10);
     assert_eq!(h.get_by_label("Agent").rect().top(), top, "the agent console grew while nothing changed");
+}
+
+#[test]
+fn the_agent_console_prompt_box_starts_tall_and_grows_inside_the_window() {
+    // #942: it started one line tall, too short to read what was being typed.
+    let mut h = harness_sized(egui::vec2(1920.0, 1030.0), || {
+        let mut a = demo::app(demo::engine(Mode::Experienced, true));
+        demo::fill_workbench(&mut a);
+        a
+    });
+    h.run_steps(4);
+    assert!(wait(&mut h, |a| a.jobs.running().all(|j| !j.visible)), "the lists finished loading");
+    h.get_by_label("Agent").click();
+    h.run_steps(4);
+    let empty = h.get_by_label("Ask a question").rect().height();
+    assert!(empty >= 50.0, "room for three lines, got {empty}");
+    let hint = "Enter to send · Shift+Enter for a new line";
+
+    // Eight lines fit: the field isn't scrolled, so its rect is what's on screen.
+    h.state_mut().state.input = ["a line"; 8].join("\n");
+    h.run_steps(6);
+    let field = h.get_by_label("Ask a question").rect();
+    let (tabs, below) = (h.get_by_label("Agent").rect(), h.get_by_label(hint).rect());
+    assert!(field.height() > empty * 2.0, "it grows as lines are added: {} after {empty}", field.height());
+    assert!(field.top() >= tabs.bottom() && field.bottom() <= below.top(), "all eight lines show: tabs={tabs:?}, field={field:?}, hint={below:?}");
+
+    // Past what fits it scrolls, and the console settles with its tabs and send row in the window.
+    h.state_mut().state.input = ["a line"; 60].join("\n");
+    h.run_steps(6);
+    let (tabs, below) = (h.get_by_label("Agent").rect(), h.get_by_label(hint).rect());
+    h.run_steps(20);
+    assert_eq!(h.get_by_label("Agent").rect(), tabs, "the console settles");
+    assert!(tabs.top() >= 0.0 && below.bottom() <= 1030.0, "the tabs and the send row stay in the window: tabs={tabs:?}, hint={below:?}");
+}
+
+#[test]
+fn the_agent_console_leaves_room_for_the_code_in_a_small_window() {
+    let mut h = harness_sized(egui::vec2(1000.0, 500.0), || {
+        let mut a = demo::app(demo::engine(Mode::Experienced, true));
+        demo::fill_workbench(&mut a);
+        a
+    });
+    h.run_steps(4);
+    assert!(wait(&mut h, |a| a.jobs.running().all(|j| !j.visible)), "the lists finished loading");
+    h.get_by_label("Agent").click();
+    h.run_steps(4);
+    let top = h.get_by_label("Agent").rect().top();
+    assert!(top > 200.0, "the console's tabs start at {top} of 500");
+}
+
+#[test]
+fn the_agent_console_opens_at_its_default_size() {
+    // The first frame guessed the prompt box too short; the panel grew to fit and saved that size.
+    let mut h = harness_sized(egui::vec2(1920.0, 1030.0), || {
+        let mut a = demo::app(demo::engine(Mode::Experienced, true));
+        demo::fill_workbench(&mut a);
+        a
+    });
+    h.run_steps(4);
+    let top = h.get_by_label("Agent").rect().top();
+    assert!((750.0..765.0).contains(&top), "a 280-point console's tabs start just below 750, got {top}");
+
+    // Dragging its top edge resizes it, and it stays that size (#942).
+    let edge = egui::pos2(900.0, 750.0);
+    h.hover_at(edge);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: edge, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
+    h.step();
+    let up = edge - egui::vec2(0.0, 100.0);
+    h.hover_at(up);
+    h.step();
+    h.input_mut().events.push(egui::Event::PointerButton { pos: up, button: egui::PointerButton::Primary, pressed: false, modifiers: egui::Modifiers::NONE });
+    h.run_steps(10);
+    let dragged = h.get_by_label("Agent").rect().top();
+    assert!((650.0..665.0).contains(&dragged), "its edge dragged up to 650, the tabs just below it, got {dragged}");
+    h.run_steps(10);
+    assert_eq!(h.get_by_label("Agent").rect().top(), dragged, "it stays at that size");
 }
 
 #[test]
@@ -1346,6 +1551,61 @@ fn claude_codes_account_folder_is_set_in_settings() {
     h.run_steps(2);
     h.get_by_label("Add another").click();
     assert!(wait(&mut h, |a| a.backends.iter().any(|b| b.name == "Claude Code 2" && b.model == "claude-code")));
+}
+
+/// Zoom keys stop at 50% and 200%, Cmd/Ctrl 0 goes back to 100%, and a zoom saved outside the
+/// range comes back inside it.
+#[test]
+fn zoom_stays_between_half_and_double() {
+    fn press(h: &mut Harness<'static, CraftApp>, key: egui::Key, times: usize) {
+        for _ in 0..times {
+            h.key_press_modifiers(egui::Modifiers::COMMAND, key);
+            h.run_steps(2);
+        }
+    }
+    let mut h = harness(|| demo::app(demo::engine(Mode::Experienced, true)));
+    h.run_steps(2);
+    press(&mut h, egui::Key::Minus, 12);
+    assert_eq!(h.ctx.zoom_factor(), 0.5);
+    press(&mut h, egui::Key::Equals, 20);
+    assert_eq!(h.ctx.zoom_factor(), 2.0);
+    press(&mut h, egui::Key::Num0, 1);
+    assert_eq!(h.ctx.zoom_factor(), 1.0);
+    h.ctx.set_zoom_factor(0.2);
+    h.run_steps(3);
+    assert_eq!(h.ctx.zoom_factor(), 0.5);
+    assert_eq!(craft_anything_ui_egui::bounded_zoom(f32::NAN), 1.0);
+}
+
+/// macOS keeps its own window buttons beside the title bar, and they don't zoom, so the bar
+/// doesn't either: at 50%, 100% and 150% its controls keep their size and place on screen (zoomed
+/// points times the zoom), while the body below does zoom.
+#[cfg(target_os = "macos")]
+#[test]
+fn title_bar_keeps_its_size_when_zoomed() {
+    let on_screen = |zoom: f32| {
+        let mut h = harness_sized(egui::vec2(1360.0, 600.0), || demo::app(demo::engine(Mode::Experienced, true)));
+        h.ctx.set_zoom_factor(zoom);
+        h.run_steps(4);
+        // The topmost node with the label: Settings and Advanced appear in the bar first.
+        let rect = |label: &str| {
+            let r = h.get_all_by_label(label).map(|n| n.rect()).min_by(|a, b| a.top().total_cmp(&b.top())).unwrap();
+            egui::Rect::from_min_max(r.min * zoom, r.max * zoom)
+        };
+        (rect("Settings"), rect("Advanced"), rect("Filter"))
+    };
+    let (settings, advanced, filter) = on_screen(1.0);
+    // The bar is the system title bar's height, and its controls sit centred in it.
+    assert!((settings.center().y - 16.0).abs() <= 1.0, "settings button at {settings:?}");
+    for zoom in [0.5, 1.5] {
+        let (s, a, f) = on_screen(zoom);
+        for (name, at_100, now) in [("Settings", settings, s), ("Advanced", advanced, a)] {
+            let moved = (now.min - at_100.min).length().max((now.max - at_100.max).length());
+            assert!(moved <= 1.0, "{name} moved {moved} pt at {zoom}x: {at_100:?} → {now:?}");
+        }
+        let grew = f.height() / filter.height();
+        assert!((grew - zoom).abs() < 0.15, "the body should zoom: Filter grew {grew}x at {zoom}x");
+    }
 }
 
 #[test]
@@ -1813,6 +2073,30 @@ fn a_projects_saved_time_and_ai_use_show_beside_it_and_the_session_total_in_the_
 }
 
 #[test]
+fn a_big_cost_doesnt_paint_over_its_caption() {
+    use craft_anything_engine::workspace::ProjectUsage;
+    let d = tempfile::tempdir().unwrap();
+    let root = d.path().to_path_buf();
+    ProjectUsage::update(&root, |u| {
+        u.work_ms = 725_000;
+        u.add_turn(1_180_000, 42_000, Some(13_021.36), true);
+    })
+    .unwrap();
+    let mut h = harness(move || {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        demo::fill_project(&mut a);
+        if let Some(ws) = a.workspace.as_mut() {
+            ws.root = root.clone();
+        }
+        a
+    });
+    h.run_steps(3);
+    let caption = h.get_by_label("AI cost (estimate)").rect();
+    let value = h.get_by_label("about $13021.36").rect();
+    assert!(!caption.intersects(value), "{caption:?} and {value:?}");
+}
+
+#[test]
 fn ghidras_memory_is_automatic_until_the_person_sets_it() {
     let mut h = harness_sized(egui::vec2(1280.0, 1000.0), || {
         let mut a = demo::app(demo::engine(Mode::Beginner, true));
@@ -1866,6 +2150,27 @@ fn the_front_door_makes_something_or_just_looks_inside() {
     h.get_by_label("Make my own version").click();
     h.run_steps(3);
     h.get_by_label("What do you want to recreate?");
+}
+
+#[test]
+fn new_project_does_not_shift_when_its_scrollbar_is_not_needed() {
+    let mut h = harness_sized(egui::vec2(1000.0, 700.0), || demo::app(demo::engine(Mode::Beginner, true)));
+    h.run_steps(3);
+    let make_left = h.get_by_label("What do you want to make?").rect().left();
+    assert!(
+        h.query_all_by_role(egui::accesskit::Role::ScrollBar).any(|node| node.rect().left() > 200.0),
+        "the overflowing Make page should show its scrollbar"
+    );
+
+    h.get_by_label("Just look inside").click();
+    h.run_steps(20);
+    let look_left = h.get_by_label("What do you want to look inside?").rect().left();
+
+    assert_eq!(look_left, make_left, "removing the scrollbar must not recenter New project");
+    assert!(
+        h.query_all_by_role(egui::accesskit::Role::ScrollBar).all(|node| node.rect().left() <= 200.0),
+        "the short Just look inside page should not show a scrollbar"
+    );
 }
 
 #[test]
@@ -2323,6 +2628,59 @@ fn make_says_who_builds_and_a_picked_builder_stays_with_the_project() {
 }
 
 #[test]
+fn a_turned_off_make_choice_says_who_builds_instead() {
+    let mut h = harness(|| {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        a.backends.push(BackendConfig {
+            name: "Off".into(),
+            kind: BackendKind::Anthropic,
+            model: "test-model".into(),
+            base_url: None,
+            ssh_host: None,
+            enabled: false,
+        });
+        a.state.make.ai = Some("Off".into());
+        a
+    });
+    h.run_steps(3);
+    // The stale draft goes back to Automatic, and the toast says who builds instead.
+    assert!(h.state().state.make.ai.is_none());
+    assert_eq!(h.get_all_by_label("Built by").last().unwrap().value().as_deref(), Some("Automatic (Claude)"));
+    assert!(h.state().state.toasts.iter().any(|(t, err)| !*err && t.contains("Off") && t.contains("Claude")), "{:?}", h.state().state.toasts);
+}
+
+#[test]
+fn a_turned_off_or_removed_saved_builder_says_who_builds_instead() {
+    let mut h = harness(|| {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        a.backends.push(BackendConfig {
+            name: "Off".into(),
+            kind: BackendKind::Anthropic,
+            model: "test-model".into(),
+            base_url: None,
+            ssh_host: None,
+            enabled: false,
+        });
+        a
+    });
+    h.run_steps(2);
+
+    // A turned-off saved builder: the default builds, and the person is told which one.
+    assert_eq!(h.state_mut().builder_backend(Some("Off")).as_deref(), Some("Claude"));
+    assert!(h.state().state.toasts.iter().any(|(t, err)| !*err && t.contains("Off") && t.contains("Claude")), "{:?}", h.state().state.toasts);
+
+    // A removed one too.
+    assert_eq!(h.state_mut().builder_backend(Some("Gone")).as_deref(), Some("Claude"));
+    assert!(h.state().state.toasts.iter().any(|(t, err)| !*err && t.contains("Gone") && t.contains("Claude")), "{:?}", h.state().state.toasts);
+
+    // An enabled choice, and Automatic, say nothing.
+    let quiet = h.state().state.toasts.len();
+    assert_eq!(h.state_mut().builder_backend(Some("Claude")).as_deref(), Some("Claude"));
+    assert_eq!(h.state_mut().builder_backend(None).as_deref(), Some("Claude"));
+    assert_eq!(h.state().state.toasts.len(), quiet, "no replacement notice when nothing was replaced");
+}
+
+#[test]
 fn with_nothing_to_build_with_start_offers_what_was_found_instead_of_a_dead_end() {
     use craft_anything_ui_egui::state::Modal;
     let mut h = harness(|| {
@@ -2370,6 +2728,31 @@ fn only_the_claude_desktop_app_is_named_when_nothing_can_build() {
     h.run_steps(2);
     h.get_by_label("No coding agent was found on this computer yet.");
     h.get_by_label("The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.");
+
+    // Agents suggested from `~/.ssh/config` aren't checked, so the hint stays (review of #781).
+    use craft_anything_ai::{BackendConfig, Detected};
+    let remote = |name: &str| Detected {
+        suggestion: BackendConfig {
+            name: name.into(),
+            kind: craft_anything_ai::BackendKind::AgentCli,
+            model: "claude-code".into(),
+            base_url: None,
+            ssh_host: Some("box".into()),
+            enabled: true,
+        },
+        reason: "From ~/.ssh/config".into(),
+        needs_key: false,
+    };
+    h.state_mut().detected = Some(vec![remote("Claude Code on box")]);
+    h.run_steps(2);
+    h.get_by_label("The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.");
+    // An agent found on this computer can build, so the hint goes.
+    let mut local = remote("Codex");
+    local.suggestion.ssh_host = None;
+    local.suggestion.model = "codex".into();
+    h.state_mut().detected = Some(vec![remote("Claude Code on box"), local]);
+    h.run_steps(2);
+    assert!(h.query_by_label("The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.").is_none());
 }
 
 #[test]
@@ -2712,4 +3095,45 @@ fn a_long_status_note_in_the_work_rows_stays_in_the_window() {
         eprintln!("HEADER {r:?}");
         assert!(r.min.x >= 0.0 && r.max.x <= 1280.0, "the header leaves the window: {r:?}");
     }
+}
+
+/// #983: in a longer language or a narrow window the two switches go on two lines, never over each other.
+#[test]
+fn the_switches_under_the_prompt_box_never_overlap() {
+    let d = tempfile::tempdir().unwrap();
+    let ws = craft_anything_engine::workspace::Workspace::create(d.path(), "Notes", "A notes app", craft_anything_engine::workspace::TargetRef::None).unwrap();
+    for width in [1600.0, 1000.0, 700.0, 560.0] {
+        let ws = ws.clone();
+        let mut h = harness_sized(egui::vec2(width, 800.0), move || {
+            let mut a = demo::app(demo::engine(Mode::Beginner, true));
+            a.workspace = Some(ws);
+            a.state.screen = Screen::Project;
+            a
+        });
+        h.run_steps(3);
+        let sending = h.get_by_label("Just ask").rect();
+        let (asking, title) = (h.get_by_label("Ask me").rect(), h.get_by_label("Builder's questions:").rect());
+        let hint = h.get_by_label("or start with /btw to just ask").rect();
+        assert!(!sending.intersects(title) && !sending.intersects(asking), "at {width}: {sending:?}, {title:?}, {asking:?}");
+        assert!(!hint.intersects(title) && !hint.intersects(asking), "at {width}: {hint:?}, {title:?}, {asking:?}");
+        assert!(title.left() >= 0.0 && asking.right() <= width, "at {width} they stay in the window: {title:?}, {asking:?}");
+    }
+}
+
+#[test]
+fn a_very_long_app_file_name_keeps_start_inside_the_window() {
+    use craft_anything_engine::workspace::TargetRef;
+    let name = format!("{}.apk", "com.example.some-very-long-apkmirror-name-".repeat(5));
+    let path = std::path::PathBuf::from(name);
+    let mut h = harness(move || {
+        let mut a = demo::app(demo::engine(Mode::Beginner, true));
+        demo::fill_projects(&mut a);
+        a.state.make.target = TargetRef::Local { path };
+        a.state.make.game = false;
+        a
+    });
+    h.run_steps(4);
+    let content = h.ctx.content_rect();
+    let start = h.get_by_label("Start").rect();
+    assert!(start.left() >= 0.0 && start.right() <= content.right(), "Start ({start:?}) stays inside the window ({content:?})");
 }

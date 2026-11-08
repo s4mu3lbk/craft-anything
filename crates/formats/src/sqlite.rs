@@ -886,7 +886,7 @@ fn column_definitions(sql: &str) -> Vec<(Column, &str)> {
         }
         // Skip table-level constraints.
         let first_word = seg.split([' ', '\t', '\n', '(']).next().unwrap_or("").to_ascii_uppercase();
-        if matches!(first_word.as_str(), "CONSTRAINT" | "PRIMARY" | "UNIQUE" | "CHECK" | "FOREIGN" | "KEY") {
+        if matches!(first_word.as_str(), "CONSTRAINT" | "PRIMARY" | "UNIQUE" | "CHECK" | "FOREIGN") {
             continue;
         }
         let (name, rest) = take_identifier(seg);
@@ -1168,6 +1168,13 @@ fn extract_type(rest: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn create_table_column_named_key_is_kept() {
+        let names = |sql: &str| parse_create_columns(sql).into_iter().map(|c| c.name).collect::<Vec<_>>();
+        assert_eq!(names("CREATE TABLE kv (key TEXT, value TEXT)"), ["key", "value"]);
+        assert_eq!(names("CREATE TABLE kv (key TEXT, value TEXT, PRIMARY KEY(key))"), ["key", "value"]);
+    }
 
     fn payload_cap_case(case: u8) {
         use craft_anything_testkit::sqlite::{Val, overflow_row_db};

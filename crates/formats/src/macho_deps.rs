@@ -5,7 +5,7 @@
 
 use crate::FormatError;
 use crate::bytes::Reader;
-use crate::macho::{cpu_name, fat_slices, load_command_name};
+use crate::macho::{cpu_name, fat_slices, load_command_min_size, load_command_name};
 use serde::Serialize;
 use serde_json::{Value as Json, json};
 
@@ -331,18 +331,35 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
         out.warnings.push(format!("{ncmds} load commands; reading the first {MAX_CMDS}"));
     }
     for index in 0..ncmds.min(MAX_CMDS) {
+        if pos.checked_add(8).is_none_or(|end| end > limit) {
+            out.warnings.push(format!("load command {index} header runs past sizeofcmds; stopped"));
+            break;
+        }
         let (Some(cmd), Some(size)) = (e.u32(pos), e.u32(pos + 4)) else {
             out.warnings.push(format!("load command {index} is cut short"));
             break;
         };
         let sz = size as usize;
-        if sz < 8 || pos.saturating_add(sz) > data.len() {
+        if sz < 8 {
             out.warnings.push(format!("load command {index} has a bad size {size}; stopped"));
             break;
         }
+        let Some(end) = pos.checked_add(sz).filter(|&end| end <= limit) else {
+            out.warnings.push(format!("load command {index} runs past sizeofcmds; stopped"));
+            break;
+        };
+        let name = extra_name(cmd);
+        let minimum = load_command_min_size(cmd);
+        if sz < minimum {
+            out.warnings.push(format!("load command {index} ({name}) needs at least {minimum} bytes; skipped its fields"));
+            out.commands.push(LoadCommand { index, cmd: name, offset: pos, size, detail: json!({"error": "fixed command fields are cut short"}) });
+            pos = end;
+            continue;
+        }
+        let e = E { r: Reader::new(data.get(..end).unwrap_or(&[])), be };
         let str_at = |field: usize| -> Option<String> {
             let o = e.u32(pos + field)? as usize;
-            if o < 8 || o >= sz {
+            if o < minimum || o >= sz {
                 return None;
             }
             e.r.cstr(pos + o, sz - o)
@@ -355,7 +372,6 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
                 compatibility_version: version(e.u32(pos + 20).unwrap_or(0)),
             })
         };
-        let name = extra_name(cmd);
         let detail = match cmd {
             0xc | 0x20 | 0x8000_0018 | 0x8000_001f | 0x8000_0023 => {
                 let kind = match cmd {
@@ -415,7 +431,11 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
             }
             0x32 => {
                 let ntools = e.u32(pos + 20).unwrap_or(0) as usize;
-                let tools: Vec<String> = (0..ntools.min(32))
+                let complete = (sz - 24) / 8;
+                if ntools > complete {
+                    out.warnings.push(format!("load command {index} build tools are cut short"));
+                }
+                let tools: Vec<String> = (0..ntools.min(32).min(complete))
                     .filter_map(|i| {
                         let t = e.u32(pos + 24 + i * 8)?;
                         let v = e.u32(pos + 28 + i * 8)?;
@@ -497,9 +517,13 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
                 let initprot = e.u32(pos + prot_o).unwrap_or(0);
                 let nsects = e.u32(pos + ns_o).unwrap_or(0) as usize;
                 let mut names = Vec::new();
-                for i in 0..nsects.min(256) {
+                let complete = (sz - sh) / shsize;
+                if nsects > complete {
+                    out.warnings.push(format!("load command {index} section headers are cut short"));
+                }
+                for i in 0..nsects.min(256).min(complete) {
                     let o = pos + sh + i * shsize;
-                    if o + shsize > pos + sz || out.sections.len() >= MAX_SECTIONS {
+                    if out.sections.len() >= MAX_SECTIONS {
                         break;
                     }
                     let (addr, size, offset) = if wide {
@@ -529,13 +553,7 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
             _ => Json::Null,
         };
         out.commands.push(LoadCommand { index, cmd: name, offset: pos, size, detail });
-        pos = match pos.checked_add(sz) {
-            Some(p) => p,
-            None => break,
-        };
-    }
-    if pos > limit {
-        out.warnings.push("load commands run past sizeofcmds".into());
+        pos = end;
     }
     Ok(out)
 }

@@ -1,0 +1,1470 @@
+# th: Thai UI translations. Licensed MIT OR Apache-2.0.
+# UTF-8: English source<TAB>translation. Keep placeholders and escapes intact.
+OpenCode default	ค่าเริ่มต้นของ OpenCode
+Model default	ค่าเริ่มต้นของโมเดล
+Thinking depth	ระดับการคิด
+OpenCode model	โมเดล OpenCode
+Remote program	โปรแกรมระยะไกล
+Reload models	โหลดโมเดลใหม่
+Apply	ใช้
+No chat models are visible in {agent}. Check its setup, then reload.	ไม่มีโมเดลแชตที่มองเห็นได้ใน {agent} ตรวจสอบการตั้งค่า แล้วโหลดใหม่
+The saved model is no longer visible. Choose another model or the {agent} default.	โมเดลที่บันทึกไว้ไม่ปรากฏแล้ว เลือกโมเดลอื่น หรือค่าเริ่มต้นของ {agent}
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode ไม่มีโมเดลแชตที่มองเห็นได้ เชื่อมต่อผู้ให้บริการใน OpenCode แล้วโหลดใหม่
+The saved model is no longer visible. Choose another model or the OpenCode default.	โมเดลที่บันทึกไว้ไม่ปรากฏแล้ว เลือกโมเดลอื่น หรือค่าเริ่มต้นของ OpenCode
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	ระดับการคิดที่บันทึกไว้ใช้ไม่ได้กับโมเดลนี้ เลือกค่าเริ่มต้น หรือระดับที่มีให้
+List an agent's models	แสดงรายการโมเดลของเอเจนต์
+Choose an agent's model and thinking	เลือกโมเดลและระดับการคิดของเอเจนต์
+ GB	 GB
+ and {n} more	 และอีก {n} รายการ
+ {ascii}	 {ascii}
+ · ${c:.2}	 · ${c:.2}
+ · ssh {h}	 · ssh {h}
+(1 picture attached)	(แนบรูป 1 รูป)
+({n} pictures attached)	(แนบรูป {n} รูป)
+, ${c:.4}	, ${c:.4}
+.NET application graph	กราฟแอปพลิเคชัน .NET
+.NET apps	แอป .NET
+.NET assembly overview	ภาพรวมแอสเซมบลี .NET
+.NET native calls	การเรียกเนทีฟ .NET
+.NET types and methods	ชนิดและเมธอด .NET
+/btw {}	/btw {}
+0x… or number	0x… หรือตัวเลข
+A .NET program (C#, F# or VB)	โปรแกรม .NET (C#, F# หรือ VB)
+A DOS program	โปรแกรม DOS
+A Java program	โปรแกรม Java
+A Linux (or Unix) program	โปรแกรม Linux (หรือ Unix)
+A Mac or iPhone program	โปรแกรม Mac หรือ iPhone
+A SQLite database (how an app stores its data)	ฐานข้อมูล SQLite (วิธีที่แอปเก็บข้อมูล)
+A WebAssembly module (code that runs in a browser)	โมดูล WebAssembly (โค้ดที่รันในเบราว์เซอร์)
+A Windows program	โปรแกรม Windows
+A ZIP archive	ไฟล์ ZIP
+A bundle of ready-made code that many programs share.	ชุดโค้ดสำเร็จรูปที่หลายโปรแกรมใช้ร่วมกัน
+A coding agent such as Claude Code builds it, and an AI answers your questions in plain words. Change this any time in Settings → AI.	เอเจนต์เขียนโค้ดอย่าง Claude Code เป็นผู้สร้าง และ AI ตอบคำถามด้วยภาษาง่าย ๆ เปลี่ยนได้ทุกเมื่อในการตั้งค่า → AI
+A command's output shows here when it finishes.	เอาต์พุตของคำสั่งจะแสดงที่นี่เมื่อเสร็จ
+A copy to try something else from here.	สำเนาไว้ลองอย่างอื่นจากจุดนี้
+A file of machine code that a computer can run directly, like an .exe or an app.	ไฟล์โค้ดเครื่องที่คอมพิวเตอร์รันได้โดยตรง เช่น .exe หรือแอป
+A file that a computer can run as a program.	ไฟล์ที่คอมพิวเตอร์รันเป็นโปรแกรมได้
+A file that links packed web code back to the original, readable source files.	ไฟล์ที่เชื่อมโค้ดเว็บที่ถูกบีบอัดกลับไปยังไฟล์ต้นฉบับที่อ่านได้
+A file we don't recognise yet	ไฟล์ที่ยังไม่รู้จัก
+A first look at a file you're unsure about, without running it.	ดูไฟล์ที่ไม่แน่ใจก่อน โดยไม่รันมัน
+A folder	โฟลเดอร์
+A folder has no bytes of its own	โฟลเดอร์ไม่มีไบต์ของตัวเอง
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	เครื่องมือ reverse engineering ฟรีจาก NSA โหมด Deep ใช้เพื่อรายละเอียดเพิ่ม โหมด Clean room ไม่ใช้เลย
+A frozen copy (recommended)	สำเนาแบบคงสภาพ (แนะนำ)
+A frozen copy takes {size}. That's a lot of space: a light copy takes {light}.	สำเนาแบบคงสภาพใช้ {size} พื้นที่มากทีเดียว สำเนาแบบเบาใช้ {light}
+A frozen copy takes {size}; a light copy takes {light}.	สำเนาแบบคงสภาพใช้ {size} สำเนาแบบเบาใช้ {light}
+A game	เกม
+A game's files	ไฟล์ของเกม
+A light copy	สำเนาแบบเบา
+A locked room for running a program so it can't touch the rest of your computer.	ห้องปิดสำหรับรันโปรแกรม เพื่อไม่ให้แตะส่วนอื่นของเครื่อง
+A map of which functions call which other functions.	แผนที่ว่าฟังก์ชันใดเรียกฟังก์ชันใด
+A name the program's author gave to a function or variable that survived in the file.	ชื่อที่ผู้เขียนโปรแกรมตั้งให้ฟังก์ชันหรือตัวแปร และยังอยู่ในไฟล์
+A named piece of a program that does one job, like "add two numbers" or "save the file".	ส่วนของโปรแกรมที่มีชื่อและทำงานหนึ่งอย่าง เช่น "บวกเลขสองจำนวน" หรือ "บันทึกไฟล์"
+A number that says where something is in a program's memory, like a house number.	ตัวเลขบอกตำแหน่งในหน่วยความจำของโปรแกรม เหมือนบ้านเลขที่
+A piece of text stored inside a program, like a message, a web address or a file name.	ข้อความที่เก็บในโปรแกรม เช่น ข้อความ ที่อยู่เว็บ หรือชื่อไฟล์
+A program, an app bundle, an APK, a JavaScript bundle, a folder… or drop it on the window.	โปรแกรม ชุดแอป APK ชุด JavaScript โฟลเดอร์… หรือลากมาวางบนหน้าต่าง
+A recording of network traffic	การบันทึกทราฟฟิกเครือข่าย
+A region of a program as it sits in memory while running.	พื้นที่ของโปรแกรมขณะอยู่ในหน่วยความจำตอนรัน
+A region of a program file with one purpose: code, text, pictures, settings.	พื้นที่ในไฟล์โปรแกรมที่มีจุดประสงค์เดียว: โค้ด ข้อความ รูป ตั้งค่า
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	หลักทั่วไป มักถูก แต่บางครั้งผิด เราจึงระบุผลว่าเป็นการคาดเดาที่ดีที่สุด
+A saved, checkable record of something we found, with how sure we are and where we found it.	บันทึกที่ตรวจสอบได้ของสิ่งที่พบ พร้อมความมั่นใจและตำแหน่งที่พบ
+A script or web page	สคริปต์หรือหน้าเว็บ
+A set of commands a program offers to other programs.	ชุดคำสั่งที่โปรแกรมเปิดให้โปรแกรมอื่นใช้
+A simple snake game	เกมงูกินหางง่าย ๆ
+A small download (under 200 MB). Free, no account needed.	ดาวน์โหลดเล็ก (ต่ำกว่า 200 MB) ฟรี ไม่ต้องมีบัญชี
+A small file that lists what an app is called, what it needs and what it's allowed to do.	ไฟล์เล็กที่บอกชื่อแอป สิ่งที่ต้องใช้ และสิ่งที่ทำได้
+A smart contract (EVM bytecode)	สมาร์ตคอนแทรกต์ (ไบต์โค้ด EVM)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	วิธีเขียนไบต์เป็นรหัสสองตัวอักษร (00 ถึง FF) มุมมองดิบที่สุดของไฟล์
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	วิธีสร้างแอปเดสก์ท็อปจากหน้าเว็บ แอปคือเว็บไซต์ที่มีเบราว์เซอร์ของตัวเอง
+A website	เว็บไซต์
+A website for my bakery	เว็บไซต์ร้านเบเกอรีของฉัน
+AI	AI
+AI cost	ค่าใช้จ่าย AI
+AI cost (estimate)	ค่าใช้จ่าย AI (ประมาณ)
+AI cost (part estimate)	ค่าใช้จ่าย AI (ประมาณบางส่วน)
+AI model file	ไฟล์โมเดล AI
+AI name	ชื่อ AI
+AI use this session	การใช้ AI ในเซสชันนี้
+API boundary	ขอบเขต API
+API key	API key
+API key (stored in your system keychain)	API key (เก็บใน keychain ของระบบ)
+API key, if it needs one	API key ถ้าต้องใช้
+About 10 GB. Free for personal use with a Unity account.	ประมาณ 10 GB ฟรีสำหรับใช้ส่วนตัวเมื่อมีบัญชี Unity
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	ประมาณ 60 GB บัญชี Epic Games และเครื่องมือ C++ ของ Visual Studio
+Add	เพิ่ม
+Add Visual Studio's C++ tools	เพิ่มเครื่องมือ C++ ของ Visual Studio
+Add a brain	เพิ่มสมอง
+Add a fal.ai key	เพิ่มคีย์ fal.ai
+Add a folder…	เพิ่มโฟลเดอร์…
+Add a plugin	เพิ่มปลั๊กอิน
+Add an AI brain and I'll read this evidence for you, answer follow-up questions and point at the proof.	เพิ่มสมอง AI แล้วฉันจะอ่านหลักฐานนี้ให้ ตอบคำถามต่อเนื่อง และชี้ไปที่ข้อพิสูจน์
+Add an AI by its address	เพิ่ม AI ด้วยที่อยู่
+Add another	เพิ่มอีก
+Add it again, to choose another account's folder for it.	เพิ่มอีกครั้ง เพื่อเลือกโฟลเดอร์ของบัญชีอื่นให้มัน
+Add more info. The builder reads it at its next step.	เพิ่มข้อมูล ตัวสร้างจะอ่านในขั้นถัดไป
+Add pictures	เพิ่มรูป
+Add pictures of the original	เพิ่มรูปของต้นฉบับ
+Add pictures of the original (optional: screenshots help it look right)	เพิ่มรูปของต้นฉบับ (ไม่บังคับ: ภาพหน้าจอช่วยให้ออกมาตรง)
+Add to a running build	เพิ่มในบิลด์ที่กำลังรัน
+Added	เพิ่มแล้ว
+Added {n} picture(s). The builder uses them from your next change.	เพิ่มรูป {n} รูป ตัวสร้างจะใช้ตั้งแต่การแก้ไขครั้งถัดไป
+Address to file offset	ที่อยู่ไปยังออฟเซตในไฟล์
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	เพิ่มตัวดีคอมไพล์ในโหมด Deep Craft Anything ดาวน์โหลดและตั้งค่าให้ได้
+Advanced	ขั้นสูง
+After installing one, look for it again.	หลังติดตั้งแล้ว ให้ค้นหาอีกครั้ง
+Agent	เอเจนต์
+Allow generated assets	อนุญาตแอสเซ็ตที่สร้างขึ้น
+Allow once	อนุญาตครั้งเดียว
+Allowed for this project	อนุญาตสำหรับโปรเจกต์นี้
+Allowed for this project.	อนุญาตสำหรับโปรเจกต์นี้แล้ว
+Allowed in	อนุญาตใน
+Allowed once	อนุญาตครั้งเดียว
+Allowed once.	อนุญาตครั้งเดียวแล้ว
+Also list projects from	แสดงโปรเจกต์จาก
+Always for this project	เสมอสำหรับโปรเจกต์นี้
+An Android app	แอป Android
+An Android app package: the file you install on a phone.	แพ็กเกจแอป Android: ไฟล์ที่ติดตั้งบนมือถือ
+An Apple settings file (plist)	ไฟล์ตั้งค่าของ Apple (plist)
+An app	แอป
+An app or a file	แอปหรือไฟล์
+Analyse a JavaScript app	วิเคราะห์แอป JavaScript
+Analyse a page's JavaScript	วิเคราะห์ JavaScript ของหน้าเว็บ
+Android app code (DEX)	โค้ดแอป Android (DEX)
+Android app components	องค์ประกอบแอป Android
+Android app package	แพ็กเกจแอป Android
+Android apps	แอป Android
+Android class	คลาส Android
+Android method bytecode	ไบต์โค้ดเมธอด Android
+Android resources	ทรัพยากร Android
+Annotate function	ใส่คำอธิบายฟังก์ชัน
+Another build is working, so this one waits its turn.	บิลด์อื่นกำลังทำงาน บิลด์นี้จึงรอคิว
+Answer a project's question	ตอบคำถามของโปรเจกต์
+Answer any of them in a message below.	ตอบข้อใดก็ได้ในข้อความด้านล่าง
+Answered by {name}	ตอบโดย {name}
+Answers come from {brain}. To build, set up a coding agent in Settings → AI.	คำตอบมาจาก {brain} หากต้องการสร้าง ให้ตั้งค่าเอเจนต์เขียนโค้ดในการตั้งค่า → AI
+App	แอป
+App details on device	รายละเอียดแอปบนอุปกรณ์
+Apple apps	แอป Apple
+Apply model options	ใช้ตัวเลือกโมเดล
+Approve an agent action	อนุมัติการกระทำของเอเจนต์
+Apps and games: keep refining until they look this alike to your pictures. Off, the likeness is only reported.	แอปและเกม: ปรับต่อจนคล้ายรูปของคุณขนาดนี้ ปิดไว้จะเพียงรายงานความคล้าย
+Architectures	สถาปัตยกรรม
+Archive	ไฟล์เก็บ
+Archives	ไฟล์เก็บ
+Ask a question	ถามคำถาม
+Ask about a build	ถามเกี่ยวกับบิลด์
+Ask about the build	ถามเกี่ยวกับบิลด์
+Ask about the build, e.g. "where are the latest files?" Nothing changes and no build starts.	ถามเกี่ยวกับบิลด์ เช่น "ไฟล์ล่าสุดอยู่ที่ไหน?" ไม่มีการเปลี่ยนแปลงและไม่เริ่มบิลด์
+Ask about this game	ถามเกี่ยวกับเกมนี้
+Ask anything, e.g. "What does this program do?"	ถามอะไรก็ได้ เช่น "โปรแกรมนี้ทำอะไร?"
+Ask before running anything	ถามก่อนรันทุกอย่าง
+Ask each time	ถามทุกครั้ง
+Ask first	ถามก่อน
+Ask for a change	ขอแก้ไข
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	ขอแก้ไข เช่น "ปุ่มใหญ่ขึ้น" หรือ "เพิ่มโหมดมืด"
+Ask for a change, e.g. "make it faster" or "add a high-score table"	ขอแก้ไข เช่น "ทำให้เร็วขึ้น" หรือ "เพิ่มตารางคะแนนสูงสุด"
+Ask for a change, e.g. "make the header blue" or "add a contact form"	ขอแก้ไข เช่น "ทำหัวเว็บเป็นสีฟ้า" หรือ "เพิ่มแบบฟอร์มติดต่อ"
+Ask in your own words. Every answer shows how sure we are, and the proof.	ถามด้วยคำของคุณเอง ทุกคำตอบแสดงความมั่นใจและข้อพิสูจน์
+Ask me	ถามฉัน
+Ask the agent about this	ถามเอเจนต์เกี่ยวกับสิ่งนี้
+Ask the agent about this target. It cites evidence for every claim.	ถามเอเจนต์เกี่ยวกับเป้าหมายนี้ มันอ้างหลักฐานทุกข้อ
+Ask the agent…	ถามเอเจนต์…
+Ask the person	ถามผู้ใช้
+Ask: "How does the % key work?"	ถาม: "ปุ่ม % ทำงานอย่างไร?"
+Ask: "Is it safe to run?"	ถาม: "รันได้ปลอดภัยไหม?"
+Ask: "What does it send over the internet?"	ถาม: "มันส่งอะไรออกอินเทอร์เน็ต?"
+Asking for its models…	กำลังขอรายการโมเดล…
+Asset catalog	แคตตาล็อกแอสเซ็ต
+At most this many rounds of fixes after the first build.	จำนวนรอบแก้ไขสูงสุดหลังบิลด์แรก
+Attach pictures	แนบรูป
+Attach pictures (or drop or paste them here)	แนบรูป (หรือลากมาวาง/วางที่นี่)
+Auto mode	โหมดอัตโนมัติ
+Automatic	อัตโนมัติ
+Automatic ({name})	อัตโนมัติ ({name})
+Back	ย้อนกลับ
+Best guess	คาดเดาที่ดีที่สุด
+Best guess: a reasonable reading, but not proven.	คาดเดาที่ดีที่สุด: การตีความที่สมเหตุสมผล แต่ยังไม่พิสูจน์
+Binary layout	โครงสร้างไบนารี
+Blocked	ถูกบล็อก
+Bookmark	บุ๊กมาร์ก
+Budget for a new project	งบประมาณสำหรับโปรเจกต์ใหม่
+Bug report	รายงานบั๊ก
+Build	สร้าง
+Build a rebuild ledger	สร้างบันทึกการสร้างใหม่
+Build a stand-in backend	สร้างแบ็กเอนด์ทดแทน
+Build with	สร้างด้วย
+Build with this	สร้างด้วยสิ่งนี้
+Build with {name}	สร้างด้วย {name}
+Build with {name} instead	สร้างด้วย {name} แทน
+Build without it	สร้างโดยไม่มีมัน
+Builder's questions:	คำถามของผู้สร้าง:
+Building	กำลังสร้าง
+Building needs a coding agent on this computer (Claude Code, Codex or Gemini CLI: install one and sign in to it once in its own window), or an AI with an API key. Craft Anything never sees your account.	การสร้างต้องมีเอเจนต์เขียนโค้ดบนเครื่องนี้ (Claude Code, Codex หรือ Gemini CLI: ติดตั้งและล็อกอินหนึ่งครั้งในหน้าต่างของมัน) หรือ AI ที่มี API key Craft Anything ไม่เห็นบัญชีของคุณ
+Building needs a coding agent such as Claude Code, or an AI with an API key.	การสร้างต้องมีเอเจนต์เขียนโค้ด เช่น Claude Code หรือ AI ที่มี API key
+Builds	บิลด์
+Builds and answers may use it again.	บิลด์และคำตอบอาจใช้มันอีก
+Builds at once	บิลด์พร้อมกัน
+Builds keep going without stopping to ask you before an action. The builder still never deletes outside its project, changes system settings or publishes anything, and stays within each project's asset budget.	บิลด์ทำต่อโดยไม่หยุดถามก่อนทำการใด ๆ ตัวสร้างยังไม่ลบไฟล์นอกโปรเจกต์ ไม่เปลี่ยนการตั้งค่าระบบ ไม่เผยแพร่สิ่งใด และอยู่ในงบแอสเซ็ตของแต่ละโปรเจกต์
+Builds use this one. Click to choose automatically again.	บิลด์ใช้ตัวนี้ คลิกเพื่อกลับไปเลือกอัตโนมัติ
+Built by	สร้างโดย
+Built with	สร้างด้วย
+Built with {stack}, as you asked, so no game engine is needed.	สร้างด้วย {stack} ตามที่ขอ จึงไม่ต้องใช้เกมเอนจิน
+Call graph	กราฟการเรียก
+Call path	เส้นทางการเรียก
+Call the build done	ประกาศว่าบิลด์เสร็จ
+Called done. A new message carries on from here.	ประกาศเสร็จแล้ว ข้อความใหม่จะทำต่อจากจุดนี้
+Cancel	ยกเลิก
+Cancel: don't use this folder	ยกเลิก: ไม่ใช้โฟลเดอร์นี้
+Capture a website for rebuilding	เก็บเว็บไซต์ไว้สร้างใหม่
+Capture inventories	เก็บรายการสินค้าคงคลัง
+Capture menus, dialogs and tabs	เก็บเมนู ไดอะล็อก และแท็บ
+Change	เปลี่ยน
+Change a setting	เปลี่ยนการตั้งค่า
+Change an AI's model	เปลี่ยนโมเดลของ AI
+Change how hard an AI thinks	เปลี่ยนระดับการคิดของ AI
+Change it	เปลี่ยน
+Change…	เปลี่ยน…
+Check	ตรวจ
+Check .NET native calls	ตรวจการเรียกเนทีฟ .NET
+Check a rebuild claim	ตรวจข้ออ้างการสร้างใหม่
+Check a scripted web session	ตรวจเซสชันเว็บที่เขียนสคริปต์
+Check an answer	ตรวจคำตอบ
+Check decompiled C#	ตรวจ C# ที่ดีคอมไพล์
+Check my build	ตรวจบิลด์ของฉัน
+Check the JEB connection	ตรวจการเชื่อมต่อ JEB
+Check the asset keys	ตรวจคีย์แอสเซ็ต
+Check the setup	ตรวจการตั้งค่า
+Check {n}	ตรวจ {n}
+Check {n}: about {s}% like the original	ตรวจ {n}: คล้ายต้นฉบับประมาณ {s}%
+Checked against Godot's official checksums before it's used.	ตรวจกับเช็กซัมทางการของ Godot ก่อนใช้งาน
+Checking	กำลังตรวจ
+Choose a file	เลือกไฟล์
+Choose a folder…	เลือกโฟลเดอร์…
+Choose a function, string or section to see it here.	เลือกฟังก์ชัน ข้อความ หรือส่วน เพื่อดูที่นี่
+Choose an AI's job	เลือกงานของ AI
+Choose the folder Ghidra is installed in.	เลือกโฟลเดอร์ที่ติดตั้ง Ghidra
+Choose what the builder's questions get	เลือกว่าคำถามของผู้สร้างจะได้อะไร
+Choose what to recreate, say what you want, then press Start.	เลือกสิ่งที่จะสร้างใหม่ บอกสิ่งที่ต้องการ แล้วกดเริ่ม
+Choose…	เลือก…
+Classes	คลาส
+Claude Code folder (CLAUDE_CONFIG_DIR)	โฟลเดอร์ Claude Code (CLAUDE_CONFIG_DIR)
+Clean room	Clean room
+Clean room / Deep	Clean room / Deep
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	Clean room ไม่อ่านโค้ด ไฟล์ หรือซอร์สหน้าเว็บของต้นฉบับ โหมด Deep อ่านด้วยทุกเครื่องมือที่ Craft Anything มี
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	Clean room ไม่อ่านโค้ด ไฟล์ หรือซอร์สหน้าเว็บของต้นฉบับ: ทำงานจากสิ่งที่มองเห็น Deep อ่านด้วยทุกเครื่องมือ และด้วย Ghidra เมื่อติดตั้งไว้ ทุกสิ่งที่พบจะบันทึกว่าใช้วิธีใด
+Clean room on	เปิด Clean room
+Clean room or Deep	Clean room หรือ Deep
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	Clean room: ไม่อ่านสิ่งใดภายในต้นฉบับ เราทำงานจากสิ่งที่มองเห็น: รูป หน้าเว็บอย่างที่ผู้เยี่ยมชมเห็น และการเฝ้าดูขณะรัน
+Clear finished	ล้างรายการที่เสร็จแล้ว
+Close	ปิด
+Close a Frida session	ปิดเซสชัน Frida
+Close a GDB session	ปิดเซสชัน GDB
+Close a Rizin debug session	ปิดเซสชันดีบัก Rizin
+Close a pinned build	ปิดบิลด์ที่ปักหมุด
+Close it	ปิด
+Close it first.	ปิดก่อน
+Close the website	ปิดเว็บไซต์
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	โค้ดที่สร้างจากโปรแกรมที่มีลักษณะเหมือนภาษา C ใกล้เคียงสิ่งที่โปรแกรมทำ แต่ไม่ใช่ซอร์สต้นฉบับ
+Code signature	ลายเซ็นโค้ด
+Coding agent app	แอปเอเจนต์เขียนโค้ด
+Command palette (Ctrl/⌘ K)	พาเลตต์คำสั่ง (Ctrl/⌘ K)
+Commands:	คำสั่ง:
+Compare WebAssembly interfaces	เปรียบเทียบอินเทอร์เฟซ WebAssembly
+Compare module exports	เปรียบเทียบ exports ของโมดูล
+Compare two .NET builds	เปรียบเทียบ .NET สองบิลด์
+Compare two app versions	เปรียบเทียบแอปสองเวอร์ชัน
+Compare two artifacts	เปรียบเทียบอาร์ติแฟกต์สองชิ้น
+Compare two evidence bundles	เปรียบเทียบชุดหลักฐานสองชุด
+Compare two functions	เปรียบเทียบฟังก์ชันสองตัว
+Compare two page captures	เปรียบเทียบการเก็บหน้าเว็บสองครั้ง
+Compare two runs	เปรียบเทียบการรันสองครั้ง
+Compare two screenshots	เปรียบเทียบภาพหน้าจอสองภาพ
+Comparing and rebuilding	กำลังเปรียบเทียบและสร้างใหม่
+Compiled Python file	ไฟล์ Python ที่คอมไพล์แล้ว
+Connect	เชื่อมต่อ
+Connect agent apps	เชื่อมต่อแอปเอเจนต์
+Connect to a browser	เชื่อมต่อเบราว์เซอร์
+Connect {name}	เชื่อมต่อ {name}
+Connected devices	อุปกรณ์ที่เชื่อมต่อ
+Connected phone	มือถือที่เชื่อมต่อ
+Context window	หน้าต่างบริบท
+Continue	ทำต่อ
+Contradicted	ขัดแย้ง
+Control-flow graph: a map of every path a function can take, like a flowchart.	กราฟการไหลของควบคุม: แผนที่ทุกเส้นทางที่ฟังก์ชันไปได้ เหมือนผังงาน
+Copies share the files it saves beside itself.	สำเนาใช้ไฟล์ที่มันบันทึกข้างตัวเองร่วมกัน
+Copy a file off the phone	คัดลอกไฟล์จากมือถือ
+Copy a file to the phone	คัดลอกไฟล์ไปยังมือถือ
+Copy an app off the phone	คัดลอกแอปจากมือถือ
+Copy the command	คัดลอกคำสั่ง
+Copy the evidence id	คัดลอกรหัสหลักฐาน
+Couldn't add the pictures:	เพิ่มรูปไม่ได้:
+Couldn't answer:	ตอบไม่ได้:
+Couldn't attach the pictures:	แนบรูปไม่ได้:
+Couldn't look through that folder.	เข้าไปดูโฟลเดอร์นั้นไม่ได้
+Couldn't open it.	เปิดไม่ได้
+Couldn't open the folder.	เปิดโฟลเดอร์ไม่ได้
+Couldn't open {}: {}	เปิด {} ไม่ได้: {}
+Couldn't start a worker thread: {e}	เริ่ม worker thread ไม่ได้: {e}
+Couldn't start it.	เริ่มไม่ได้
+Coverage unknown	ไม่ทราบความครอบคลุม
+Craft Anything	Craft Anything
+Craft Anything can't build with {engine}, so Unity is the closest match.	Craft Anything สร้างด้วย {engine} ไม่ได้ Unity จึงใกล้เคียงที่สุด
+Craft Anything or the computer closed while it was working. Everything so far is kept; Continue picks up where it stopped.	Craft Anything หรือเครื่องปิดขณะทำงาน ทุกอย่างถึงตอนนี้ถูกเก็บไว้ กดทำต่อเพื่อไปจากจุดที่หยุด
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything อ่านโค้ดและไฟล์ด้วยทุกเครื่องมือที่มันมี สำหรับใช้ส่วนตัวของคุณ
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything อ่านโค้ด ไฟล์ และซอร์สหน้าเว็บของต้นฉบับด้วยทุกเครื่องมือ และด้วย Ghidra เมื่อติดตั้งไว้
+Craft Anything report.md	report.md ของ Craft Anything
+Craft Anything's records, checks and anything it built in app/ are deleted. Your own files in the folder stay as they are.	บันทึก การตรวจ และสิ่งที่สร้างใน app/ จะถูกลบ ไฟล์ของคุณในโฟลเดอร์ยังอยู่เหมือนเดิม
+Crash dump	ดัมป์จากการแครช
+Create the project	สร้างโปรเจกต์
+Critical	วิกฤต
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	การอ้างถึงไขว้: ตำแหน่งในโปรแกรมที่ใช้หรือเรียกสิ่งที่คุณกำลังดู
+Cross-references	การอ้างถึงไขว้
+Cross-references: the places in the program that use or call the thing you're looking at.	การอ้างถึงไขว้: ตำแหน่งในโปรแกรมที่ใช้หรือเรียกสิ่งที่คุณกำลังดู
+Current document	เอกสารปัจจุบัน
+Cursor address	ที่อยู่เคอร์เซอร์
+Cursor function	ฟังก์ชันเคอร์เซอร์
+Custom	กำหนดเอง
+Cutter command	คำสั่ง Cutter
+DOS load image	อิมเมจโหลดของ DOS
+Databases	ฐานข้อมูล
+Decide yourself	ตัดสินใจเอง
+Decode a radio recording	ถอดรหัสการบันทึกวิทยุ
+Decompile	ดีคอมไพล์
+Decompile Java with Vineflower	ดีคอมไพล์ Java ด้วย Vineflower
+Decompile many	ดีคอมไพล์หลายรายการ
+Decompile with JEB	ดีคอมไพล์ด้วย JEB
+Deep	Deep
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	โหมด Deep ตอนนี้ดีคอมไพล์ด้วย Ghidra การดูโปรแกรมใหญ่ครั้งแรกอาจใช้หลายนาที
+Deep mode on	เปิดโหมด Deep
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	Deep: เราอ่านโค้ด ไฟล์ และซอร์สหน้าเว็บด้วยทุกเครื่องมือที่มี และด้วย Ghidra เมื่อติดตั้งไว้ คลิกเพื่อสลับ
+Default	ค่าเริ่มต้น
+Delete a project	ลบโปรเจกต์
+Delete it	ลบ
+Delete the project	ลบโปรเจกต์
+Delete {name}?	ลบ {name}?
+Deleted.	ลบแล้ว
+Deleted. Your own files are still in the folder.	ลบแล้ว ไฟล์ของคุณยังอยู่ในโฟลเดอร์
+Delete…	ลบ…
+Deliberately scrambled to make it hard to read, without changing what it does.	ถูกสลับอย่างจงใจให้อ่านยาก โดยไม่เปลี่ยนสิ่งที่มันทำ
+Demangle Swift symbols	ถอดรหัสชื่อ Swift (demangle)
+Details	รายละเอียด
+Details about the selected item appear here.	รายละเอียดของรายการที่เลือกจะแสดงที่นี่
+Detect	ตรวจจับ
+Device details	รายละเอียดอุปกรณ์
+Device features	คุณสมบัติอุปกรณ์
+Device folder	โฟลเดอร์อุปกรณ์
+Device log	บันทึกอุปกรณ์
+Disassemble sBPF code	แยกแอสเซมบลีโค้ด sBPF
+Disassembly	แอสเซมบลี
+Disconnect agent apps	ตัดการเชื่อมต่อแอปเอเจนต์
+Dismiss	ปิด
+Dispatch metadata	เมทาดาทาการส่ง
+Display info	ข้อมูลจอ
+Do you have permission?	คุณมีสิทธิ์ไหม?
+Does it talk to the internet?	มันคุยกับอินเทอร์เน็ตไหม?
+Does it track me?	มันติดตามฉันไหม?
+Don't allow	ไม่อนุญาต
+Don't ask again (you can change this in Settings)	ไม่ถามอีก (เปลี่ยนได้ในการตั้งค่า)
+Done	เสร็จ
+Download	ดาวน์โหลด
+Download Godot {v}	ดาวน์โหลด Godot {v}
+Download Unity Hub	ดาวน์โหลด Unity Hub
+Download and use Ghidra	ดาวน์โหลดและใช้ Ghidra
+Download it from unity.com and install it.	ดาวน์โหลดจาก unity.com แล้วติดตั้ง
+Download it from unrealengine.com and install it.	ดาวน์โหลดจาก unrealengine.com แล้วติดตั้ง
+Download the Epic Games Launcher	ดาวน์โหลด Epic Games Launcher
+Downloads keep going in the background.	ดาวน์โหลดทำต่อในเบื้องหลัง
+Drive an app's screen	ควบคุมหน้าจอแอป
+Drop a calculator app (or any small program) on the window.	ลากแอปเครื่องคิดเลข (หรือโปรแกรมเล็กใด ๆ) มาวางบนหน้าต่าง
+Drop a file or app anywhere in this window.	ลากไฟล์หรือแอปมาวางที่ใดก็ได้ในหน้าต่างนี้
+Drop the file on the window. We only read it; nothing runs.	ลากไฟล์มาวางบนหน้าต่าง เราอ่านเท่านั้น ไม่รันอะไร
+Drop to attach	ลากมาวางเพื่อแนบ
+Drop to open it	ลากมาวางเพื่อเปิด
+Duplicate	ทำสำเนา
+Duplicate a project	ทำสำเนาโปรเจกต์
+Duplicate the project	ทำสำเนาโปรเจกต์
+Each answer says how sure we are: Seen it, Worked it out or Best guess.	ทุกคำตอบบอกความมั่นใจ: เห็นแล้ว คำนวณออกมา หรือคาดเดาที่ดีที่สุด
+Edit a project file	แก้ไฟล์โปรเจกต์
+Edit them in place	แก้ในที่เดิม
+Effort:	ความพยายาม:
+Electron and JavaScript	Electron และ JavaScript
+Electron fuses	ฟิวส์ Electron
+Engines	เอนจิน
+Engines and settings	เอนจินและการตั้งค่า
+Enter a full web address, like example.com or https://example.com/page.	ใส่ที่อยู่เว็บเต็ม เช่น example.com หรือ https://example.com/page
+Enter to send · Shift+Enter for a new line	Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่
+Epic's own installer. It only opens if Epic's signature checks out.	ตัวติดตั้งของ Epic เอง จะเปิดก็ต่อเมื่อลายเซ็นของ Epic ถูกต้อง
+Essentials	สิ่งจำเป็น
+Every build of this project.	ทุกบิลด์ของโปรเจกต์นี้
+Every finding is saved here with how sure we are.	ทุกสิ่งที่พบถูกบันทึกที่นี่พร้อมความมั่นใจ
+Every tool as well: a workbench with functions, bytes, references and evidence.	ทุกเครื่องมือด้วย: เวิร์กเบนช์ที่มีฟังก์ชัน ไบต์ การอ้างอิง และหลักฐาน
+Everything found so far, as a Markdown file.	ทุกอย่างที่พบถึงตอนนี้ เป็นไฟล์ Markdown
+Everything so far is kept. Continue picks up where it stopped.	ทุกอย่างถึงตอนนี้ถูกเก็บไว้ กดทำต่อเพื่อไปจากจุดที่หยุด
+Evidence	หลักฐาน
+Evidence ledger	บันทึกหลักฐาน
+Evidence so far	หลักฐานถึงตอนนี้
+Explain a function	อธิบายฟังก์ชัน
+Explain like I'm new	อธิบายแบบมือใหม่
+Export a report	ส่งออกรายงาน
+Export a report (Markdown)	ส่งออกรายงาน (Markdown)
+Export captured scripts	ส่งออกสคริปต์ที่เก็บไว้
+Export evidence	ส่งออกหลักฐาน
+Export report	ส่งออกรายงาน
+Extended	ขยายแล้ว
+Extract an archive	แตกไฟล์เก็บ
+Extract firmware	แตกเฟิร์มแวร์
+Extract with this	แตกด้วยตัวนี้
+Extracts	แตกไฟล์
+File formats	รูปแบบไฟล์
+Files packed inside a file	ไฟล์ที่บรรจุอยู่ในไฟล์
+Filter	กรอง
+Filter by name	กรองตามชื่อ
+Filter the files	กรองไฟล์
+Filter…	กรอง…
+Find Android classes	ค้นหาคลาส Android
+Find Java classes	ค้นหาคลาส Java
+Find a call path	ค้นหาเส้นทางการเรียก
+Find a game's files	ค้นหาไฟล์ของเกม
+Find an app	ค้นหาแอป
+Find in-page MCP tools	ค้นหาเครื่องมือ MCP ในหน้าเว็บ
+Find it automatically	ค้นหาอัตโนมัติ
+Find out how any software works, then craft your own.	ดูว่าซอฟต์แวร์ใดทำงานอย่างไร แล้วสร้างของคุณเอง
+Find the original source line	ค้นหาบรรทัดซอร์สต้นฉบับ
+Firmware regions	พื้นที่เฟิร์มแวร์
+Fold the sidebar	พับแถบข้าง
+Folders of projects, and projects started in a folder you picked. Removing one only takes it off the list.	โฟลเดอร์ของโปรเจกต์ และโปรเจกต์ที่เริ่มในโฟลเดอร์ที่คุณเลือก การลบเพียงเอาออกจากรายการ
+Follow the installer that opened. Come back here when it's done.	ทำตามตัวติดตั้งที่เปิดขึ้น กลับมาที่นี่เมื่อเสร็จ
+Follow the steps on rustup.rs, then come back here.	ทำตามขั้นตอนบน rustup.rs แล้วกลับมาที่นี่
+For everything you make, like the switch in the title bar.	สำหรับทุกสิ่งที่คุณสร้าง เช่น สวิตช์บนแถบชื่อ
+For example: a website for my bakery	ตัวอย่าง: เว็บไซต์ร้านเบเกอรีของฉัน
+For example: recreate this website	ตัวอย่าง: สร้างเว็บไซต์นี้ใหม่
+For example: the same app, but simpler	ตัวอย่าง: แอปเดิม แต่เรียบง่ายกว่า
+For example: the same game, with a high-score table	ตัวอย่าง: เกมเดิม แต่มีตารางคะแนนสูงสุด
+Force-stop an app	บังคับหยุดแอป
+Forget the key	ลืมคีย์
+Found on this computer	พบในเครื่องนี้
+Found {} AI option(s) on this computer	พบตัวเลือก AI {} รายการในเครื่องนี้
+Frida devices	อุปกรณ์ Frida
+Frida instrumentation	การติดตั้งเครื่องมือ Frida
+Frida processes	โปรเซส Frida
+Frida session status	สถานะเซสชัน Frida
+From	จาก
+Frozen copy	สำเนาแบบคงสภาพ
+Function address	ที่อยู่ฟังก์ชัน
+Function assembly	แอสเซมบลีของฟังก์ชัน
+Function dossier	แฟ้มข้อมูลฟังก์ชัน
+Function info	ข้อมูลฟังก์ชัน
+Function instructions	คำสั่งของฟังก์ชัน
+Function references	การอ้างอิงฟังก์ชัน
+Functions	ฟังก์ชัน
+GDB command	คำสั่ง GDB
+GDB session status	สถานะเซสชัน GDB
+Game assets	แอสเซ็ตเกม
+Game engines	เกมเอนจิน
+Game files	ไฟล์เกม
+General	ทั่วไป
+Generate a 3D model	สร้างโมเดล 3D
+Generate a picture	สร้างรูป
+Generate custom pictures and models	สร้างรูปและโมเดลกำหนดเอง
+Generated art (games)	อาร์ตที่สร้างขึ้น (เกม)
+Generated assets	แอสเซ็ตที่สร้างขึ้น
+Generated pictures and 3D models are made with fal.ai.	รูปและโมเดล 3D ที่สร้างขึ้นทำด้วย fal.ai
+Get Ghidra	รับ Ghidra
+Get Ghidra for Deep mode	รับ Ghidra สำหรับโหมด Deep
+Get Unity Hub	รับ Unity Hub
+Get a key at {name}	รับคีย์ที่ {name}
+Get the Epic Games Launcher	รับ Epic Games Launcher
+Get {name}	รับ {name}
+Getting Ghidra	กำลังรับ Ghidra
+Getting Godot	กำลังรับ Godot
+Getting Unity Hub	กำลังรับ Unity Hub
+Getting the Epic Games Launcher	กำลังรับ Epic Games Launcher
+Ghidra	Ghidra
+Ghidra folder	โฟลเดอร์ Ghidra
+Ghidra is ready	Ghidra พร้อมแล้ว
+Ghidra is ready. Deep mode uses it from now on.	Ghidra พร้อมแล้ว โหมด Deep จะใช้มันตั้งแต่ตอนนี้
+Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra ยังไม่ติดตั้ง ตัวดีคอมไพล์ในตัวจึงทำหน้าที่แทน รับได้ในการตั้งค่า → เอนจิน
+Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra ยังไม่อยู่ในเครื่องนี้ ตัวดีคอมไพล์ในตัวจึงทำหน้าที่แทน
+Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra จะใช้หน่วยความจำครึ่งหนึ่งของเครื่องนี้ (สูงสุด {gb} GB)
+Ghidra will use up to {gb} GB of memory.	Ghidra จะใช้หน่วยความจำสูงสุด {gb} GB
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	Ghidra เครื่องมือ reverse engineering ฟรีจาก NSA ให้โค้ดและชนิดข้อมูลที่ดีคอมไพล์แล้วสมบูรณ์ขึ้นแก่โหมด Deep
+Go home	กลับหน้าหลัก
+Go program details	ไปที่รายละเอียดโปรแกรม
+Go to address	ไปที่ที่อยู่
+Go to offset (0x…)	ไปที่ออฟเซต (0x…)
+Go to the project	ไปที่โปรเจกต์
+Good enough	ดีพอแล้ว
+Got it	เข้าใจแล้ว
+Graph	กราฟ
+Half of this computer's memory, up to {gb} GB.	หน่วยความจำครึ่งหนึ่งของเครื่องนี้ สูงสุด {gb} GB
+Here's a first look:	นี่คือการดูครั้งแรก:
+Here's what I found on that page:	นี่คือสิ่งที่ฉันพบบนหน้านั้น:
+Hex	Hex
+Hide pinned builds	ซ่อนบิลด์ที่ปักหมุด
+Hide the answer	ซ่อนคำตอบ
+Hide the console	ซ่อนคอนโซล
+High	สูง
+Home	หน้าหลัก
+How alike a rebuild must look to the original before refining stops.	บิลด์ต้องคล้ายต้นฉบับแค่ไหนก่อนหยุดปรับ
+How closely may Craft Anything look at it?	Craft Anything ดูมันได้ละเอียดแค่ไหน?
+How complete is the rebuild	บิลด์สมบูรณ์แค่ไหน
+How do I open an app?	เปิดแอปอย่างไร?
+How do the window and the page talk to each other?	หน้าต่างกับหน้าเว็บคุยกันอย่างไร?
+How does the % key work?	ปุ่ม % ทำงานอย่างไร?
+How is this app built?	แอปนี้สร้างอย่างไร?
+How is this app put together?	แอปนี้ประกอบขึ้นอย่างไร?
+How many projects may build at the same time. More wait their turn.	ให้กี่โปรเจกต์สร้างพร้อมกันได้ เกินกว่านั้นจะรอคิว
+How should the builder use them?	ตัวสร้างควรใช้รูปเหล่านี้อย่างไร?
+I have Ghidra	ฉันมี Ghidra
+I have permission	ฉันมีสิทธิ์
+I want to make things work together	ฉันต้องการทำให้หลายอย่างทำงานร่วมกัน
+I'm checking whether it's safe	ฉันกำลังตรวจว่าปลอดภัยไหม
+I'm keeping old software alive	ฉันกำลังดูแลซอฟต์แวร์เก่าให้ยังใช้ได้
+I'm learning how things work	ฉันกำลังเรียนรู้ว่ามันทำงานอย่างไร
+I'm new to this	ฉันเพิ่งเริ่มใช้
+ILSpy decompile	ดีคอมไพล์ด้วย ILSpy
+Ideas:	ไอเดีย:
+Identify a Flutter build	ระบุบิลด์ Flutter
+Import a source folder	นำเข้าโฟลเดอร์ซอร์ส
+Import evidence	นำเข้าหลักฐาน
+Imports / Exports	นำเข้า / ส่งออก
+In Deep mode this one takes a game's own files out after the study. Click to stop.	ในโหมด Deep ตัวนี้จะเอาไฟล์ของเกมออกหลังการศึกษา คลิกเพื่อหยุด
+In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	ใน Unity Hub: ล็อกอิน (หรือสร้างบัญชีฟรี) แล้วยอมรับไลเซนส์ Personal ฟรี จากนั้นเปิด Installs กด Install Editor และเลือกเวอร์ชันที่แนะนำ ประมาณ 10 GB
+In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	ในตัวเรียกใช้: ล็อกอิน เปิด Unreal Engine แล้ว Library และกด + ข้าง Engine Versions เพื่อติดตั้ง ประมาณ 60 GB
+In use	กำลังใช้
+Inside	ภายใน
+Inspect a Dart AOT snapshot	ตรวจสอบสแนปช็อต Dart AOT
+Inspect a network recording	ตรวจสอบการบันทึกเครือข่าย
+Inspect a web page	ตรวจสอบหน้าเว็บ
+Inspect an Electron page	ตรวจสอบหน้า Electron
+Inspect data	ตรวจสอบข้อมูล
+Inspect instruction	ตรวจสอบคำสั่ง
+Inspector	ตัวตรวจสอบ
+Install Rust	ติดตั้ง Rust
+Install Unity Hub	ติดตั้ง Unity Hub
+Install Visual Studio Community (free) and tick "Game development with C++".	ติดตั้ง Visual Studio Community (ฟรี) แล้วติ๊ก "Game development with C++"
+Install Xcode	ติดตั้ง Xcode
+Install an app	ติดตั้งแอป
+Install an engine	ติดตั้งเอนจิน
+Install the launcher	ติดตั้งตัวเรียกใช้
+Installed	ติดตั้งแล้ว
+Installed apps	แอปที่ติดตั้ง
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	การสื่อสารระหว่างโปรเซส: สองส่วนของแอป (หรือสองแอป) ส่งข้อความหากันอย่างไร
+Interface Builder documents	เอกสาร Interface Builder
+Interrupted	ถูกขัดจังหวะ
+Inventory an archive or app bundle	ทำรายการไฟล์เก็บหรือชุดแอป
+Investigating	กำลังตรวจสอบ
+Investigation so far	การตรวจสอบถึงตอนนี้
+Is Apktool available?	มี Apktool ไหม?
+Is adb available?	มี adb ไหม?
+Is an asset key set up?	ตั้งคีย์แอสเซ็ตไว้แล้วหรือยัง?
+Is anything in here a program?	มีอะไรในนี้เป็นโปรแกรมไหม?
+Is anything sensitive saved in plain text?	มีข้อมูลอ่อนไหวเก็บเป็นข้อความธรรมดาไหม?
+Is it safe to look inside programs?	ปลอดภัยไหมที่จะดูภายในโปรแกรม?
+Is it safe to run?	รันได้ปลอดภัยไหม?
+Is there any readable text inside?	มีข้อความที่อ่านได้อยู่ข้างในไหม?
+Is this file safe to open?	ไฟล์นี้ปลอดภัยที่จะเปิดไหม?
+It closed straight away.	มันปิดทันที
+It closed straight away. It said:	มันปิดทันที มันแจ้งว่า:
+It isn't on this computer yet. Craft Anything can download Ghidra {version} and the Java runtime it needs (about {mb} MB), check both against their publishers' checksums, and set them up in its own folder. Nothing else on your computer changes.	มันยังไม่อยู่ในเครื่องนี้ Craft Anything ดาวน์โหลด Ghidra {version} และ Java runtime ที่ต้องใช้ (ประมาณ {mb} MB) ตรวจทั้งคู่กับเช็กซัมของผู้เผยแพร่ และตั้งค่าในโฟลเดอร์ของตัวเอง ไม่มีสิ่งอื่นในเครื่องเปลี่ยน
+It isn't on this computer yet. Install Ghidra {version} from its release page, then choose its folder.	มันยังไม่อยู่ในเครื่องนี้ ติดตั้ง Ghidra {version} จากหน้าดาวน์โหลด แล้วเลือกโฟลเดอร์ของมัน
+It's already open.	มันเปิดอยู่แล้ว
+It's already open. Right-click it to open another copy.	มันเปิดอยู่แล้ว คลิกขวาเพื่อเปิดสำเนาอีกชุด
+It's done	เสร็จแล้ว
+It's mine, or I'm allowed to look	เป็นของฉัน หรือฉันได้รับอนุญาตให้ดู
+Its copy is deleted, with anything it saved there. The project itself stays as it is.	สำเนาของมันถูกลบ พร้อมสิ่งที่มันบันทึกไว้ที่นั่น โปรเจกต์ยังอยู่เหมือนเดิม
+Its folder is deleted with everything in it: what was built, the checks and the conversation.	โฟลเดอร์ของมันถูกลบพร้อมทุกอย่างข้างใน: สิ่งที่สร้าง การตรวจ และบทสนทนา
+Its own code	โค้ดของมันเอง
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	การล็อกอิน การตั้งค่า และบทสนทนาของมันเอง: อีกโฟลเดอร์คืออีกบัญชี ว่างไว้: โฟลเดอร์ปกติของมัน
+Java archive overview	ภาพรวมไฟล์ Java
+Java class	คลาส Java
+Java method bytecode and pseudo-Java	ไบต์โค้ดเมธอด Java และ pseudo-Java
+Java program code (one class)	โค้ดโปรแกรม Java (หนึ่งคลาส)
+Java programs	โปรแกรม Java
+Java runtime	Java runtime
+Jobs	งาน
+Jobs ({n_jobs})	งาน ({n_jobs})
+Jobs ({n})	งาน ({n})
+Just a question: nothing was changed. Answered by	แค่คำถาม: ไม่มีอะไรเปลี่ยน ตอบโดย
+Just ask	แค่ถาม
+Just look inside	แค่ดูข้างใน
+Work on my project	ทำงานกับโปรเจกต์ของฉัน
+Work on a project you already have	ทำงานกับโปรเจกต์ที่มีอยู่แล้ว
+Pick its folder, say what you want, then press Start.	เลือกโฟลเดอร์ บอกสิ่งที่ต้องการ แล้วกดเริ่ม
+Where is your project?	โปรเจกต์ของคุณอยู่ที่ไหน?
+Choose your project's folder…	เลือกโฟลเดอร์โปรเจกต์…
+For example: add a dark mode	ตัวอย่าง: เพิ่มโหมดมืด
+Pick your project's folder first.	เลือกโฟลเดอร์โปรเจกต์ก่อน
+Pick your project's folder	เลือกโฟลเดอร์โปรเจกต์
+That folder is empty. Pick the folder your project's files are in.	โฟลเดอร์นั้นว่าง เลือกโฟลเดอร์ที่มีไฟล์โปรเจกต์
+Keep going without asking	ทำต่อโดยไม่ถาม
+Keep it	เก็บไว้
+Keep it in the sidebar to open any time, whatever later builds change.	ปักหมุดไว้ในแถบข้างเพื่อเปิดได้ทุกเมื่อ ไม่ว่าบิลด์หลัง ๆ จะเปลี่ยนอะไร
+Keep the build as it is and stop offering to carry on.	เก็บบิลด์ไว้ตามเดิมและหยุดเสนอให้ทำต่อ
+Keep this version in the sidebar to open any time.	เก็บเวอร์ชันนี้ไว้ในแถบข้างเพื่อเปิดได้ทุกเมื่อ
+Keeps this version exactly as it is now. Later builds can't change or break it, and anything it saves stays with the copy.	เก็บเวอร์ชันนี้ไว้ตามที่เป็นอยู่ตอนนี้ บิลด์หลัง ๆ เปลี่ยนหรือทำพังไม่ได้ และสิ่งใดที่มันบันทึกจะอยู่กับสำเนานี้
+Key saved	บันทึกคีย์แล้ว
+Keyed archive	ไฟล์เก็บแบบมีคีย์
+Kind	ชนิด
+Language	ภาษา
+Last: {what}	ล่าสุด: {what}
+Launch an app	เปิดแอป
+Leave a few GB for the rest of your computer.	เว้นหน่วยความจำไว้ 2-3 GB ให้ส่วนอื่นของเครื่อง
+Leave a path empty to use the managed install. We never need environment variables.	เว้นพาธว่างเพื่อใช้การติดตั้งที่จัดการให้ เราไม่ต้องใช้ตัวแปรสภาพแวดล้อม
+Leave empty to use the one Craft Anything sets up.	เว้นว่างเพื่อใช้ตัวที่ Craft Anything ตั้งให้
+Let a project generate assets	ให้โปรเจกต์สร้างแอสเซ็ต
+Let's go	เริ่มกันเลย
+Lets the builder make realistic 3D models and textures for games, {model} a model, with a {budget} budget per project.	ให้ตัวสร้างทำโมเดล 3D และพื้นผิวสมจริงสำหรับเกม {model} เป็นโมเดล ด้วยงบ {budget} ต่อโปรเจกต์
+Library resolution	การแก้ไขไลบรารี
+Light copy: shares big files with the project	สำเนาแบบเบา: ใช้ไฟล์ใหญ่ร่วมกับโปรเจกต์
+Likeness	ความคล้าย
+Line up code and behaviour	จับคู่โค้ดกับพฤติกรรม
+Line up source with the bundle	จับคู่ซอร์สกับชุดไฟล์
+List Electron pages	แสดงรายการหน้า Electron
+List JEB units	แสดงรายการยูนิต JEB
+List JS runtime targets	แสดงเป้าหมาย JS runtime
+List a Unity assets file	แสดงรายการไฟล์แอสเซ็ต Unity
+List a Unity bundle	แสดงรายการชุด Unity
+List a game's archives	แสดงรายการไฟล์เก็บของเกม
+List a node's event listeners	แสดงตัวรับเหตุการณ์ของโหนด
+List an AI's models	แสดงรายการโมเดลของ AI
+List an Unreal IoStore container	แสดงรายการคอนเทนเนอร์ Unreal IoStore
+List an Unreal pak	แสดงรายการ Unreal pak
+List bookmarks	แสดงรายการบุ๊กมาร์ก
+List browser pages	แสดงรายการหน้าเบราว์เซอร์
+List documents	แสดงรายการเอกสาร
+List engines	แสดงรายการเอนจิน
+List functions	แสดงรายการฟังก์ชัน
+List names	แสดงรายการชื่อ
+List open targets	แสดงรายการเป้าหมายที่เปิด
+List pinned builds	แสดงรายการบิลด์ที่ปักหมุด
+List plugins	แสดงรายการปลั๊กอิน
+List project files	แสดงรายการไฟล์โปรเจกต์
+List projects	แสดงรายการโปรเจกต์
+List questions about a build	แสดงรายการคำถามเกี่ยวกับบิลด์
+List radio decoders	แสดงรายการตัวถอดรหัสวิทยุ
+List segments	แสดงรายการเซกเมนต์
+List shared Cutter sessions	แสดงรายการเซสชัน Cutter ที่แชร์
+List strings	แสดงรายการข้อความ
+Live: the project's latest build	Live: บิลด์ล่าสุดของโปรเจกต์
+Load a picture	โหลดรูป
+Load a screenshot	โหลดภาพหน้าจอ
+Load model options	โหลดตัวเลือกโมเดล
+Loading…	กำลังโหลด…
+Log	บันทึก
+Look again	ดูอีกครั้ง
+Look at a game	ดูเกม
+Look at a website	ดูเว็บไซต์
+Look at the game	ดูเกม
+Look for AI on this computer	ค้นหา AI ในเครื่องนี้
+Look for game engines	ค้นหาเกมเอนจิน
+Look for projects again	ค้นหาโปรเจกต์อีกครั้ง
+Looked at everything	ดูทุกอย่างแล้ว
+Looked at part of it	ดูเพียงบางส่วน
+Looked at {a} of {b}	ดูแล้ว {a} จาก {b}
+Looking for AI on this computer…	กำลังค้นหา AI ในเครื่องนี้…
+Looking for game engines on this computer…	กำลังค้นหาเกมเอนจินในเครื่องนี้…
+Looking for the game's files…	กำลังค้นหาไฟล์ของเกม…
+Looking inside needs Deep mode	การดูข้างในต้องใช้โหมด Deep
+Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	การดูภายในซอฟต์แวร์ที่คุณเป็นเจ้าของหรือได้รับอนุญาตให้ตรวจเป็นเรื่องปกติและมักได้รับความคุ้มครอง (การเรียนรู้ ความเข้ากันได้ ความปลอดภัย) การบอกเหตุผลช่วยให้คุณทำได้ถูกต้อง และข้อมูลนี้อยู่ในเครื่องนี้เท่านั้น
+Looking on this computer…	กำลังค้นหาในเครื่องนี้…
+Low	ต่ำ
+Mach-O structure	โครงสร้าง Mach-O
+Made a copy: {name}	ทำสำเนาแล้ว: {name}
+Made with fal.ai and paid from your account: {model} a 3D model, {picture} a picture. Off, the game is built without them.	สร้างด้วย fal.ai และจ่ายจากบัญชีของคุณ: {model} เป็นโมเดล 3D, {picture} เป็นรูป ปิดไว้ เกมจะสร้างโดยไม่มีสิ่งเหล่านี้
+Made with {engine}	สร้างด้วย {engine}
+Made without looking inside the original.	สร้างโดยไม่ดูข้างในต้นฉบับ
+Make a game that plays like this	สร้างเกมที่เล่นเหมือนเกมนี้
+Make a simpler version of this game	สร้างเวอร์ชันที่เรียบง่ายกว่าของเกมนี้
+Make my own version	สร้างเวอร์ชันของฉันเอง
+Make my own version of this app	สร้างเวอร์ชันของฉันเองของแอปนี้
+Making my own thing talk to something else.	ทำให้ของของฉันคุยกับอย่างอื่น
+Many source files packed into one big file so an app or web page loads faster.	ไฟล์ซอร์สหลายไฟล์ที่รวมเป็นไฟล์ใหญ่ไฟล์เดียวเพื่อให้แอปหรือหน้าเว็บโหลดเร็วขึ้น
+Map a HarmonyOS app	ทำแผนที่แอป HarmonyOS
+Map a page's module graph	ทำแผนที่กราฟโมดูลของหน้าเว็บ
+Map an Android app	ทำแผนที่แอป Android
+Map an Apple app	ทำแผนที่แอป Apple
+Markdown	Markdown
+Match functions between two builds	จับคู่ฟังก์ชันระหว่างสองบิลด์
+Match my pictures	จับคู่กับรูปของฉัน
+Match static code to what ran	จับคู่โค้ดสแตติกกับสิ่งที่รันจริง
+Maximise	ขยายเต็มจอ
+May I run "{title}"?	ให้ฉันรัน "{title}" ได้ไหม?
+May I {action}?	ให้ฉัน{action}ได้ไหม?
+Measure which code ran	วัดว่าโค้ดใดรันจริง
+Medium	ปานกลาง
+Memory for Ghidra	หน่วยความจำสำหรับ Ghidra
+Minimise	ย่อหน้าต่าง
+Mode	โหมด
+Model	โมเดล
+Model options	ตัวเลือกโมเดล
+Model: {model}	โมเดล: {model}
+Modules	โมดูล
+More detail	รายละเอียดเพิ่มเติม
+More makes a big program's first look faster.	More ทำให้การดูโปรแกรมใหญ่ครั้งแรกเร็วขึ้น
+More memory makes Ghidra's first look at a big program faster; leave some for the rest of the computer. Used from the next time Ghidra starts.	หน่วยความจำเพิ่มทำให้ Ghidra ดูโปรแกรมใหญ่ครั้งแรกเร็วขึ้น เว้นไว้ให้ส่วนอื่นของเครื่องด้วย ใช้ตั้งแต่ครั้งถัดไปที่ Ghidra เริ่ม
+Name (optional)	ชื่อ (ไม่บังคับ)
+Name an address	ตั้งชื่อที่อยู่
+Name at address	ชื่อที่ที่อยู่
+Name many addresses	ตั้งชื่อหลายที่อยู่
+Names the program's author gave to functions or variables that survived in the file.	ชื่อที่ผู้เขียนโปรแกรมตั้งให้ฟังก์ชันหรือตัวแปร และยังอยู่ในไฟล์
+Needs a fal.ai key. Until then the game is built without them.	ต้องมีคีย์ fal.ai ก่อนหน้านั้นเกมจะสร้างโดยไม่มีสิ่งเหล่านี้
+Needs you	ต้องการคุณ
+Network	เครือข่าย
+New	ใหม่
+New project	โปรเจกต์ใหม่
+New projects go in	โปรเจกต์ใหม่ไปที่
+Next address	ที่อยู่ถัดไป
+No AI (built-in engines only)	ไม่มี AI (ใช้เอนจินในตัวเท่านั้น)
+No AI brain is set up, so answers come straight from the built-in engines. Add one any time for plain-words explanations.	ยังไม่ได้ตั้งสมอง AI คำตอบจึงมาจากเอนจินในตัวโดยตรง เพิ่มได้ทุกเมื่อเพื่อคำอธิบายด้วยภาษาง่าย ๆ
+No AI for now	ยังไม่มี AI ตอนนี้
+No AI is set up yet. The built-in engines still work; an AI adds plain-words answers.	ยังไม่ได้ตั้ง AI เอนจินในตัวยังทำงานได้ AI เพิ่มคำตอบด้วยภาษาง่าย ๆ
+No Unreal or Unity archives were found. Pick the folder the game is installed in.	ไม่พบไฟล์เก็บของ Unreal หรือ Unity เลือกโฟลเดอร์ที่ติดตั้งเกม
+No coding agent was found on this computer yet.	ยังไม่พบเอเจนต์เขียนโค้ดในเครื่องนี้
+No evidence yet	ยังไม่มีหลักฐาน
+No game files here	ไม่มีไฟล์เกมที่นี่
+No jobs yet. Long tasks show their progress here, and you can cancel them.	ยังไม่มีงาน งานที่ใช้เวลานานจะแสดงความคืบหน้าที่นี่ และยกเลิกได้
+No matches	ไม่ตรงกัน
+No open questions	ไม่มีคำถามค้าง
+No plugins yet.	ยังไม่มีปลั๊กอิน
+No result yet	ยังไม่มีผลลัพธ์
+No targets	ไม่มีเป้าหมาย
+No tool named {tool}	ไม่มีเครื่องมือชื่อ {tool}
+None	ไม่มี
+None yet. Screenshots help it look right.	ยังไม่มี ภาพหน้าจอช่วยให้ออกมาตรง
+Not allowed	ไม่อนุญาต
+Not allowed.	ไม่อนุญาต
+Not available yet	ยังใช้ไม่ได้
+Not compared yet: {what}	ยังไม่ได้เปรียบเทียบ: {what}
+Not installed	ยังไม่ติดตั้ง
+Not now	ไม่ใช่ตอนนี้
+Nothing allowed yet.	ยังไม่อนุญาตอะไร
+Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	ยังสร้างไม่ได้: ติดตั้ง Claude Code (และล็อกอินหนึ่งครั้ง) หรือเพิ่ม AI ที่มี API key ด้านล่าง
+Nothing found	ไม่พบสิ่งใด
+Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	ยังไม่พบสิ่งใด เราค้นหา API key เซิร์ฟเวอร์โมเดลในเครื่อง (Ollama, LM Studio) และแอปเอเจนต์ที่มีอยู่ ตัวที่อยู่อีกพอร์ตหรืออีกเครื่องเพิ่มได้ด้วยที่อยู่ด้านล่าง
+Nothing inside it is read.	ไม่มีการอ่านสิ่งใดข้างใน
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	ไม่มีการอ่านสิ่งใดข้างใน Craft Anything ทำงานจากสิ่งที่มองเห็น เวอร์ชันของคุณได้อาร์ตของตัวเอง
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	ไม่อ่านสิ่งใดภายในต้นฉบับ: ไม่ใช่โค้ด ไฟล์ หรือซอร์สหน้าเว็บ Craft Anything ทำงานจากสิ่งที่มองเห็น: รูป หน้าเว็บอย่างที่ผู้เยี่ยมชมเห็น และการเฝ้าดูขณะรัน
+Nothing made yet. What you make shows up here.	ยังไม่ได้สร้างอะไร สิ่งที่คุณสร้างจะแสดงที่นี่
+Nothing matches the filter.	ไม่มีอะไรตรงกับตัวกรอง
+Nothing matches.	ไม่ตรงกัน
+Nothing new for {time}. Long steps can be quiet; if it stays like this, press Pause.	ไม่มีอะไรใหม่เป็นเวลา {time} ขั้นตอนยาวอาจเงียบได้ ถ้ายังเป็นเช่นนี้ ให้กดหยุดชั่วคราว
+Nothing open	ไม่มีอะไรเปิด
+Nothing open yet	ยังไม่มีอะไรเปิด
+Nothing selected	ไม่ได้เลือกอะไร
+Nothing to show	ไม่มีอะไรแสดง
+Nothing uses it until it's on again; it keeps its key.	ไม่มีอะไรใช้มันจนกว่าจะเปิดอีกครั้ง มันยังเก็บคีย์ไว้
+Nothing — start fresh	ไม่มี — เริ่มใหม่
+Now	ตอนนี้
+Now: {what} ({time})	ตอนนี้: {what} ({time})
+Objective-C classes	คลาส Objective-C
+Objective-C protocols	โปรโตคอล Objective-C
+Observe a JS runtime	เฝ้าดู JS runtime
+Of this, {cost} was charged to an API key.	ในจำนวนนี้ {cost} ถูกเรียกเก็บจาก API key
+Off	ปิด
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Ollama หรือ LM Studio บนอีกเครื่อง หรือบริการใดที่ใช้ API ของ OpenAI
+On	เปิด
+One line, in plain words. It stays on this computer and is never sent anywhere.	หนึ่งบรรทัด ด้วยภาษาง่าย ๆ ข้อความอยู่ในเครื่องนี้และไม่ถูกส่งไปที่ใด
+One-shot instrumentation	การติดตั้งเครื่องมือแบบครั้งเดียว
+Only for Ghidra. Empty = managed.	เฉพาะ Ghidra ว่าง = ใช้ตัวที่จัดการให้
+Only its name changes; its folder stays where it is.	เปลี่ยนแค่ชื่อ โฟลเดอร์ยังอยู่ที่เดิม
+Only take pictures out of games you made, or whose owner allows it. A game's art is usually protected by copyright and by the game's licence.	ดึงรูปออกจากเกมที่คุณสร้างเอง หรือที่เจ้าของอนุญาตเท่านั้น อาร์ตของเกมมักได้รับความคุ้มครองโดยลิขสิทธิ์และไลเซนส์ของเกม
+Only the pin goes; the project and its app stay as they are.	เอาแค่หมุดออก โปรเจกต์และแอปยังอยู่เหมือนเดิม
+Open	เปิด
+Open "Show me the proof" to see the exact code we found, and how sure we are.	เปิด "แสดงข้อพิสูจน์" เพื่อดูโค้ดที่เราพบจริง และความมั่นใจของเรา
+Open Ghidra's release page	เปิดหน้าดาวน์โหลดของ Ghidra
+Open Unity Hub	เปิด Unity Hub
+Open a calculator app and find the code behind one button.	เปิดแอปเครื่องคิดเลขและหาโค้ดเบื้องหลังปุ่มหนึ่งปุ่ม
+Open a file in JEB	เปิดไฟล์ใน JEB
+Open a file or drop one here.	เปิดไฟล์หรือลากมาวางที่นี่
+Open a file…	เปิดไฟล์…
+Open a folder or app bundle	เปิดโฟลเดอร์หรือชุดแอป
+Open a folder or app bundle…	เปิดโฟลเดอร์หรือชุดแอป…
+Open a folder…	เปิดโฟลเดอร์…
+Open a pinned build	เปิดบิลด์ที่ปักหมุด
+Open a project's folder	เปิดโฟลเดอร์ของโปรเจกต์
+Open a website	เปิดเว็บไซต์
+Open an app or file	เปิดแอปหรือไฟล์
+Open an engine's app	เปิดแอปของเอนจิน
+Open another copy	เปิดอีกสำเนา
+Open another target	เปิดเป้าหมายอื่น
+Open files, folders or apps; you can have several open at once.	เปิดไฟล์ โฟลเดอร์ หรือแอป เปิดพร้อมกันหลายรายการได้
+Open folder	เปิดโฟลเดอร์
+Open in the workbench	เปิดในเวิร์กเบนช์
+Open it	เปิด
+Open log	เปิดบันทึก
+Open one of the files inside it to see its bytes.	เปิดไฟล์ใดไฟล์หนึ่งข้างในเพื่อดูไบต์
+Open questions	คำถามค้าง
+Open something	เปิดอะไรสักอย่าง
+Open something first: drop a file or app here, or choose "Just look inside" on New project. Then I can look inside it.	เปิดอะไรก่อน: ลากไฟล์หรือแอปมาวางที่นี่ หรือเลือก "แค่ดูข้างใน" ในโปรเจกต์ใหม่ แล้วฉันจะดูข้างในให้
+Open something to start	เปิดอะไรสักอย่างเพื่อเริ่ม
+Open the Epic Games Launcher	เปิด Epic Games Launcher
+Open the app	เปิดแอป
+Open the app you're curious about.	เปิดแอปที่คุณสนใจ
+Open the download page	เปิดหน้าดาวน์โหลด
+Open the folder	เปิดโฟลเดอร์
+Open the installer app	เปิดแอปตัวติดตั้ง
+Open the website	เปิดเว็บไซต์
+Open {name}	เปิด {name}
+Opened {name}	เปิด {name} แล้ว
+Opened {name}. Taking a first look…	เปิด {name} แล้ว กำลังดูครั้งแรก…
+Opened {}	เปิด {} แล้ว
+Opening {name}…	กำลังเปิด {name}…
+Open…	เปิด…
+Or type your answer…	หรือพิมพ์คำตอบของคุณ…
+Original	ต้นฉบับ
+Other pages of a website studied and compared besides the one you gave.	หน้าอื่นของเว็บไซต์ที่ศึกษาและเปรียบเทียบนอกเหนือจากหน้าที่ให้มา
+Overview	ภาพรวม
+Packet capture overview	ภาพรวมการดักแพ็กเก็ต
+Packet fields	ฟิลด์แพ็กเก็ต
+Page through evidence	เลื่อนดูหลักฐานทีละหน้า
+Part of the app got stuck, so it was stopped and the rest carried on. Your work is kept.	ส่วนหนึ่งของแอปค้าง จึงหยุดส่วนนั้นและทำส่วนที่เหลือต่อ งานของคุณถูกเก็บไว้
+Part of the app is stuck. Restarting clears it, and your work is kept.	ส่วนหนึ่งของแอปค้าง การรีสตาร์ทจะแก้ และงานของคุณถูกเก็บไว้
+Part of this screen hit a bug and was skipped. Your work is safe.	ส่วนหนึ่งของหน้าจอนี้เจอบั๊กและถูกข้าม งานของคุณปลอดภัย
+Paste pictures	วางรูป
+Paste your API key (kept in your system keychain)	วาง API key (เก็บใน keychain ของระบบ)
+Paste your {name} key	วางคีย์ {name}
+Path	พาธ
+Pause	หยุดชั่วคราว
+Pausing…	กำลังหยุด…
+Pause the build first, then delete the project.	หยุดบิลด์ก่อน แล้วลบโปรเจกต์
+Pause the build first.	หยุดบิลด์ก่อน
+Paused	หยุดชั่วคราวแล้ว
+Paused.	หยุดชั่วคราวแล้ว
+Pick a folder with projects in it	เลือกโฟลเดอร์ที่มีโปรเจกต์
+Pick a game's folder	เลือกโฟลเดอร์ของเกม
+Pick another folder…	เลือกโฟลเดอร์อื่น…
+Pick another game	เลือกเกมอื่น
+Pick something on the left	เลือกบางอย่างทางซ้าย
+Pick the app or game folder	เลือกโฟลเดอร์แอปหรือเกม
+Pick the app, game or file to rebuild	เลือกแอป เกม หรือไฟล์ที่จะสร้างใหม่
+Pick the folder for this project	เลือกโฟลเดอร์สำหรับโปรเจกต์นี้
+Pick the game's folder	เลือกโฟลเดอร์ของเกม
+Picture a program's window	จับภาพหน้าต่างโปรแกรม
+Picture model	โมเดลรูปภาพ
+Pictures	รูป
+Pictures can't be saved from IoStore containers yet; you can see what's inside.	ยังบันทึกรูปจากคอนเทนเนอร์ IoStore ไม่ได้ แต่ดูข้างในได้
+Pictures of the original	รูปของต้นฉบับ
+Pieces of text stored inside a program, like messages, web addresses or file names.	ข้อความที่เก็บในโปรแกรม เช่น ข้อความ ที่อยู่เว็บ หรือชื่อไฟล์
+Pin a build	ปักหมุดบิลด์
+Pin a project's build	ปักหมุดบิลด์ของโปรเจกต์
+Pin it	ปักหมุด
+Pin name	ชื่อหมุด
+Pin removed.	เอาหมุดออกแล้ว
+Pin this build	ปักหมุดบิลด์นี้
+Pinned	ปักหมุดแล้ว
+Pinned builds	บิลด์ที่ปักหมุด
+Pinned: {name}. Open it from the sidebar any time.	ปักหมุดแล้ว: {name} เปิดได้จากแถบข้างทุกเมื่อ
+Plain words, big buttons, and I'll explain everything.	ภาษาง่าย ปุ่มใหญ่ และฉันจะอธิบายทุกอย่าง
+Plain words, short sentences, and every technical word explained.	ภาษาง่าย ประโยคสั้น และอธิบายทุกศัพท์เทคนิค
+Plan	แผน
+Plan connecting agent apps	วางแผนเชื่อมต่อแอปเอเจนต์
+Play a project's result	เล่นผลลัพธ์ของโปรเจกต์
+Play the game	เล่นเกม
+Plugin added. Read its tools to start using them.	เพิ่มปลั๊กอินแล้ว อ่านเครื่องมือของมันเพื่อเริ่มใช้
+Plugin arguments	อาร์กิวเมนต์ปลั๊กอิน
+Plugin command or address	คำสั่งหรือที่อยู่ปลั๊กอิน
+Plugin id	id ปลั๊กอิน
+Plugin removed.	ลบปลั๊กอินแล้ว
+Plugins	ปลั๊กอิน
+Plugins add tools Craft Anything offers as its own: MCP servers (a command or an address; read their tools after adding) or WebAssembly components (a .wasm file, which can't touch your files or the network).	ปลั๊กอินเพิ่มเครื่องมือที่ Craft Anything ใช้เป็นของตัวเอง: เซิร์ฟเวอร์ MCP (คำสั่งหรือที่อยู่ อ่านเครื่องมือหลังเพิ่ม) หรือคอมโพเนนต์ WebAssembly (ไฟล์ .wasm ซึ่งแตะไฟล์หรือเครือข่ายของคุณไม่ได้)
+Plugins added here always ask before each call.	ปลั๊กอินที่เพิ่มที่นี่ถามก่อนทุกครั้งที่เรียก
+Plugins read. Their new tools are offered from the next start.	อ่านปลั๊กอินแล้ว เครื่องมือใหม่จะพร้อมใช้ตั้งแต่เริ่มครั้งถัดไป
+Preserving software that's no longer supported.	ดูแลซอฟต์แวร์ที่เลิกสนับสนุนแล้ว
+Preview a project's website	ดูตัวอย่างเว็บไซต์ของโปรเจกต์
+Preview the website	ดูตัวอย่างเว็บไซต์
+Previous address	ที่อยู่ก่อนหน้า
+Program: found automatically	โปรแกรม: พบอัตโนมัติ
+Program: {path}	โปรแกรม: {path}
+Programs (native code)	โปรแกรม (โค้ดเนทีฟ)
+Progress	ความคืบหน้า
+Project details	รายละเอียดโปรเจกต์
+Project name	ชื่อโปรเจกต์
+Projects	โปรเจกต์
+Projects and builds	โปรเจกต์และบิลด์
+Property list	property list
+Pseudo-C	Pseudo-C
+Purpose	วัตถุประสงค์
+Raise the asset budget	เพิ่มงบแอสเซ็ต
+Raise the budget by {amount}	เพิ่มงบ {amount}
+Raw machine code	โค้ดเครื่องดิบ
+Read AI settings	อ่านการตั้งค่า AI
+Read a Unity game's IL2CPP metadata	อ่านเมทาดาทา IL2CPP ของเกม Unity
+Read a game's files	อ่านไฟล์ของเกม
+Read a project file	อ่านไฟล์โปรเจกต์
+Read a setting	อ่านการตั้งค่า
+Read an app's screen	อ่านหน้าจอแอป
+Read bytes	อ่านไบต์
+Read comment	อ่านคอมเมนต์
+Read inline comment	อ่านคอมเมนต์ในบรรทัด
+Read its tools	อ่านเครื่องมือของมัน
+Read pinned builds	อ่านบิลด์ที่ปักหมุด
+Read projects	อ่านโปรเจกต์
+Read the journal	อ่านบันทึก
+Read the plugin's tools	อ่านเครื่องมือของปลั๊กอิน
+Read the project	อ่านโปรเจกต์
+Reading what's inside…	กำลังอ่านข้างใน…
+Ready	พร้อม
+Ready: {what} is on this computer.	พร้อม: {what} อยู่ในเครื่องนี้
+Reasoning	การให้เหตุผล
+Rebuild status	สถานะการสร้างใหม่
+Record a finding	บันทึกสิ่งที่พบ
+Record a hypothesis	บันทึกสมมติฐาน
+Record an open question	บันทึกคำถามค้าง
+Recover readable sources	กู้คืนซอร์สที่อ่านได้
+Recreate it with darker colours	สร้างใหม่ด้วยสีโทนเข้ม
+Recreate just its main feature	สร้างใหม่เฉพาะฟีเจอร์หลัก
+Recreate this website	สร้างเว็บไซต์นี้ใหม่
+Recreated games are built with the original's own engine when it's here (Unity, Unreal or Godot), else Unity, and Rust as the last resort.	เกมที่สร้างใหม่จะใช้เอนจินของต้นฉบับเมื่อมีในเครื่อง (Unity, Unreal หรือ Godot) มิฉะนั้นใช้ Unity และ Rust เป็นทางสุดท้าย
+References to a name	การอ้างอิงถึงชื่อ
+Refining rounds	รอบการปรับแต่ง
+Refresh plugins	รีเฟรชปลั๊กอิน
+Regions of a program file, each with one purpose: code, text, pictures, settings.	พื้นที่ในไฟล์โปรแกรม แต่ละส่วนมีจุดประสงค์เดียว: โค้ด ข้อความ รูป ตั้งค่า
+Reload	โหลดใหม่
+Remember permission	จำสิทธิ์
+Remove	ลบออก
+Remove a pin	เอาหมุดออก
+Remove a pinned build	เอาบิลด์ที่ปักหมุดออก
+Remove a plugin	เอาปลั๊กอินออก
+Remove an AI	เอา AI ออก
+Remove an app	เอาแอปออก
+Remove an asset key	เอาคีย์แอสเซ็ตออก
+Remove bookmark	เอาบุ๊กมาร์กออก
+Remove it	เอาออก
+Remove it and its key	เอาออกพร้อมคีย์ของมัน
+Remove {name}	เอา {name} ออก
+Remove {name}?	เอา {name} ออก?
+Remove…	เอาออก…
+Rename	เปลี่ยนชื่อ
+Rename a pinned build	เปลี่ยนชื่อบิลด์ที่ปักหมุด
+Rename a project	เปลี่ยนชื่อโปรเจกต์
+Rename the pin	เปลี่ยนชื่อหมุด
+Rename the project	เปลี่ยนชื่อโปรเจกต์
+Rename…	เปลี่ยนชื่อ…
+Reset	รีเซ็ต
+Resolve a call	หาเป้าหมายการเรียก
+Resolved	หาเป้าหมายได้แล้ว
+Resources	ทรัพยากร
+Restart	รีสตาร์ท
+Restore	คืนค่า
+Result	ผลลัพธ์
+Resume a Frida session	ทำเซสชัน Frida ต่อ
+Rizin command	คำสั่ง Rizin
+Rizin debug command	คำสั่งดีบัก Rizin
+Rizin debug session status	สถานะเซสชันดีบัก Rizin
+Rough guide:	คำแนะนำคร่าว ๆ:
+Run	รัน
+Run a Frida script	รันสคริปต์ Frida
+Run a build command	รันคำสั่งสร้าง
+Run a scripted Electron session	รันเซสชัน Electron ที่เขียนสคริปต์
+Run a scripted web session	รันเซสชันเว็บที่เขียนสคริปต์
+Run a tool from the command palette (Ctrl/⌘ K), or pick a finding in the Evidence panel.	รันเครื่องมือจากพาเลตต์คำสั่ง (Ctrl/⌘ K) หรือเลือกสิ่งที่พบในแผงหลักฐาน
+Run and watch a program	รันและเฝ้าดูโปรแกรม
+Run to study	รันเพื่อศึกษา
+Running	กำลังรัน
+Running processes	โปรเซสที่กำลังรัน
+Running programs	โปรแกรมที่กำลังรัน
+Running {id}	กำลังรัน {id}
+Runs its tools without asking	รันเครื่องมือโดยไม่ถาม
+Runs the first-run steps next time.	ทำขั้นตอนแรกเข้าใช้ในครั้งถัดไป
+Rust program details	รายละเอียดโปรแกรม Rust
+SHA-256	SHA-256
+SQLite database contents	เนื้อหาฐานข้อมูล SQLite
+Safety	ความปลอดภัย
+Save	บันทึก
+Save a picture	บันทึกรูป
+Save a report	บันทึกรายงาน
+Save an asset key	บันทึกคีย์แอสเซ็ต
+Save picture	บันทึกรูป
+Save settings	บันทึกการตั้งค่า
+Save the key	บันทึกคีย์
+Save the picture	บันทึกรูป
+Save the report	บันทึกรายงาน
+Saved	บันทึกแล้ว
+Saved in	บันทึกใน
+Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	ประหยัดพื้นที่: คัดลอกโปรแกรมและโค้ด และใช้ dependencies กับมีเดียร่วมกับโปรเจกต์ ไฟล์ที่ใช้ร่วมกันและถูกเขียนทับในที่เดิมจะเปลี่ยนที่นี่ด้วย
+Say what you want	บอกสิ่งที่ต้องการ
+Say what you want first.	บอกสิ่งที่ต้องการก่อน
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	บอกสิ่งที่ต้องการสร้าง หรือลากแอปหรือไฟล์มาวางบนหน้าต่างเพื่อดูข้างใน ทุกอย่างรันในโหมด Clean room เว้นแต่เปิด Deep
+Screenshot	ภาพหน้าจอ
+Screenshot a page	จับภาพหน้าเว็บ
+Screenshots of how it should look. The builder opens each one and matches it.	ภาพหน้าจอว่าควรออกมาแบบไหน ตัวสร้างเปิดทีละภาพและทำตาม
+Search for bytes	ค้นหาไบต์
+Search functions	ค้นหาฟังก์ชัน
+Search strings	ค้นหาข้อความ
+Sections	ส่วน
+Security research on software I'm allowed to examine.	วิจัยความปลอดภัยบนซอฟต์แวร์ที่ได้รับอนุญาตให้ตรวจ
+See how a page is built: its layout, styles, scripts and the requests it makes.	ดูว่าหน้าเว็บสร้างอย่างไร: เลย์เอาต์ สไตล์ สคริปต์ และคำขอที่ส่ง
+See how a program works: what it does, what it talks to, what's inside.	ดูว่าโปรแกรมทำงานอย่างไร: ทำอะไร คุยกับอะไร ข้างในมีอะไร
+See what a game packs and save its pictures as PNG files. Only for games you made, or whose owner lets you.	ดูว่าเกมบรรจุอะไรและบันทึกรูปเป็นไฟล์ PNG เฉพาะเกมที่คุณสร้าง หรือที่เจ้าของอนุญาต
+See what a game packs, and save its pictures as PNG files.	ดูว่าเกมบรรจุอะไร และบันทึกรูปเป็นไฟล์ PNG
+See what a stand-in was asked	ดูสิ่งที่ตัวทดแทนถูกสั่ง
+See which servers an app talks to, and what it says.	ดูว่าแอปคุยกับเซิร์ฟเวอร์ใด และพูดว่าอะไร
+Seen it	เห็นแล้ว
+Seen it: read directly from the file, page or capture.	เห็นแล้ว: อ่านโดยตรงจากไฟล์ หน้าเว็บ หรือการเก็บ
+Selected	เลือกแล้ว
+Selection	ที่เลือก
+Send	ส่ง
+Send (Enter)	ส่ง (Enter)
+Send now	ส่งเลย
+Server address	ที่อยู่เซิร์ฟเวอร์
+Session status	สถานะเซสชัน
+Set a project's asset budget	ตั้งงบแอสเซ็ตของโปรเจกต์
+Set an AI's folder	ตั้งโฟลเดอร์ของ AI
+Set an AI's program	ตั้งโปรแกรมของ AI
+Set model options	ตั้งตัวเลือกโมเดล
+Set one up	ตั้งค่าสักตัว
+Set up a brain…	ตั้งค่าสมอง…
+Set up a builder	ตั้งค่าตัวสร้าง
+Settings	การตั้งค่า
+Show a build's activity	แสดงกิจกรรมของบิลด์
+Show a project	แสดงโปรเจกต์
+Show folder	แสดงโฟลเดอร์
+Show me everything	แสดงทุกอย่าง
+Show me the proof	แสดงข้อพิสูจน์
+Show model options	แสดงตัวเลือกโมเดล
+Show pinned builds	แสดงบิลด์ที่ปักหมุด
+Show settings	แสดงการตั้งค่า
+Show the answer	แสดงคำตอบ
+Show the console	แสดงคอนโซล
+Show the folder	แสดงโฟลเดอร์
+Show the ones that are met	แสดงข้อที่ผ่านแล้ว
+Show the sidebar	แสดงแถบข้าง
+Show the welcome again	แสดงหน้าต้อนรับอีกครั้ง
+Showing	กำลังแสดง
+Sign in and add the Unity Editor	ล็อกอินและเพิ่ม Unity Editor
+Sign in and install Unreal Engine	ล็อกอินและติดตั้ง Unreal Engine
+Simple	ง่าย
+Simple: say what you want and it's handled for you. Advanced: every tool, the evidence and the logs.	ง่าย: บอกสิ่งที่ต้องการแล้วจัดการให้ ขั้นสูง: ทุกเครื่องมือ หลักฐาน และบันทึก
+Since Craft Anything opened.	ตั้งแต่เปิด Craft Anything
+Size	ขนาด
+Skip setup	ข้ามการตั้งค่า
+Smart contract interface	อินเทอร์เฟซสมาร์ตคอนแทรกต์
+Software I made, bought, or have permission to examine.	ซอฟต์แวร์ที่ฉันสร้าง ซื้อ หรือได้รับอนุญาตให้ตรวจ
+Solana program (sBPF)	โปรแกรม Solana (sBPF)
+Some plugins couldn't be read:	อ่านปลั๊กอินบางตัวไม่ได้:
+Something a program borrows from the operating system or a library, like "open a file".	สิ่งที่โปรแกรมยืมจากระบบปฏิบัติการหรือไลบรารี เช่น "เปิดไฟล์"
+Something a program or library offers for other programs to use.	สิ่งที่โปรแกรมหรือไลบรารีเปิดให้โปรแกรมอื่นใช้
+Source	ซอร์ส
+Standard	มาตรฐาน
+Start	เริ่ม
+Start a Frida session	เริ่มเซสชัน Frida
+Start a GDB session	เริ่มเซสชัน GDB
+Start a Rizin debug session	เริ่มเซสชันดีบัก Rizin
+Start a rebuild	เริ่มสร้างใหม่
+Start a stand-in backend	เริ่มแบ็กเอนด์ทดแทน
+Start an activity	เริ่ม activity
+Start building	เริ่มสร้าง
+Start from them	เริ่มจากไฟล์เหล่านี้
+Start it	เริ่ม
+Start with Simple mode; you can set up AI later in Settings.	เริ่มด้วยโหมดง่าย ตั้งค่า AI ทีหลังได้ในการตั้งค่า
+Starting…	กำลังเริ่ม…
+Starting… it opens in its own window.	กำลังเริ่ม… มันจะเปิดในหน้าต่างของตัวเอง
+Still working. Bigger jobs can take a few minutes.	ยังทำงานอยู่ งานใหญ่อาจใช้หลายนาที
+Stop	หยุด
+Stop a pinned build	หยุดบิลด์ที่ปักหมุด
+Stop a rebuild	หยุดการสร้างใหม่
+Stop a stand-in backend	หยุดแบ็กเอนด์ทดแทน
+Stop generated assets	หยุดสร้างแอสเซ็ต
+Stop listing {folder}	หยุดแสดงรายการ {folder}
+Stopped here	หยุดตรงนี้
+Stops the current step and sends your notes straight away.	หยุดขั้นตอนปัจจุบันและส่งบันทึกของคุณทันที
+Strings	ข้อความ
+Studio	สตูดิโอ
+Studio (dark)	สตูดิโอ (มืด)
+Studio Light	สตูดิโอสว่าง
+Study	ศึกษา
+Study apps by running them	ศึกษาแอปด้วยการรัน
+Studying	กำลังศึกษา
+Studying software to understand it.	ศึกษาเพื่อทำความเข้าใจ
+Summarise what changed	สรุปสิ่งที่เปลี่ยน
+Swift types	ชนิดข้อมูล Swift
+Switch Beginner / Experienced	สลับ มือใหม่ / ผู้มีประสบการณ์
+Switch Clean room / Deep	สลับ Clean room / Deep
+Switch light / dark theme	สลับธีมสว่าง / มืด
+Switch target	สลับเป้าหมาย
+System	ระบบ
+System services	บริการระบบ
+Take a texture out of an Unreal game	ดึงพื้นผิวออกจากเกม Unreal
+Take an asset out of a Unity game	ดึงแอสเซ็ตออกจากเกม Unity
+Take back a note	ยกเลิกโน้ต
+Take back: puts it in the box again	ยกเลิก: ใส่กลับในกล่อง
+Take files out of an Unreal pak	ดึงไฟล์ออกจาก Unreal pak
+Take out packed files	ดึงไฟล์ที่บรรจุออก
+Target	เป้าหมาย
+Targets	เป้าหมาย
+That folder already has {names}, where Craft Anything keeps its own files. Pick another folder, or move those out first.	โฟลเดอร์นั้นมี {names} อยู่แล้ว ซึ่งเป็นที่ที่ Craft Anything เก็บไฟล์ของตัวเอง เลือกโฟลเดอร์อื่น หรือย้ายออกก่อน
+That folder is already a project, so it's open now.	โฟลเดอร์นั้นเป็นโปรเจกต์อยู่แล้ว จึงเปิดให้ตอนนี้
+The Rust toolchain (rustup.rs).	ชุดเครื่องมือ Rust (rustup.rs)
+The builder answers its own questions and says what it chose ("I decided: …"), so you can change it.	ตัวสร้างตอบคำถามเองและบอกสิ่งที่เลือก ("ฉันตัดสินใจ: …") จึงเปลี่ยนได้
+The builder makes the game's 3D models and textures from descriptions of original designs, paid from your fal.ai account. Models are low-poly so the game runs fast. A textured model costs {model} and a picture {picture}. Each project has a {budget} budget, and you're asked before it goes over. The key is kept in your system keychain.	ตัวสร้างทำโมเดล 3D และพื้นผิวของเกมจากคำอธิบายดีไซน์ต้นฉบับ จ่ายจากบัญชี fal.ai ของคุณ โมเดลเป็น low-poly เกมจึงเร็ว โมเดลมีพื้นผิวราคา {model} รูปละ {picture} แต่ละโปรเจกต์มีงบ {budget} และจะถามก่อนเกิน คีย์เก็บใน keychain ของระบบ
+The builder reads them (code, notes, pictures) and builds the app in a new app folder beside them. Your files stay as they are.	ตัวสร้างอ่านไฟล์เหล่านี้ (โค้ด โน้ต รูป) และสร้างแอปในโฟลเดอร์ใหม่ข้าง ๆ ไฟล์ของคุณยังอยู่เหมือนเดิม
+The builder will decide its questions and tell you what it chose.	ตัวสร้างจะตัดสินใจคำถามเองและบอกสิ่งที่เลือก
+The builder works on these files directly and keeps what works. Craft Anything adds a few records of its own beside them.	ตัวสร้างทำงานกับไฟล์เหล่านี้โดยตรงและเก็บส่วนที่ใช้ได้ Craft Anything เพิ่มบันทึกของตัวเองเล็กน้อยไว้ข้าง ๆ
+The builder's questions	คำถามของผู้สร้าง
+The builder's questions come to you as cards, and it waits for your answer.	คำถามของผู้สร้างมาเป็นการ์ด และมันจะรอคำตอบ
+The builder's questions will come to you.	คำถามของผู้สร้างจะส่งมาถึงคุณ
+The built-in engines still show you everything they find.	เอนจินในตัวยังแสดงทุกสิ่งที่พบ
+The clipboard can't be read:	อ่านคลิปบอร์ดไม่ได้:
+The code	โค้ด
+The code format Android apps use.	รูปแบบโค้ดที่แอป Android ใช้
+The coding agent's estimate at API prices, not your bill. A subscription isn't charged this.	ประมาณการของเอเจนต์เขียนโค้ดที่ราคา API ไม่ใช่บิลของคุณ การสมัครสมาชิกไม่คิดแบบนี้
+The download keeps going in the background.	การดาวน์โหลดทำต่อในเบื้องหลัง
+The first instruction a program runs when it starts.	คำสั่งแรกที่โปรแกรมรันเมื่อเริ่ม
+The full toolset, evidence and logs.	ชุดเครื่องมือเต็ม หลักฐาน และบันทึก
+The installer is open. Follow its steps, then come back here.	ตัวติดตั้งเปิดแล้ว ทำตามขั้นตอน แล้วกลับมาที่นี่
+The lowest-level human-readable form of machine code: one small instruction per line.	รูปแบบโค้ดเครื่องระดับต่ำสุดที่มนุษย์อ่านได้: คำสั่งเล็กหนึ่งรายการต่อบรรทัด
+The names were removed from the program before it was shipped, so we have to work them out.	ชื่อถูกลบออกจากโปรแกรมก่อนเผยแพร่ เราจึงต้องหามันเอง
+The packed contents of an Electron app (a website inside a desktop app)	เนื้อหาที่บรรจุของแอป Electron (เว็บไซต์ในแอปเดสก์ท็อป)
+The pasted picture wasn't attached: another screen was opened meanwhile.	รูปที่วางไม่ถูกแนบ: มีการเปิดหน้าจออื่นระหว่างนั้น
+The picture on the clipboard is too large.	รูปในคลิปบอร์ดใหญ่เกินไป
+The program's machine code written out as one tiny instruction per line.	โค้ดเครื่องของโปรแกรม เขียนเป็นคำสั่งเล็ก ๆ หนึ่งรายการต่อบรรทัด
+The project's name and round	ชื่อโปรเจกต์และรอบ
+The raw result	ผลลัพธ์ดิบ
+The smallest unit of data in a file: a number from 0 to 255.	หน่วยข้อมูลเล็กสุดในไฟล์: ตัวเลข 0 ถึง 255
+The smallest units of data in a file: numbers from 0 to 255.	หน่วยข้อมูลเล็กสุดในไฟล์: ตัวเลข 0 ถึง 255
+The {name} view isn't available yet in this build.	มุมมอง {name} ยังใช้ไม่ได้ในบิลด์นี้
+The {} view isn't available yet in this build.	มุมมอง {} ยังใช้ไม่ได้ในบิลด์นี้
+Theme	ธีม
+There's no /{name} command. You can use {commands}.	ไม่มีคำสั่ง /{name} ใช้ {commands} ได้
+There's no AI brain set up yet, so here's what the built-in engines found:	ยังไม่ได้ตั้งสมอง AI นี่คือสิ่งที่เอนจินในตัวพบ:
+There's no picture on the clipboard to paste.	ไม่มีรูปในคลิปบอร์ดให้วาง
+They're my app: edit them in place	เป็นแอปของฉัน: แก้ในที่เดิม
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	สิ่งที่โปรแกรมยืมจากระบบปฏิบัติการหรือไลบรารี เช่น "เปิดไฟล์" หรือ "วาดหน้าต่าง"
+Things a program or library offers for other programs to use.	สิ่งที่โปรแกรมหรือไลบรารีเปิดให้โปรแกรมอื่นใช้
+Things we couldn't establish yet are listed here, with what would settle them.	สิ่งที่ยังยืนยันไม่ได้อยู่ในรายการนี้ พร้อมสิ่งที่ช่วยให้ชัดเจน
+This answer won't be there after a restart:	คำตอบนี้จะหายไปหลังรีสตาร์ท:
+This build stopped part-way	บิลด์นี้หยุดกลางทาง
+This can't be undone.	ย้อนกลับไม่ได้
+This folder already has files	โฟลเดอร์นี้มีไฟล์อยู่แล้ว
+This is a big one. You can leave this open and come back later.	อันนี้ใหญ่ เปิดค้างไว้แล้วกลับมาทีหลังได้
+This is outside what the builder may do on its own. Nothing happens until you say so.	นอกเหนือสิ่งที่ตัวสร้างทำเองได้ จะไม่เกิดอะไรจนคุณอนุญาต
+This keeps going in the background, and each download is checked against its publisher's checksum before it's used.	ทำต่อในเบื้องหลัง และการดาวน์โหลดแต่ละครั้งถูกตรวจกับเช็กซัมของผู้เผยแพร่ก่อนใช้
+This project is waiting its turn. Send your message once it starts.	โปรเจกต์นี้รอคิว ส่งข้อความเมื่อเริ่มแล้ว
+This runs code from the target or changes a device. Clicking Run is your OK.	นี่รันโค้ดจากเป้าหมายหรือเปลี่ยนอุปกรณ์ การกดรันคือการอนุญาต
+This runs code from the target or changes a device. Nothing runs until you say so.	นี่รันโค้ดจากเป้าหมายหรือเปลี่ยนอุปกรณ์ จะไม่รันจนคุณอนุญาต
+This tool takes no settings.	เครื่องมือนี้ไม่มีค่าตั้ง
+This updates by itself when it's done.	อัปเดตเองเมื่อเสร็จ
+This view arrives with the next engines. The Hex and Result views work today.	มุมมองนี้จะมากับเอนจินรุ่นถัดไป มุมมอง Hex และผลลัพธ์ใช้ได้แล้ววันนี้
+Those aren't pictures we can use (PNG, JPEG, WebP or GIF, up to 20 MB).	รูปเหล่านี้ใช้ไม่ได้ (PNG, JPEG, WebP หรือ GIF สูงสุด 20 MB)
+Time spent	เวลาที่ใช้
+Tip: press Ctrl/⌘ K to run any tool.	เคล็ดลับ: กด Ctrl/⌘ K เพื่อรันเครื่องมือใดก็ได้
+Tokens	โทเคน
+Tools may now run code from what you open without asking. Turn this back on unless you're sure.	เครื่องมืออาจรันโค้ดจากสิ่งที่คุณเปิดโดยไม่ถาม เปิดกลับเว้นแต่คุณแน่ใจ
+Tools that run code from a target or change a phone always ask first, unless you allowed them for a project.	เครื่องมือที่รันโค้ดจากเป้าหมายหรือเปลี่ยนมือถือจะถามก่อนเสมอ เว้นแต่คุณอนุญาตสำหรับโปรเจกต์
+Trace a UI action	ติดตามการกระทำบน UI
+Trace a feature	ติดตามฟีเจอร์
+Try again	ลองอีกครั้ง
+Try asking	ลองถาม
+Try it out, then ask below for any changes.	ลองใช้ แล้วขอแก้ไขด้านล่าง
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	แปลงโค้ดเครื่องกลับเป็นสิ่งที่อ่านเหมือนซอร์สโค้ด เป็นการสร้างขึ้นใหม่ ไม่ใช่ต้นฉบับ
+Turn off	ปิด
+Turn off an AI	ปิด AI
+Turn on	เปิด
+Turn on Deep mode	เปิดโหมด Deep
+Turn on an AI	เปิด AI
+Turning a plugin on or off takes effect from the next start.	เปิด/ปิดปลั๊กอินมีผลตั้งแต่เริ่มครั้งถัดไป
+Type a command or tool…	พิมพ์คำสั่งหรือเครื่องมือ…
+Type the website's address:	พิมพ์ที่อยู่เว็บไซต์:
+Type your question after /btw.	พิมพ์คำถามหลัง /btw
+Unity assets	แอสเซ็ต Unity
+Unity bundle	ชุด Unity
+Unity's own installer. It only opens if Unity's signature checks out.	ตัวติดตั้งของ Unity เอง จะเปิดก็ต่อเมื่อลายเซ็นของ Unity ถูกต้อง
+Unknown	ไม่ทราบ
+Unknown: we couldn't establish this yet.	ไม่ทราบ: ยังยืนยันไม่ได้
+Unknowns	สิ่งที่ยังไม่ทราบ
+Unload a Frida script	ถอนสคริปต์ Frida
+Unreal IoStore	Unreal IoStore
+Unreal builds games with Apple's Xcode, free in the App Store.	Unreal สร้างเกมด้วย Xcode ของ Apple ฟรีใน App Store
+Unreal is here, but it also needs Visual Studio's C++ tools.	มี Unreal แล้ว แต่ต้องใช้เครื่องมือ C++ ของ Visual Studio ด้วย
+Unreal pak	Unreal pak
+Update a finding	อัปเดตสิ่งที่พบ
+Update a hypothesis	อัปเดตสมมติฐาน
+Update an open question	อัปเดตคำถามค้าง
+Update the checklist	อัปเดตเชกลิสต์
+Update the plan	อัปเดตแผน
+Use	ใช้
+Use an API key…	ใช้ API key…
+Use as a goal	ใช้เป็นเป้าหมาย
+Use the projects folder	ใช้โฟลเดอร์โปรเจกต์
+Use this	ใช้สิ่งนี้
+Use {name}	ใช้ {name}
+Value flow	การไหลของค่า
+Version	เวอร์ชัน
+Waiting	กำลังรอ
+Waiting for another build to finish: this one starts next.	รอบิลด์อื่นเสร็จ: บิลด์นี้จะเริ่มถัดไป
+Waiting for other builds to finish: {n} in line.	รอบิลด์อื่นเสร็จ: คิวที่ {n}
+Waiting: the builder reads it at its next step. Up arrow to edit.	รออยู่: ตัวสร้างจะอ่านในขั้นถัดไป ลูกศรขึ้นเพื่อแก้
+Waiting: the builder reads these at its next step. Up arrow to edit the last.	รออยู่: ตัวสร้างจะอ่านสิ่งเหล่านี้ในขั้นถัดไป ลูกศรขึ้นเพื่อแก้รายการล่าสุด
+Want answers in plain words?	ต้องการคำตอบด้วยภาษาง่ายไหม?
+Watch a Mac app's calls	เฝ้าดูการเรียกของแอป Mac
+Watch a page over time	เฝ้าดูหน้าเว็บเมื่อเวลาผ่านไป
+We didn't find an AI on this computer yet	ยังไม่พบ AI ในเครื่องนี้
+We list the web addresses and messages we can see inside it. Watching it live needs your OK first.	เราระบุที่อยู่เว็บและข้อความที่มองเห็นข้างใน การเฝ้าดูสดต้องได้อนุญาตก่อน
+We only read it; nothing runs. Every answer shows how sure we are.	เราอ่านเท่านั้น ไม่รันอะไร ทุกคำตอบบอกความมั่นใจ
+WebAssembly module	โมดูล WebAssembly
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly: โค้ดคอมไพล์ที่รันในเบราว์เซอร์ได้เร็ว
+Website address	ที่อยู่เว็บไซต์
+Website pages	หน้าเว็บไซต์
+Websites	เว็บไซต์
+Welcome	ยินดีต้อนรับ
+What a new game may spend on generated pictures and 3D models before you're asked. Each project keeps its own.	งบที่เกมใหม่ใช้สร้างรูปและโมเดล 3D ได้ก่อนถามคุณ แต่ละโปรเจกต์มีของตัวเอง
+What a program exports	สิ่งที่โปรแกรมส่งออก
+What a program imports	สิ่งที่โปรแกรมนำเข้า
+What are its main parts?	ส่วนหลักของมันคืออะไร?
+What brings you here?	อะไรทำให้คุณมาที่นี่?
+What can Craft Anything do?	Craft Anything ทำอะไรได้?
+What data was sent?	ส่งข้อมูลอะไรไป?
+What do you want to look inside?	อยากดูข้างในอะไร?
+What do you want to make?	อยากสร้างอะไร?
+What do you want to recreate?	อยากสร้างอะไรใหม่?
+What does it need from the page?	มันต้องการอะไรจากหน้าเว็บ?
+What does it send over the internet?	มันส่งอะไรออกอินเทอร์เน็ต?
+What does this app do?	แอปนี้ทำอะไร?
+What does this app store?	แอปนี้เก็บอะไร?
+What does this contract do?	คอนแทรกต์นี้ทำอะไร?
+What does this module do?	โมดูลนี้ทำอะไร?
+What does this program do?	โปรแกรมนี้ทำอะไร?
+What does {what} do?	{what} ทำอะไร?
+What happened in this build	เกิดอะไรในบิลด์นี้
+What is it	มันคืออะไร
+What is this?	นี่คืออะไร?
+What it calls	สิ่งที่มันเรียก
+What kind of file is this?	นี่เป็นไฟล์ชนิดใด?
+What permissions does it ask for?	ขอสิทธิ์อะไรบ้าง?
+What pictures and textures are made with.	รูปและพื้นผิวทำด้วยอะไร
+What settings are in here?	มีการตั้งค่าอะไรบ้าง?
+What tables are in here?	มีตารางอะไรบ้าง?
+What we couldn't check	สิ่งที่ตรวจไม่ได้
+What would you like to find out?	อยากรู้เรื่องอะไร?
+What would you like to know about {name}?	อยากรู้เรื่อง {name} อะไร?
+What's at this address	มีอะไรที่ที่อยู่นี้
+What's in this folder?	มีอะไรในโฟลเดอร์นี้?
+What's inside this archive?	มีอะไรในไฟล์เก็บนี้?
+Whatever Settings → AI builds with.	สิ่งที่การตั้งค่า → AI ใช้สร้าง
+When a folder you pick has files	เมื่อโฟลเดอร์ที่เลือกมีไฟล์
+When the builder needs a choice made: show it to you and wait, or let it decide and say what it chose. Each project can choose for itself under its prompt box.	เมื่อตัวสร้างต้องตัดสินใจ: แสดงให้คุณและรอ หรือปล่อยให้ตัดสินใจแล้วบอก แต่ละโปรเจกต์เลือกเองได้ใต้กล่องพรอมป์
+When you rebuild an app or game, start it once to picture its window and compare the rebuild with it. It runs that program.	เมื่อสร้างแอปหรือเกมใหม่ เริ่มมันหนึ่งครั้งเพื่อจับภาพหน้าต่างและเทียบกับของใหม่ มันจะรันโปรแกรมนั้น
+Where am I	ฉันอยู่ที่ไหน
+Where is Ghidra installed?	ติดตั้ง Ghidra ไว้ที่ไหน?
+Where is the program?	โปรแกรมอยู่ที่ไหน?
+Where should new projects go?	โปรเจกต์ใหม่ควรไปที่ไหน?
+Where we found it	ที่ที่เราพบ
+Whether they're the app to edit in place, or material the app starts from beside them.	ว่าเป็นแอปที่จะแก้ในที่เดิม หรือเป็นวัสดุที่แอปเริ่มจากข้าง ๆ
+Which AI answers your questions	AI ตัวใดตอบคำถามคุณ
+Which file is the main program?	ไฟล์ใดเป็นโปรแกรมหลัก?
+Which files does it read or write?	อ่านหรือเขียนไฟล์ใด?
+Which function is this in	อยู่ในฟังก์ชันใด
+Which servers does it talk to?	คุยกับเซิร์ฟเวอร์ใด?
+Which servers were contacted?	ติดต่อเซิร์ฟเวอร์ใดบ้าง?
+Which websites does it load?	โหลดเว็บไซต์ใด?
+Who builds what you make	ใครสร้างสิ่งที่คุณทำ
+Who calls it	ใครเรียกมัน
+Who can move funds?	ใครย้ายเงินได้?
+Who signed this Windows program	ใครลงนามโปรแกรม Windows นี้
+Who uses this Android class?	ใครใช้คลาส Android นี้?
+Who uses this Java class?	ใครใช้คลาส Java นี้?
+Why we ask	ทำไมเราถาม
+Window / focus info	ข้อมูลหน้าต่าง / โฟกัส
+Windows resources	ทรัพยากร Windows
+Wireshark tools check	ตรวจเครื่องมือ Wireshark
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	หากไม่มี โหมด Deep จะใช้ตัวดีคอมไพล์ของ Craft Anything เอง ซึ่งหยาบกว่า
+Work out a copy's size	คำนวณขนาดสำเนา
+Work out what an installed app is built on	ดูว่าแอปที่ติดตั้งสร้างจากอะไร
+Workbench	เวิร์กเบนช์
+Worked it out	คำนวณออกมาแล้ว
+Worked it out: computed step by step from things we saw.	คำนวณออกมา: คำนวณทีละขั้นจากสิ่งที่เห็น
+Worked through {n} steps	ทำครบ {n} ขั้น
+Working on it	กำลังทำ
+Working on your answer	กำลังหาคำตอบให้
+Working out how much space a copy takes…	กำลังคำนวณขนาดสำเนา…
+Working…	กำลังทำงาน…
+Working… ({n} steps so far)	กำลังทำงาน… ({n} ขั้นแล้ว)
+Write a project file	เขียนไฟล์โปรเจกต์
+Write a readable report	เขียนรายงานที่อ่านง่าย
+Write comment	เขียนคอมเมนต์
+Write inline comment	เขียนคอมเมนต์ในบรรทัด
+Write pseudo-C to a folder	เขียน pseudo-C ลงโฟลเดอร์
+Write the brief	เขียนบรีฟ
+Write the handoff	เขียนเอกสารส่งต่อ
+Wrote {what} to {}	เขียน {what} ลง {}
+You answered: {a}	คุณตอบ: {a}
+You can add a Claude, ChatGPT or OpenRouter key, a local model (Ollama, LM Studio) or an agent you already use, later in Settings → AI.	เพิ่มคีย์ Claude, ChatGPT หรือ OpenRouter โมเดลในเครื่อง (Ollama, LM Studio) หรือเอเจนต์ที่ใช้อยู่ ทีหลังได้ในการตั้งค่า → AI
+You chose:	คุณเลือก:
+You're all set	พร้อมแล้ว
+Your app is ready	แอปของคุณพร้อมแล้ว
+Your brains	สมองของคุณ
+Your fal.ai key	คีย์ fal.ai ของคุณ
+Your game is ready	เกมของคุณพร้อมแล้ว
+Your message wasn't sent: another project was opened while its pictures were copied.	ข้อความไม่ถูกส่ง: มีการเปิดโปรเจกต์อื่นระหว่างคัดลอกรูป
+Your own tool installs (optional)	เครื่องมือที่คุณติดตั้งเอง (ไม่บังคับ)
+Your project starts as soon as it's done.	โปรเจกต์จะเริ่มทันทีที่เสร็จ
+Your version	เวอร์ชันของคุณ
+Your website is ready	เว็บไซต์ของคุณพร้อมแล้ว
+a new folder in {dir}	โฟลเดอร์ใหม่ใน {dir}
+a picture	รูปหนึ่งรูป
+about ${n}	ประมาณ ${n}
+address, e.g. http://192.168.1.20:11434/v1	ที่อยู่ เช่น http://192.168.1.20:11434/v1
+and {n} more	และอีก {n} รายการ
+arguments (optional)	อาร์กิวเมนต์ (ไม่บังคับ)
+call graph	กราฟการเรียก
+clean room	clean room
+command, https:// address or .wasm file	คำสั่ง ที่อยู่ https:// หรือไฟล์ .wasm
+deep mode	โหมด deep
+entry point	จุดเริ่มทำงาน
+files	ไฟล์
+findings	สิ่งที่พบ
+first run	การรันครั้งแรก
+found on this computer; set up when you start	พบในเครื่องนี้ ตั้งค่าเมื่อคุณเริ่ม
+from the builder's own memory of the build	จากความจำของตัวสร้างเองเกี่ยวกับบิลด์
+from the project's files	จากไฟล์ของโปรเจกต์
+id, e.g. docs	id เช่น docs
+is required	จำเป็น
+isn't available yet	ยังใช้ไม่ได้
+job result	ผลของงาน
+job {title} panicked: {what}	งาน {title} panic: {what}
+just now	เมื่อสักครู่
+managed	จัดการให้
+model (optional)	โมเดล (ไม่บังคับ)
+must be a number	ต้องเป็นตัวเลข
+must be a whole number	ต้องเป็นจำนวนเต็ม
+name, e.g. Studio box	ชื่อ เช่น Studio box
+number	ตัวเลข
+objdump output	เอาต์พุต objdump
+or start with /btw to just ask	หรือเริ่มด้วย /btw เพื่อถามอย่างเดียว
+pinned builds couldn't be read: {}	อ่านบิลด์ที่ปักหมุดไม่ได้: {}
+say how to use the files there	บอกวิธีใช้ไฟล์ที่นั่น
+scene	ฉาก
+scenes	ฉาก
+source map	ซอร์สแมป
+start page	หน้าเริ่ม
+the app is built beside your files, starting from them	แอปถูกสร้างข้างไฟล์ของคุณ เริ่มจากไฟล์เหล่านั้น
+the built-in engines	เอนจินในตัว
+the prompt box changed height	กล่องพรอมป์เปลี่ยนความสูง
+title bar	แถบชื่อ
+under $0.01	ต่ำกว่า $0.01
+yesterday	เมื่อวาน
+your files there are the app, edited in place	ไฟล์ของคุณที่นั่นคือแอป แก้ในที่เดิม
+{:.1} GB	{:.1} GB
+{:.1}M	{:.1}M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend}: เข้า {input_tokens} / ออก {output_tokens}{cost}
+{cost} (estimate)	{cost} (ประมาณ)
+{c} · {size}	{c} · {size}
+{done} of {all} done	เสร็จ {done} จาก {all}
+{gb} GB for bigger ones	{gb} GB สำหรับตัวใหญ่
+{gb} GB for programs up to {size}	{gb} GB สำหรับโปรแกรมถึง {size}
+{gb} GB up to {size}	{gb} GB ถึง {size}
+{held} of {n} requirements met	ผ่าน {held} จาก {n} ข้อกำหนด
+{id} · {summary}	{id} · {summary}
+{in} in, {out} out.	เข้า {in} ออก {out}
+{k}: {s}	{k}: {s}
+{lbl}  {}	{lbl}  {}
+{line}, and {n} more	{line} และอีก {n} รายการ
+{mb} MB	{mb} MB
+{name} builds what you make.	{name} สร้างสิ่งที่คุณทำ
+{name} builds what you make; answers come from {brain}.	{name} สร้างสิ่งที่คุณทำ คำตอบมาจาก {brain}
+{name} can't be attached: a message takes pictures up to 20 MB.	แนบ {name} ไม่ได้: ข้อความรับรูปสูงสุด 20 MB
+{name} can't be attached: it isn't a PNG, JPEG, GIF or WebP picture.	แนบ {name} ไม่ได้: ไม่ใช่รูป PNG, JPEG, GIF หรือ WebP
+{name} is ready	{name} พร้อมแล้ว
+{name} is ready.	{name} พร้อมแล้ว
+{name} isn't available yet in this build.	{name} ยังใช้ไม่ได้ในบิลด์นี้
+{name} isn't on this computer yet.	{name} ยังไม่อยู่ในเครื่องนี้
+{name} key	คีย์ {name}
+{n} actions done so far	ทำแล้ว {n} การกระทำ
+{n} days ago	{n} วันที่แล้ว
+{n} h ago	{n} ชม. ที่แล้ว
+{n} item(s)	{n} รายการ
+{n} job(s) running	กำลังรัน {n} งาน
+{n} min ago	{n} นาทีที่แล้ว
+{n} picture(s) to match.	ต้องจับคู่ {n} รูป
+{n} step(s) didn't work and were retried or skipped.	{n} ขั้นล้มเหลวและถูกลองใหม่หรือข้าม
+{n} tokens	{n} โทเคน
+{n} · ${spent:.2} of ${budget:.2}	{n} · ${spent:.2} จาก ${budget:.2}
+{n} · ${spent} of ${budget}	{n} · ${spent} จาก ${budget}
+{scenes} {}	{scenes} {}
+{text}, {}	{text}, {}
+{title} hit a bug and stopped safely. ({what})	{title} เจอบั๊กและหยุดอย่างปลอดภัย ({what})
+{title} {id}	{title} {id}
+{title} · {:.0}%	{title} · {:.0}%
+{tool} finished	{tool} เสร็จแล้ว
+{tool}: {}	{tool}: {}
+{what} panicked: {msg}	{what} panic: {msg}
+{} GB	{} GB
+{} isn't available yet in this build.	{} ยังใช้ไม่ได้ในบิลด์นี้
+{} item(s)	{} รายการ
+{} key	คีย์ {}
+{} report.md	report.md ของ {}
+{} {name}	{} {name}
+{} {said}	{} {said}
+{} {then}	{} {then}
+{} {v}	{} {v}
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+{}: {e}	{}: {e}
+{}: {some}{more}.	{}: {some}{more}
+{}: {state}	{}: {state}
+{}h {:02}m	{} ชม. {:02} น.
+{}m {:02}s	{} น. {:02} ว.
+— use the filter to find the rest.	— ใช้ตัวกรองเพื่อหาที่เหลือ
+… {n} more	… อีก {n} รายการ
+… {n} older	… เก่ากว่า {n} รายการ
+… {} more	… อีก {}
+… {} older	… เก่ากว่า {}
+← Back	← ย้อนกลับ
+↑↓ to move · Enter to run · Esc to close	↑↓ เลื่อน · Enter รัน · Esc ปิด
+Providers	ผู้ให้บริการ
+Harnesses	ฮาร์เนส
+Nothing of this kind was found.	ไม่พบสิ่งชนิดนี้
+Another model	โมเดลอื่น
+Fold a project's plan	พับแผนของโปรเจกต์
+Fold the plan	พับแผน
+The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.	ติดตั้งแอป Claude เดสก์ท็อปแล้ว แต่การสร้างต้องใช้ Claude Code ซึ่งเป็นเครื่องมือบรรทัดคำสั่งแยกต่างหาก ติดตั้ง Claude Code ล็อกอินหนึ่งครั้งในเทอร์มินัล แล้วค้นหาอีกครั้ง
+Unreal is here, but its bundled Clang C++ toolchain wasn't found.	มี Unreal แล้ว แต่ไม่พบชุดเครื่องมือ Clang C++ ที่มาพร้อมกัน
+Add Unreal's Linux C++ toolchain	เพิ่มชุดเครื่องมือ C++ Linux ของ Unreal
+Run Engine/Build/BatchFiles/Linux/SetupToolchain.sh in the engine folder to install its bundled Clang toolchain. If you built Unreal from source, Setup.sh downloads the native toolchain instead. A system Clang may not match the engine's version.	รัน Engine/Build/BatchFiles/Linux/SetupToolchain.sh ในโฟลเดอร์เอนจินเพื่อติดตั้งชุดเครื่องมือ Clang ที่มาพร้อมกัน หาก build Unreal จากซอร์ส Setup.sh จะดาวน์โหลดชุดเครื่องมือเนทีฟแทน Clang ของระบบอาจไม่ตรงเวอร์ชันของเอนจิน
+Unreal is here, but it also needs Xcode.	มี Unreal แล้ว แต่ต้องใช้ Xcode ด้วย
+About 60 GB, an Epic Games account, and Xcode.	ประมาณ 60 GB บัญชี Epic Games และ Xcode
+File	ไฟล์
+View	มุมมอง
+Window	หน้าต่าง
+Help	ช่วยเหลือ
+Command palette	พาเลตต์คำสั่ง
+Craft Anything on GitHub	Craft Anything บน GitHub
+Report a problem…	รายงานปัญหา…
+Quit Craft Anything	ออกจาก Craft Anything
+About Craft Anything	เกี่ยวกับ Craft Anything
+Services	บริการ
+Hide Craft Anything	ซ่อน Craft Anything
+Hide others	ซ่อนอื่น ๆ
+Show all	แสดงทั้งหมด
+Close window	ปิดหน้าต่าง
+Full screen	เต็มจอ
+Zoom	ซูม
+Bring all to front	นำทั้งหมดมาไว้ข้างหน้า
+Drag to give the plan more or less room; double-click to reset	ลากเพื่อให้แผนมีที่มากขึ้นหรือน้อยลง ดับเบิลคลิกเพื่อรีเซ็ต
+Copy the message	คัดลอกข้อความ
+Choose what the builder's approvals get	เลือกว่าการอนุมัติของผู้สร้างจะได้อะไร
+Reading the web	อ่านเว็บ
+Other commands	คำสั่งอื่น
+Files outside the project	ไฟล์นอกโปรเจกต์
+Pushing and publishing	push และเผยแพร่
+Deleting outside the project	ลบไฟล์นอกโปรเจกต์
+System changes	การเปลี่ยนระบบ
+Other tools	เครื่องมืออื่น
+Allow	อนุญาต
+Ask	ถาม
+Refuse	ปฏิเสธ
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	หลัง /approvals พิมพ์ชนิด แล้วตามด้วย allow, ask, refuse หรือ default เช่น /approvals publish ask ชนิด: {kinds}
+There's no kind called {name}. Kinds: {kinds}.	ไม่มีชนิดชื่อ {name} ชนิด: {kinds}
+Approvals	การอนุมัติ
+In this project, {kind}: {choice}.	ในโปรเจกต์นี้ {kind}: {choice}
+Couldn't change the approvals:	เปลี่ยนการอนุมัติไม่ได้:
+What the builder may do without asking you, in this project.	สิ่งที่ตัวสร้างทำได้โดยไม่ถามในโปรเจกต์นี้
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	ค่าเริ่มต้นตามโหมดอัตโนมัติ: เปิดไว้จะทำสิ่งที่ย้อนกลับได้ต่อและปฏิเสธที่เหลือ ปิดไว้ตัวสร้างจะถาม
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room ไม่อ่านโค้ด ไฟล์ หรือซอร์สของต้นฉบับ ใช้เฉพาะสิ่งที่คุณเห็น Deep อ่านด้วยเครื่องมือทั้งหมดและใช้ IDA หรือ Ghidra เมื่อติดตั้งไว้ ทุกการค้นพบบันทึกว่าใช้ตัวใด
+Deep decompiler	ดีคอมไพเลอร์ Deep
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	อัตโนมัติเลือก IDA ก่อน แล้ว Ghidra คุณยังเลือกเองโดยตรงได้
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: เราอ่านโค้ด ไฟล์ และซอร์สของมันด้วยเครื่องมือทั้งหมด และใช้ดีคอมไพเลอร์ภายนอกเมื่อติดตั้งไว้ คลิกเพื่อสลับ
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} ยังไม่ได้ติดตั้ง จึงใช้ดีคอมไพเลอร์ในตัวแทน เลือกเอนจินใน การตั้งค่า → เอนจิน
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ยังไม่มีในคอมพิวเตอร์นี้ จึงใช้ดีคอมไพเลอร์ในตัวแทน

@@ -13,10 +13,10 @@ use std::path::{Path, PathBuf};
 /// Where the conversation is kept in the project folder.
 pub const FEED_FILE: &str = "feed.json";
 
-/// The format written today (4 saves a dismissed plan card with it; 3 saved a prompt's pictures);
-/// files without a version are the earlier bare list. An older Craft Anything won't rewrite a file
-/// it can't read (`save` refuses a newer version).
-pub const FEED_VERSION: u32 = 4;
+/// The format written today (5 marks open plan steps stopped at a run's end; 4 saves a dismissed
+/// plan card with it; 3 saved a prompt's pictures); files without a version are the earlier bare
+/// list. An older Craft Anything won't rewrite a file it can't read (`save` refuses a newer version).
+pub const FEED_VERSION: u32 = 5;
 
 /// What the person sent: as the feed shows it, and the pictures attached to it (their copies in
 /// the project's `attachments/`).
@@ -71,6 +71,8 @@ pub enum PlanStatus {
     Todo,
     Doing,
     Done,
+    /// A run ended with the step still open: stopped, not done (#504).
+    Stopped,
 }
 
 /// One entry in a project's activity feed.
@@ -293,6 +295,22 @@ mod tests {
         assert!(!dismiss_plan_saved(&ws).unwrap(), "a conversation with no plan has nothing to fold");
         std::fs::write(ws.root.join(FEED_FILE), br#"{"version":3,"items":[{"Plan":[{"text":"Lay out","doing":"Laying out","status":"Doing"}]}]}"#).unwrap();
         assert!(visible_plan(&load(&ws)).is_some(), "a version 3 plan still shows");
+    }
+
+    /// #504: a step marked stopped when a run ended stays in the saved conversation (it's part of
+    /// the plan card's data, not a display flourish).
+    #[test]
+    fn a_stopped_step_is_kept_across_saves() {
+        let d = tempfile::tempdir().unwrap();
+        let ws = Workspace::create(d.path(), "x", "A game", TargetRef::None).unwrap();
+        let steps = vec![
+            PlanStep { text: "Lay out the arena".into(), doing: "Laying out the arena".into(), status: PlanStatus::Done },
+            PlanStep { text: "Add the snake".into(), doing: "Adding the snake".into(), status: PlanStatus::Stopped },
+            PlanStep { text: "Keep score".into(), doing: "Keeping score".into(), status: PlanStatus::Todo },
+        ];
+        save(&ws.root, &[FeedItem::User(UserItem::Text("A game".into())), FeedItem::Plan(steps)]).unwrap();
+        let loaded = load(&ws);
+        assert!(matches!(visible_plan(&loaded), Some(p) if p.iter().any(|s| s.status == PlanStatus::Stopped)));
     }
 
     #[test]

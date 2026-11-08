@@ -557,9 +557,8 @@ impl<'a> Metadata<'a> {
     pub fn user_string(&self, idx: u32, max: usize) -> Option<String> {
         let (len, n) = compressed_u32(self.us, idx as usize)?;
         let bytes = Reader::new(self.us).slice((idx as usize).checked_add(n)?, len as usize)?;
-        let chars = bytes.len() / 2;
-        let units: Vec<u16> = (0..chars.min(max)).filter_map(|i| Reader::new(bytes).u16_le(i * 2)).collect();
-        Some(String::from_utf16_lossy(&units))
+        let units = bytes.as_chunks::<2>().0.iter().map(|unit| u16::from_le_bytes(*unit));
+        Some(char::decode_utf16(units).take(max).map(|ch| ch.unwrap_or(char::REPLACEMENT_CHARACTER)).collect())
     }
 
     /// The range of child rows `[start, end)` a list column gives, resolved through the pointer

@@ -1,0 +1,1470 @@
+# ka: original Georgian UI translations. Licensed MIT OR Apache-2.0.
+# UTF-8: English source<TAB>translation. Keep placeholders and escapes intact.
+OpenCode default	OpenCode-ის ნაგულისხმევი
+Model default	მოდელის ნაგულისხმევი
+About 60 GB, an Epic Games account, and Xcode.	დაახლოებით 60 GB, Epic Games-ის ანგარიში და Xcode.
+About Craft Anything	Craft Anything-ის შესახებ
+Add another	კიდევ ერთის დამატება
+Add it again, to choose another account's folder for it.	ხელახლა დაამატეთ, რომ მისთვის სხვა ანგარიშის საქაღალდე აირჩიოთ.
+Add Unreal's Linux C++ toolchain	Unreal-ის Linux C++ ხელსაწყოთა ნაკრების დამატება
+Another model	სხვა მოდელი
+Bring all to front	ყველას წინა პლანზე გადატანა
+Choose your project's folder…	თქვენი პროექტის საქაღალდის არჩევა…
+Claude Code folder (CLAUDE_CONFIG_DIR)	Claude Code-ის საქაღალდე (CLAUDE_CONFIG_DIR)
+Close window	ფანჯრის დახურვა
+Command palette	ბრძანებების პალიტრა
+Context window	კონტექსტის ფანჯარა
+Copy the message	შეტყობინების კოპირება
+Craft Anything on GitHub	Craft Anything GitHub-ზე
+Default	ნაგულისხმევი
+Drag to give the plan more or less room; double-click to reset	გადაათრიეთ, რომ გეგმას მეტი ან ნაკლები ადგილი დაუთმოთ; ორმაგი დაწკაპუნებით — ჩამოყრა
+File	ფაილი
+Fold a project's plan	პროექტის გეგმის ჩაკეცვა
+Fold the plan	გეგმის ჩაკეცვა
+Full screen	სრული ეკრანი
+Help	დახმარება
+Hide Craft Anything	Craft Anything-ის დამალვა
+Hide others	სხვების დამალვა
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	საკუთარი შესვლა, პარამეტრები და საუბრები: სხვა საქაღალდე სხვა ანგარიშია. ცარიელი: მისი ჩვეული საქაღალდე.
+Load model options	მოდელის პარამეტრების ჩატვირთვა
+No chat models are visible in {agent}. Check its setup, then reload.	{agent}-ში ჩატის მოდელები არ ჩანს. შეამოწმეთ მისი დაყენება, შემდეგ ხელახლა ჩატვირთეთ.
+Nothing of this kind was found.	ამ ტიპის არაფერი მოიძებნა.
+Pick its folder, say what you want, then press Start.	აირჩიეთ მისი საქაღალდე, თქვით, რა გინდათ, შემდეგ დააჭირეთ „დაწყებას“.
+Pick your project's folder	აირჩიეთ თქვენი პროექტის საქაღალდე
+Pick your project's folder first.	ჯერ აირჩიეთ თქვენი პროექტის საქაღალდე.
+Quit Craft Anything	Craft Anything-იდან გასვლა
+Report a problem…	პრობლემის შეტყობინება…
+Run Engine/Build/BatchFiles/Linux/SetupToolchain.sh in the engine folder to install its bundled Clang toolchain. If you built Unreal from source, Setup.sh downloads the native toolchain instead. A system Clang may not match the engine's version.	ძრავის საქაღალდეში გაუშვით Engine/Build/BatchFiles/Linux/SetupToolchain.sh, რომ მასთან ერთად მოწოდებული Clang ხელსაწყოთა ნაკრები დააინსტალიროთ. თუ Unreal საწყისი კოდიდან ააწყვეთ, Setup.sh ამის ნაცვლად ნატიურ ხელსაწყოთა ნაკრებს ჩამოტვირთავს. სისტემის Clang შეიძლება ძრავის ვერსიას არ შეესაბამებოდეს.
+Services	სერვისები
+Set an AI's folder	AI-ის საქაღალდის მითითება
+Set model options	მოდელის პარამეტრების დაყენება
+Show all	ყველას ჩვენება
+That folder is empty. Pick the folder your project's files are in.	ეს საქაღალდე ცარიელია. აირჩიეთ საქაღალდე, სადაც თქვენი პროექტის ფაილებია.
+The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.	Claude-ის სამაგიდო აპლიკაცია დაინსტალირებულია, მაგრამ ასაწყობად საჭიროა Claude Code — მისი ცალკე ბრძანების სტრიქონის ხელსაწყო. დააინსტალირეთ Claude Code, ერთხელ შედით მასში ტერმინალში და შემდეგ ხელახლა მოძებნეთ.
+The saved model is no longer visible. Choose another model or the {agent} default.	შენახული მოდელი აღარ ჩანს. აირჩიეთ სხვა მოდელი ან {agent}-ის ნაგულისხმევი.
+Thinking depth	ფიქრის სიღრმე
+OpenCode model	OpenCode-ის მოდელი
+Remote program	დისტანციური პროგრამა
+Reload models	მოდელების ხელახლა ჩატვირთვა
+Apply	გამოყენება
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode-ს ჩატისთვის ხილული მოდელები არ აქვს. დააკავშირეთ მომწოდებელი OpenCode-ში, შემდეგ ხელახლა ჩატვირთეთ.
+The saved model is no longer visible. Choose another model or the OpenCode default.	შენახული მოდელი აღარ ჩანს. აირჩიეთ სხვა მოდელი ან OpenCode-ის ნაგულისხმევი.
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	შენახული ფიქრის სიღრმე ამ მოდელისთვის მიუწვდომელია. აირჩიეთ მისი ნაგულისხმევი ან შემოთავაზებული სიღრმე.
+List an agent's models	აგენტის მოდელების სია
+Choose an agent's model and thinking	აგენტის მოდელისა და ფიქრის არჩევა
+ GB	 GB
+ and {n} more	 და კიდევ {n}
+ {ascii}	 {ascii}
+ · ${c:.2}	 · ${c:.2}
+ · ssh {h}	 · ssh {h}
+(1 picture attached)	(მიმაგრებულია 1 სურათი)
+({n} pictures attached)	(მიმაგრებული სურათი: {n})
+, ${c:.4}	, ${c:.4}
+.NET application graph	.NET აპის გრაფი
+.NET apps	.NET აპები
+.NET assembly overview	.NET ასამბლეის მიმოხილვა
+.NET native calls	.NET-იდან ნატიური კოდის გამოძახებები
+.NET types and methods	.NET ტიპები და მეთოდები
+/btw {}	/btw {}
+0x… or number	0x… ან რიცხვი
+A .NET program (C#, F# or VB)	.NET პროგრამა (C#, F# ან VB)
+A DOS program	DOS პროგრამა
+A Java program	Java პროგრამა
+A Linux (or Unix) program	Linux (ან Unix) პროგრამა
+A Mac or iPhone program	Mac-ის ან iPhone-ის პროგრამა
+A SQLite database (how an app stores its data)	SQLite მონაცემთა ბაზა (როგორ ინახავს აპი თავის მონაცემებს)
+A WebAssembly module (code that runs in a browser)	WebAssembly მოდული (კოდი, რომელიც ბრაუზერში მუშაობს)
+A Windows program	Windows პროგრამა
+A ZIP archive	ZIP არქივი
+A bundle of ready-made code that many programs share.	მზა კოდის ნაკრები, რომელსაც ბევრი პროგრამა იზიარებს.
+A coding agent such as Claude Code builds it, and an AI answers your questions in plain words. Change this any time in Settings → AI.	მას აწყობს პროგრამირების აგენტი, მაგალითად Claude Code, თქვენს კითხვებს კი AI მარტივი სიტყვებით პასუხობს. ეს ნებისმიერ დროს შეგიძლიათ შეცვალოთ აქ: პარამეტრები → AI.
+A command's output shows here when it finishes.	ბრძანების გამონატანი აქ გამოჩნდება, როცა ის დასრულდება.
+A copy to try something else from here.	ასლი, რომ აქედან სხვა რამ სცადოთ.
+A file of machine code that a computer can run directly, like an .exe or an app.	მანქანური კოდის ფაილი, რომლის პირდაპირ გაშვებაც კომპიუტერს შეუძლია, მაგალითად .exe ან აპი.
+A file that a computer can run as a program.	ფაილი, რომლის პროგრამად გაშვებაც კომპიუტერს შეუძლია.
+A file that links packed web code back to the original, readable source files.	ფაილი, რომელიც შეფუთულ ვებკოდს თავდაპირველ, წაკითხვად წყარო ფაილებთან აკავშირებს.
+A file we don't recognise yet	ფაილი, რომელსაც ჯერ ვერ ვცნობთ
+A first look at a file you're unsure about, without running it.	პირველი შეხედვა ფაილზე, რომელშიც დარწმუნებული არ ხართ, მისი გაშვების გარეშე.
+A folder	საქაღალდე
+A folder has no bytes of its own	საქაღალდეს საკუთარი ბაიტები არ აქვს
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	NSA-ის უფასო უკუინჟინერიის ხელსაწყო. ღრმა რეჟიმი მას დამატებითი დეტალებისთვის იყენებს; სუფთა ოთახის რეჟიმი — არასოდეს.
+A frozen copy (recommended)	გაყინული ასლი (რეკომენდებული)
+A frozen copy takes {size}. That's a lot of space: a light copy takes {light}.	გაყინული ასლი {size}-ს იკავებს. ეს ბევრი ადგილია: მსუბუქი ასლი {light}-ს იკავებს.
+A frozen copy takes {size}; a light copy takes {light}.	გაყინული ასლი {size}-ს იკავებს; მსუბუქი ასლი — {light}-ს.
+A game	თამაში
+A game's files	თამაშის ფაილები
+A light copy	მსუბუქი ასლი
+A locked room for running a program so it can't touch the rest of your computer.	ჩაკეტილი ოთახი პროგრამის გასაშვებად, რომ მან თქვენი კომპიუტერის დანარჩენ ნაწილს ვერ შეეხოს.
+A map of which functions call which other functions.	რუკა იმისა, რომელი ფუნქცია რომელ ფუნქციებს იძახებს.
+A name the program's author gave to a function or variable that survived in the file.	სახელი, რომელიც პროგრამის ავტორმა ფუნქციას ან ცვლადს დაარქვა და ფაილში შემორჩა.
+A named piece of a program that does one job, like "add two numbers" or "save the file".	პროგრამის დასახელებული ნაწილი, რომელიც ერთ საქმეს აკეთებს, მაგალითად „ორი რიცხვის შეკრება“ ან „ფაილის შენახვა“.
+A number that says where something is in a program's memory, like a house number.	რიცხვი, რომელიც გვეუბნება, სად არის რაღაც პროგრამის მეხსიერებაში, სახლის ნომრის მსგავსად.
+A piece of text stored inside a program, like a message, a web address or a file name.	პროგრამის შიგნით შენახული ტექსტის ნაწილი, მაგალითად შეტყობინება, ვებმისამართი ან ფაილის სახელი.
+A program, an app bundle, an APK, a JavaScript bundle, a folder… or drop it on the window.	პროგრამა, აპის პაკეტი, APK, JavaScript-ის პაკეტი, საქაღალდე… ან ჩააგდეთ ფანჯარაზე.
+A recording of network traffic	ქსელური ტრაფიკის ჩანაწერი
+A region of a program as it sits in memory while running.	პროგრამის რეგიონი ისე, როგორც ის მუშაობისას მეხსიერებაში დევს.
+A region of a program file with one purpose: code, text, pictures, settings.	პროგრამის ფაილის რეგიონი ერთი დანიშნულებით: კოდი, ტექსტი, სურათები, პარამეტრები.
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	გამოცდილებით ნაკარნახევი წესი. ჩვეულებრივ სწორია, ზოგჯერ — არა, ამიტომ შედეგს საუკეთესო ვარაუდად ვნიშნავთ.
+A saved, checkable record of something we found, with how sure we are and where we found it.	ჩვენ მიერ ნაპოვნის შენახული, გადამოწმებადი ჩანაწერი, იმის მითითებით, რამდენად დარწმუნებული ვართ და სად ვიპოვეთ.
+A script or web page	სკრიპტი ან ვებგვერდი
+A set of commands a program offers to other programs.	ბრძანებების ნაკრები, რომელსაც პროგრამა სხვა პროგრამებს სთავაზობს.
+A simple snake game	მარტივი „გველის“ თამაში
+A small download (under 200 MB). Free, no account needed.	მცირე ჩამოსატვირთი (200 MB-მდე). უფასოა, ანგარიში საჭირო არ არის.
+A small file that lists what an app is called, what it needs and what it's allowed to do.	პატარა ფაილი, სადაც ჩამოწერილია, რა ჰქვია აპს, რა სჭირდება და რისი გაკეთების უფლება აქვს.
+A smart contract (EVM bytecode)	ჭკვიანი კონტრაქტი (EVM ბაიტკოდი)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	ბაიტების ორსიმბოლოიანი კოდებით ჩაწერის ხერხი (00-დან FF-მდე). ფაილის ყველაზე ნედლი ხედი.
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	ვებგვერდებისგან დესკტოპის აპების შექმნის ხერხი. ასეთი აპი, არსებითად, ვებსაიტია საკუთარი ბრაუზერით.
+A website	ვებსაიტი
+A website for my bakery	ვებსაიტი ჩემი საცხობისთვის
+AI	AI
+AI cost	AI-ის ღირებულება
+AI cost (estimate)	AI-ის ღირებულება (შეფასება)
+AI cost (part estimate)	AI-ის ღირებულება (ნაწილობრივი შეფასება)
+AI model file	AI მოდელის ფაილი
+AI name	AI-ის სახელი
+AI use this session	AI-ის გამოყენება ამ სესიაში
+API boundary	API-ის საზღვარი
+API key	API გასაღები
+API key (stored in your system keychain)	API გასაღები (ინახება თქვენი სისტემის გასაღებების საცავში)
+API key, if it needs one	API გასაღები, თუ სჭირდება
+About 10 GB. Free for personal use with a Unity account.	დაახლოებით 10 GB. პირადი გამოყენებისთვის უფასოა Unity-ის ანგარიშით.
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	დაახლოებით 60 GB, Epic Games-ის ანგარიში და Visual Studio-ს C++ ხელსაწყოები.
+Add	დამატება
+Add Visual Studio's C++ tools	Visual Studio-ს C++ ხელსაწყოების დამატება
+Add a brain	„ტვინის“ დამატება
+Add a fal.ai key	fal.ai გასაღების დამატება
+Add a folder…	საქაღალდის დამატება…
+Add a plugin	პლაგინის დამატება
+Add an AI brain and I'll read this evidence for you, answer follow-up questions and point at the proof.	დაამატეთ AI „ტვინი“ და ამ მტკიცებულებებს თქვენთვის წავიკითხავ, დამატებით კითხვებს ვუპასუხებ და დასტურზე მიგითითებთ.
+Add an AI by its address	AI-ის დამატება მისამართით
+Add more info. The builder reads it at its next step.	დაამატეთ მეტი ინფორმაცია. შემქმნელი მას შემდეგ ნაბიჯზე წაიკითხავს.
+Add pictures	სურათების დამატება
+Add pictures of the original	ორიგინალის სურათების დამატება
+Add pictures of the original (optional: screenshots help it look right)	ორიგინალის სურათების დამატება (არასავალდებულო: ეკრანის ანაბეჭდები სწორი იერის მიღწევაში ეხმარება)
+Add to a running build	მიმდინარე აწყობისთვის დამატება
+Added	დამატებულია
+Added {n} picture(s). The builder uses them from your next change.	დამატებულია სურათი: {n}. შემქმნელი მათ თქვენი შემდეგი ცვლილებიდან გამოიყენებს.
+Address to file offset	მისამართიდან ფაილის წანაცვლებამდე
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	თავის დეკომპილატორს ღრმა რეჟიმს უმატებს. Craft Anything-ს შეუძლია მისი ჩამოტვირთვა და თქვენთვის დაყენება.
+Advanced	დამატებითი
+After installing one, look for it again.	ერთ-ერთის დაინსტალირების შემდეგ ხელახლა მოძებნეთ.
+Agent	აგენტი
+Allow generated assets	გენერირებული რესურსების დაშვება
+Allow once	ერთხელ დაშვება
+Allowed for this project	დაშვებულია ამ პროექტისთვის
+Allowed for this project.	დაშვებულია ამ პროექტისთვის.
+Allowed in	დაშვებულია:
+Allowed once	დაშვებულია ერთხელ
+Allowed once.	დაშვებულია ერთხელ.
+Also list projects from	პროექტების ჩვენება აგრეთვე აქედან:
+Always for this project	ყოველთვის ამ პროექტისთვის
+An Android app	Android აპი
+An Android app package: the file you install on a phone.	Android აპის პაკეტი: ფაილი, რომელსაც ტელეფონზე აინსტალირებთ.
+An Apple settings file (plist)	Apple-ის პარამეტრების ფაილი (plist)
+An app	აპი
+An app or a file	აპი ან ფაილი
+Analyse a JavaScript app	JavaScript აპის ანალიზი
+Analyse a page's JavaScript	გვერდის JavaScript-ის ანალიზი
+Android app code (DEX)	Android აპის კოდი (DEX)
+Android app components	Android აპის კომპონენტები
+Android app package	Android აპის პაკეტი
+Android apps	Android აპები
+Android class	Android კლასი
+Android method bytecode	Android მეთოდის ბაიტკოდი
+Android resources	Android რესურსები
+Annotate function	ფუნქციის ანოტირება
+Another build is working, so this one waits its turn.	სხვა აწყობა მიმდინარეობს, ამიტომ ეს თავის რიგს ელოდება.
+Answer a project's question	პროექტის კითხვაზე პასუხი
+Answer any of them in a message below.	უპასუხეთ რომელიმე მათგანს ქვემოთ შეტყობინებით.
+Answered by {name}	უპასუხა: {name}
+Answers come from {brain}. To build, set up a coding agent in Settings → AI.	პასუხები მოდის {brain}-ისგან. ასაწყობად დააყენეთ პროგრამირების აგენტი აქ: პარამეტრები → AI.
+App	აპი
+App details on device	აპის დეტალები მოწყობილობაზე
+Apple apps	Apple-ის აპები
+Approve an agent action	აგენტის მოქმედების დადასტურება
+Apps and games: keep refining until they look this alike to your pictures. Off, the likeness is only reported.	აპები და თამაშები: დახვეწის გაგრძელება, სანამ თქვენს სურათებს ამდენად არ დაემსგავსება. გამორთვისას მსგავსება მხოლოდ ანგარიშში ჩანს.
+Architectures	არქიტექტურები
+Archive	არქივი
+Archives	არქივები
+Ask a question	კითხვის დასმა
+Ask about a build	აწყობის შესახებ კითხვა
+Ask about the build	აწყობის შესახებ კითხვა
+Ask about the build, e.g. "where are the latest files?" Nothing changes and no build starts.	იკითხეთ აწყობის შესახებ, მაგ. „სად არის უახლესი ფაილები?“ არაფერი იცვლება და აწყობა არ იწყება.
+Ask about this game	ამ თამაშის შესახებ კითხვა
+Ask anything, e.g. "What does this program do?"	იკითხეთ ნებისმიერი რამ, მაგ. „რას აკეთებს ეს პროგრამა?“
+Ask before running anything	ნებისმიერი რამის გაშვებამდე კითხვა
+Ask each time	ყოველ ჯერზე კითხვა
+Ask first	ჯერ კითხვა
+Ask for a change	ცვლილების მოთხოვნა
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	მოითხოვეთ ცვლილება, მაგ. „უფრო დიდი ღილაკები“ ან „ბნელი რეჟიმის დამატება“
+Ask for a change, e.g. "make it faster" or "add a high-score table"	მოითხოვეთ ცვლილება, მაგ. „გახადე უფრო სწრაფი“ ან „რეკორდების ცხრილის დამატება“
+Ask for a change, e.g. "make the header blue" or "add a contact form"	მოითხოვეთ ცვლილება, მაგ. „ზედა ზოლი გახადე ლურჯი“ ან „საკონტაქტო ფორმის დამატება“
+Ask in your own words. Every answer shows how sure we are, and the proof.	იკითხეთ საკუთარი სიტყვებით. ყოველი პასუხი აჩვენებს, რამდენად დარწმუნებული ვართ, და დასტურს.
+Ask me	მკითხეთ
+Ask the agent about this	აგენტისთვის ამის შესახებ კითხვა
+Ask the agent about this target. It cites evidence for every claim.	ჰკითხეთ აგენტს ამ სამიზნის შესახებ. ის ყოველ მტკიცებას მტკიცებულებით ამყარებს.
+Ask the agent…	აგენტისთვის კითხვა…
+Ask the person	ადამიანისთვის კითხვა
+Ask: "How does the % key work?"	იკითხეთ: „როგორ მუშაობს % ღილაკი?“
+Ask: "Is it safe to run?"	იკითხეთ: „უსაფრთხოა მისი გაშვება?“
+Ask: "What does it send over the internet?"	იკითხეთ: „რას აგზავნის ის ინტერნეტით?“
+Asking for its models…	მისი მოდელების მოთხოვნა…
+Asset catalog	რესურსების კატალოგი
+At most this many rounds of fixes after the first build.	შესწორების რაუნდების მაქსიმალური რაოდენობა პირველი აწყობის შემდეგ.
+Attach pictures	სურათების მიმაგრება
+Attach pictures (or drop or paste them here)	სურათების მიმაგრება (ან ჩააგდეთ ან ჩასვით ისინი აქ)
+Auto mode	ავტორეჟიმი
+Automatic	ავტომატური
+Automatic ({name})	ავტომატური ({name})
+Back	უკან
+Best guess	საუკეთესო ვარაუდი
+Best guess: a reasonable reading, but not proven.	საუკეთესო ვარაუდი: გონივრული წაკითხვა, მაგრამ დაუმტკიცებელი.
+Binary layout	ბინარული სტრუქტურა
+Blocked	დაბლოკილია
+Bookmark	სანიშნე
+Budget for a new project	ბიუჯეტი ახალი პროექტისთვის
+Bug report	ანგარიში შეცდომის შესახებ
+Build	აწყობა
+Build a rebuild ledger	ხელახალი აწყობის ჟურნალის შედგენა
+Build a stand-in backend	შემცვლელი ბექენდის აწყობა
+Build with	ასაწყობად:
+Build with this	ამით აწყობა
+Build with {name}	აწყობა {name}-ით
+Build with {name} instead	აწყობა {name}-ით, ნაცვლად ამისა
+Build without it	აწყობა მის გარეშე
+Builder's questions:	ამწყობის კითხვები:
+Building	აწყობა მიმდინარეობს
+Building needs a coding agent on this computer (Claude Code, Codex or Gemini CLI: install one and sign in to it once in its own window), or an AI with an API key. Craft Anything never sees your account.	ასაწყობად საჭიროა პროგრამირების აგენტი ამ კომპიუტერზე (Claude Code, Codex ან Gemini CLI: დააინსტალირეთ ერთ-ერთი და ერთხელ შედით მასში მის საკუთარ ფანჯარაში) ან AI API გასაღებით. Craft Anything თქვენს ანგარიშს ვერასოდეს ხედავს.
+Building needs a coding agent such as Claude Code, or an AI with an API key.	ასაწყობად საჭიროა პროგრამირების აგენტი, მაგალითად Claude Code, ან AI API გასაღებით.
+Builds	აწყობები
+Builds and answers may use it again.	აწყობებმა და პასუხებმა შეიძლება ის ხელახლა გამოიყენონ.
+Builds at once	ერთდროული აწყობები
+Builds keep going without stopping to ask you before an action. The builder still never deletes outside its project, changes system settings or publishes anything, and stays within each project's asset budget.	აწყობები გრძელდება ისე, რომ მოქმედების წინ თქვენს შესაკითხად არ ჩერდება. შემქმნელი მაინც არასოდეს შლის რამეს თავისი პროექტის გარეთ, არ ცვლის სისტემის პარამეტრებს, არაფერს აქვეყნებს და ყოველი პროექტის რესურსების ბიუჯეტში რჩება.
+Builds use this one. Click to choose automatically again.	აწყობები ამას იყენებს. დაწკაპეთ, რომ ისევ ავტომატურად აირჩეს.
+Built by	აწყობს:
+Built with	აწყობილია:
+Built with {stack}, as you asked, so no game engine is needed.	აწყობილია {stack}-ით, როგორც ითხოვეთ, ამიტომ სათამაშო ძრავა საჭირო არ არის.
+Call graph	გამოძახებების გრაფი
+Call path	გამოძახების გზა
+Call the build done	აწყობის დასრულებულად გამოცხადება
+Called done. A new message carries on from here.	დასრულებულად გამოცხადდა. ახალი შეტყობინება აქედან გააგრძელებს.
+Cancel	გაუქმება
+Cancel: don't use this folder	გაუქმება: ამ საქაღალდეს არ ვიყენებთ
+Capture a website for rebuilding	ვებსაიტის გადაღება ხელახლა ასაწყობად
+Capture inventories	ინვენტარების გადაღება
+Capture menus, dialogs and tabs	მენიუების, დიალოგებისა და ჩანართების გადაღება
+Change	შეცვლა
+Change a setting	პარამეტრის შეცვლა
+Change an AI's model	AI-ის მოდელის შეცვლა
+Change how hard an AI thinks	AI-ის ფიქრის ინტენსივობის შეცვლა
+Change it	შეცვლა
+Change…	შეცვლა…
+Check	შემოწმება
+Check .NET native calls	.NET-იდან ნატიური გამოძახებების შემოწმება
+Check a rebuild claim	ხელახალი აწყობის შესახებ მტკიცების შემოწმება
+Check a scripted web session	სკრიპტით ჩაწერილი ვებსესიის შემოწმება
+Check an answer	პასუხის შემოწმება
+Check decompiled C#	დეკომპილირებული C#-ის შემოწმება
+Check my build	ჩემი აწყობის შემოწმება
+Check the JEB connection	JEB-თან კავშირის შემოწმება
+Check the asset keys	რესურსების გასაღებების შემოწმება
+Check the setup	დაყენების შემოწმება
+Check {n}	შემოწმება {n}
+Check {n}: about {s}% like the original	შემოწმება {n}: ორიგინალს დაახლოებით {s}%-ით ჰგავს
+Checked against Godot's official checksums before it's used.	გამოყენებამდე მოწმდება Godot-ის ოფიციალური საკონტროლო ჯამებით.
+Checking	შემოწმება
+Choose a file	ფაილის არჩევა
+Choose a folder…	საქაღალდის არჩევა…
+Choose a function, string or section to see it here.	აირჩიეთ ფუნქცია, სტრიქონი ან სექცია, რომ აქ ნახოთ.
+Choose an AI's job	AI-ის დავალების არჩევა
+Choose the folder Ghidra is installed in.	აირჩიეთ საქაღალდე, სადაც Ghidra დაყენებულია.
+Choose what the builder's questions get	არჩევა, რა მიიღონ შემქმნელის კითხვებმა
+Choose what to recreate, say what you want, then press Start.	აირჩიეთ, რისი ხელახლა შექმნა გსურთ, თქვით, რა გინდათ, შემდეგ დააჭირეთ „დაწყებას“.
+Choose…	არჩევა…
+Classes	კლასები
+Clean room	სუფთა ოთახი
+Clean room / Deep	სუფთა ოთახი / ღრმა
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	სუფთა ოთახი ორიგინალის კოდს, ფაილებს ან გვერდის წყაროს არასოდეს კითხულობს. ღრმა რეჟიმი მათ Craft Anything-ის ყველა ხელსაწყოთი კითხულობს.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	სუფთა ოთახი ორიგინალის კოდს, ფაილებს ან გვერდის წყაროს არასოდეს კითხულობს: ის მუშაობს იმით, რასაც თქვენ ხედავთ. ღრმა მათ ყველა ხელსაწყოთი კითხულობს, და Ghidra-თიც, თუ ის დაყენებულია. ყოველი მიგნება აღრიცხავს, რომელი გამოიყენებოდა.
+Clean room on	სუფთა ოთახი ჩართულია
+Clean room or Deep	სუფთა ოთახი თუ ღრმა
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	სუფთა ოთახი: ორიგინალის შიგნით არაფერი იკითხება. ვმუშაობთ იმით, რასაც თქვენ ხედავთ: სურათებით, გვერდით ისე, როგორც მას ვიზიტორი ხედავს, და მისი მუშაობის დაკვირვებით.
+Clear finished	დასრულებულების გასუფთავება
+Close	დახურვა
+Close a Frida session	Frida-ს სესიის დახურვა
+Close a GDB session	GDB-ის სესიის დახურვა
+Close a Rizin debug session	Rizin-ის გამართვის სესიის დახურვა
+Close a pinned build	მიმაგრებული აწყობის დახურვა
+Close it	დახურვა
+Close it first.	ჯერ დახურეთ.
+Close the website	ვებსაიტის დახურვა
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	პროგრამიდან აღდგენილი კოდი, რომელიც C ენას ჰგავს. ახლოსაა იმასთან, რასაც პროგრამა აკეთებს, მაგრამ მისი თავდაპირველი წყარო კოდი არ არის.
+Code signature	კოდის ხელმოწერა
+Coding agent app	პროგრამირების აგენტის აპი
+Command palette (Ctrl/⌘ K)	ბრძანებების პალიტრა (Ctrl/⌘ K)
+Commands:	ბრძანებები:
+Compare WebAssembly interfaces	WebAssembly ინტერფეისების შედარება
+Compare module exports	მოდულების ექსპორტების შედარება
+Compare two .NET builds	ორი .NET აწყობის შედარება
+Compare two app versions	აპის ორი ვერსიის შედარება
+Compare two artifacts	ორი არტეფაქტის შედარება
+Compare two evidence bundles	მტკიცებულებების ორი ნაკრების შედარება
+Compare two functions	ორი ფუნქციის შედარება
+Compare two page captures	გვერდის ორი ანაბეჭდის შედარება
+Compare two runs	ორი გაშვების შედარება
+Compare two screenshots	ეკრანის ორი ანაბეჭდის შედარება
+Comparing and rebuilding	შედარება და ხელახალი აწყობა
+Compiled Python file	კომპილირებული Python ფაილი
+Connect	დაკავშირება
+Connect agent apps	აგენტის აპების დაკავშირება
+Connect to a browser	ბრაუზერთან დაკავშირება
+Connect {name}	{name}-ის დაკავშირება
+Connected devices	დაკავშირებული მოწყობილობები
+Connected phone	დაკავშირებული ტელეფონი
+Continue	გაგრძელება
+Contradicted	უარყოფილია
+Control-flow graph: a map of every path a function can take, like a flowchart.	მართვის ნაკადის გრაფი: რუკა ყველა გზისა, რომლითაც ფუნქცია შეიძლება წავიდეს, ბლოკ-სქემის მსგავსად.
+Copies share the files it saves beside itself.	ასლები იზიარებენ ფაილებს, რომლებსაც ის თავის გვერდით ინახავს.
+Copy a file off the phone	ტელეფონიდან ფაილის კოპირება
+Copy a file to the phone	ტელეფონზე ფაილის კოპირება
+Copy an app off the phone	ტელეფონიდან აპის კოპირება
+Copy the command	ბრძანების კოპირება
+Copy the evidence id	მტკიცებულების id-ის კოპირება
+Couldn't add the pictures:	სურათების დამატება ვერ მოხერხდა:
+Couldn't answer:	პასუხი ვერ მოხერხდა:
+Couldn't attach the pictures:	სურათების მიმაგრება ვერ მოხერხდა:
+Couldn't look through that folder.	იმ საქაღალდის დათვალიერება ვერ მოხერხდა.
+Couldn't open it.	გახსნა ვერ მოხერხდა.
+Couldn't open the folder.	საქაღალდის გახსნა ვერ მოხერხდა.
+Couldn't open {}: {}	{}-ის გახსნა ვერ მოხერხდა: {}
+Couldn't start a worker thread: {e}	სამუშაო ნაკადის გაშვება ვერ მოხერხდა: {e}
+Couldn't start it.	გაშვება ვერ მოხერხდა.
+Coverage unknown	დაფარვა უცნობია
+Craft Anything	Craft Anything
+Craft Anything can't build with {engine}, so Unity is the closest match.	Craft Anything-ს {engine}-ით აწყობა არ შეუძლია, ამიტომ ყველაზე ახლოს Unity-ა.
+Craft Anything or the computer closed while it was working. Everything so far is kept; Continue picks up where it stopped.	Craft Anything ან კომპიუტერი მუშაობისას დაიხურა. აქამდე გაკეთებული ყველაფერი შენახულია; „გაგრძელება“ იქიდან განაგრძობს, სადაც შეჩერდა.
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything მის კოდსა და ფაილებს ყველა არსებული ხელსაწყოთი კითხულობს. თქვენი პირადი გამოყენებისთვის.
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything ორიგინალის კოდს, ფაილებსა და გვერდის წყაროს ყველა არსებული ხელსაწყოთი კითხულობს, და Ghidra-თიც, თუ ის დაყენებულია.
+Craft Anything report.md	Craft Anything report.md
+Craft Anything's records, checks and anything it built in app/ are deleted. Your own files in the folder stay as they are.	Craft Anything-ის ჩანაწერები, შემოწმებები და ყველაფერი, რაც მან app/-ში ააწყო, წაიშალა. თქვენი საკუთარი ფაილები საქაღალდეში უცვლელად რჩება.
+Crash dump	ავარიის დამპი
+Create the project	პროექტის შექმნა
+Critical	კრიტიკული
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	ჯვარედინი მიმართვა: ადგილი პროგრამაში, რომელიც იყენებს ან იძახებს იმას, რასაც უყურებთ.
+Cross-references	ჯვარედინი მიმართვები
+Cross-references: the places in the program that use or call the thing you're looking at.	ჯვარედინი მიმართვები: ადგილები პროგრამაში, რომლებიც იყენებს ან იძახებს იმას, რასაც უყურებთ.
+Current document	მიმდინარე დოკუმენტი
+Cursor address	კურსორის მისამართი
+Cursor function	კურსორის ფუნქცია
+Custom	მორგებული
+Cutter command	Cutter-ის ბრძანება
+DOS load image	DOS-ის ჩატვირთვის ანაბეჭდი
+Databases	მონაცემთა ბაზები
+Decide yourself	თავად გადაწყვიტეთ
+Decode a radio recording	რადიოჩანაწერის დეკოდირება
+Decompile	დეკომპილირება
+Decompile Java with Vineflower	Java-ს დეკომპილირება Vineflower-ით
+Decompile many	მრავლის დეკომპილირება
+Decompile with JEB	დეკომპილირება JEB-ით
+Deep	ღრმა
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	ღრმა რეჟიმი ახლა Ghidra-თი დეკომპილირებს. დიდი პროგრამის პირველ დათვალიერებას შეიძლება რამდენიმე წუთი დასჭირდეს.
+Deep mode on	ღრმა რეჟიმი ჩართულია
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	ღრმა: მის კოდს, ფაილებსა და გვერდის წყაროს ყველა არსებული ხელსაწყოთი ვკითხულობთ, და Ghidra-თიც, თუ ის დაყენებულია. დაწკაპეთ გადასართავად.
+Delete a project	პროექტის წაშლა
+Delete it	წაშლა
+Delete the project	პროექტის წაშლა
+Delete {name}?	წავშალოთ {name}?
+Deleted.	წაიშალა.
+Deleted. Your own files are still in the folder.	წაიშალა. თქვენი საკუთარი ფაილები ისევ საქაღალდეშია.
+Delete…	წაშლა…
+Deliberately scrambled to make it hard to read, without changing what it does.	განზრახ არეულია, რომ ძნელად წასაკითხი იყოს, ისე, რომ მისი მოქმედება არ შეცვლილა.
+Demangle Swift symbols	Swift-ის სიმბოლოების დემანგლირება
+Details	დეტალები
+Details about the selected item appear here.	მონიშნული ელემენტის დეტალები აქ გამოჩნდება.
+Detect	ამოცნობა
+Device details	მოწყობილობის დეტალები
+Device features	მოწყობილობის შესაძლებლობები
+Device folder	მოწყობილობის საქაღალდე
+Device log	მოწყობილობის ჟურნალი
+Disassemble sBPF code	sBPF კოდის დიზასემბლირება
+Disassembly	დიზასემბლირება
+Disconnect agent apps	აგენტის აპების გათიშვა
+Dismiss	დამალვა
+Dispatch metadata	დისპეჩერიზაციის მეტამონაცემები
+Display info	ეკრანის ინფორმაცია
+Do you have permission?	გაქვთ ნებართვა?
+Does it talk to the internet?	ინტერნეტს უკავშირდება?
+Does it track me?	მითვალთვალებს?
+Don't allow	არ დაშვება
+Don't ask again (you can change this in Settings)	აღარ მკითხოთ (ამის შეცვლა პარამეტრებში შეგიძლიათ)
+Done	მზადაა
+Download	ჩამოტვირთვა
+Download Godot {v}	Godot {v}-ის ჩამოტვირთვა
+Download Unity Hub	Unity Hub-ის ჩამოტვირთვა
+Download and use Ghidra	Ghidra-ს ჩამოტვირთვა და გამოყენება
+Download it from unity.com and install it.	ჩამოტვირთეთ unity.com-იდან და დააინსტალირეთ.
+Download it from unrealengine.com and install it.	ჩამოტვირთეთ unrealengine.com-იდან და დააინსტალირეთ.
+Download the Epic Games Launcher	Epic Games Launcher-ის ჩამოტვირთვა
+Downloads keep going in the background.	ჩამოტვირთვები ფონურ რეჟიმში გრძელდება.
+Drive an app's screen	აპის ეკრანის მართვა
+Drop a calculator app (or any small program) on the window.	ჩააგდეთ კალკულატორის აპი (ან ნებისმიერი პატარა პროგრამა) ფანჯარაზე.
+Drop a file or app anywhere in this window.	ჩააგდეთ ფაილი ან აპი ამ ფანჯრის ნებისმიერ ადგილას.
+Drop the file on the window. We only read it; nothing runs.	ჩააგდეთ ფაილი ფანჯარაზე. მას მხოლოდ ვკითხულობთ; არაფერი ეშვება.
+Drop to attach	ჩააგდეთ მისამაგრებლად
+Drop to open it	ჩააგდეთ გასახსნელად
+Duplicate	დუბლირება
+Duplicate a project	პროექტის დუბლირება
+Duplicate the project	პროექტის დუბლირება
+Each answer says how sure we are: Seen it, Worked it out or Best guess.	ყოველი პასუხი ამბობს, რამდენად დარწმუნებული ვართ: „ვნახეთ“, „გავარკვიეთ“ ან „საუკეთესო ვარაუდი“.
+Edit a project file	პროექტის ფაილის რედაქტირება
+Edit them in place	ადგილზე რედაქტირება
+Effort:	ძალისხმევა:
+Electron and JavaScript	Electron და JavaScript
+Electron fuses	Electron-ის ფიუზები
+Engines	ძრავები
+Engines and settings	ძრავები და პარამეტრები
+Enter a full web address, like example.com or https://example.com/page.	შეიყვანეთ სრული ვებმისამართი, მაგალითად example.com ან https://example.com/page.
+Enter to send · Shift+Enter for a new line	Enter — გაგზავნა · Shift+Enter — ახალი სტრიქონი
+Epic's own installer. It only opens if Epic's signature checks out.	Epic-ის საკუთარი ინსტალატორი. ის მხოლოდ მაშინ იხსნება, თუ Epic-ის ხელმოწერა შემოწმებას გაივლის.
+Essentials	ძირითადი
+Every build of this project.	ამ პროექტის ყველა აწყობა.
+Every finding is saved here with how sure we are.	ყოველი მიგნება აქ ინახება იმის მითითებით, რამდენად დარწმუნებული ვართ.
+Every tool as well: a workbench with functions, bytes, references and evidence.	და ყველა ხელსაწყოც: სამუშაო მაგიდა ფუნქციებით, ბაიტებით, მიმართვებითა და მტკიცებულებებით.
+Everything found so far, as a Markdown file.	აქამდე ნაპოვნი ყველაფერი Markdown ფაილის სახით.
+Everything so far is kept. Continue picks up where it stopped.	აქამდე გაკეთებული ყველაფერი შენახულია. „გაგრძელება“ იქიდან განაგრძობს, სადაც შეჩერდა.
+Evidence	მტკიცებულებები
+Evidence ledger	მტკიცებულებების ჟურნალი
+Evidence so far	აქამდე შეგროვებული მტკიცებულებები
+Explain a function	ფუნქციის ახსნა
+Explain like I'm new	ახსნა დამწყებისთვის
+Export a report	ანგარიშის ექსპორტირება
+Export a report (Markdown)	ანგარიშის ექსპორტირება (Markdown)
+Export captured scripts	ჩაწერილი სკრიპტების ექსპორტირება
+Export evidence	მტკიცებულებების ექსპორტირება
+Export report	ანგარიშის ექსპორტირება
+Extract an archive	არქივის ამოარქივება
+Extract firmware	ჩაშენებული პროგრამის ამოღება
+Extract with this	ამით ამოღება
+Extracts	ამონაღები
+File formats	ფაილის ფორმატები
+Files packed inside a file	ფაილის შიგნით შეფუთული ფაილები
+Filter	ფილტრი
+Filter by name	სახელით ფილტრი
+Filter the files	ფაილების ფილტრი
+Filter…	ფილტრი…
+Find Android classes	Android კლასების ძებნა
+Find Java classes	Java კლასების ძებნა
+Find a call path	გამოძახების გზის ძებნა
+Find a game's files	თამაშის ფაილების ძებნა
+Find an app	აპის ძებნა
+Find in-page MCP tools	გვერდზე ჩაშენებული MCP ხელსაწყოების ძებნა
+Find it automatically	ავტომატურად მოძებნა
+Find out how any software works, then craft your own.	გაიგეთ, როგორ მუშაობს ნებისმიერი პროგრამა, და შექმენით საკუთარი.
+Find the original source line	საწყისი წყარო სტრიქონის ძებნა
+Firmware regions	ჩაშენებული პროგრამის რეგიონები
+Fold the sidebar	გვერდითი პანელის აკეცვა
+Folders of projects, and projects started in a folder you picked. Removing one only takes it off the list.	პროექტების საქაღალდეები და თქვენ მიერ არჩეულ საქაღალდეში დაწყებული პროექტები. ამოშლა მას მხოლოდ სიიდან აშორებს.
+Follow the installer that opened. Come back here when it's done.	მიჰყევით გახსნილ ინსტალატორს. დაბრუნდით აქ, როცა დასრულდება.
+Follow the steps on rustup.rs, then come back here.	მიჰყევით ნაბიჯებს rustup.rs-ზე, შემდეგ დაბრუნდით აქ.
+For everything you make, like the switch in the title bar.	ყველაფრისთვის, რასაც ქმნით, სათაურის ზოლის გადამრთველის მსგავსად.
+For example: a website for my bakery	მაგალითად: ვებსაიტი ჩემი საცხობისთვის
+For example: recreate this website	მაგალითად: ამ ვებსაიტის ხელახლა შექმნა
+For example: the same app, but simpler	მაგალითად: იგივე აპი, ოღონდ უფრო მარტივი
+For example: the same game, with a high-score table	მაგალითად: იგივე თამაში, რეკორდების ცხრილით
+Force-stop an app	აპის იძულებითი შეჩერება
+Forget the key	გასაღების დავიწყება
+Found on this computer	ნაპოვნია ამ კომპიუტერზე
+Found {} AI option(s) on this computer	ამ კომპიუტერზე ნაპოვნი AI ვარიანტი: {}
+Frida devices	Frida-ს მოწყობილობები
+Frida instrumentation	Frida-ს ინსტრუმენტაცია
+Frida processes	Frida-ს პროცესები
+Frida session status	Frida-ს სესიის მდგომარეობა
+From	საიდან
+Frozen copy	გაყინული ასლი
+Function address	ფუნქციის მისამართი
+Function assembly	ფუნქციის ასემბლერი
+Function dossier	ფუნქციის დოსიე
+Function info	ფუნქციის ინფორმაცია
+Function instructions	ფუნქციის ინსტრუქციები
+Function references	ფუნქციის მიმართვები
+Functions	ფუნქციები
+GDB command	GDB-ის ბრძანება
+GDB session status	GDB-ის სესიის მდგომარეობა
+Game assets	თამაშის რესურსები
+Game engines	სათამაშო ძრავები
+Game files	თამაშის ფაილები
+General	ზოგადი
+Generate a 3D model	3D მოდელის გენერირება
+Generate a picture	სურათის გენერირება
+Generate custom pictures and models	საკუთარი სურათებისა და მოდელების გენერირება
+Generated art (games)	გენერირებული გრაფიკა (თამაშები)
+Generated assets	გენერირებული რესურსები
+Generated pictures and 3D models are made with fal.ai.	გენერირებული სურათები და 3D მოდელები fal.ai-ით იქმნება.
+Get Ghidra	Ghidra-ს მიღება
+Get Ghidra for Deep mode	Ghidra-ს მიღება ღრმა რეჟიმისთვის
+Get Unity Hub	Unity Hub-ის მიღება
+Get a key at {name}	გასაღების მიღება აქ: {name}
+Get the Epic Games Launcher	Epic Games Launcher-ის მიღება
+Get {name}	{name}-ის მიღება
+Getting Ghidra	Ghidra-ს მიღება
+Getting Godot	Godot-ის მიღება
+Getting Unity Hub	Unity Hub-ის მიღება
+Getting the Epic Games Launcher	Epic Games Launcher-ის მიღება
+Ghidra	Ghidra
+Ghidra folder	Ghidra-ს საქაღალდე
+Ghidra is ready	Ghidra მზადაა
+Ghidra is ready. Deep mode uses it from now on.	Ghidra მზადაა. ღრმა რეჟიმი მას ამიერიდან იყენებს.
+Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra დაყენებული არ არის, ამიტომ მის ნაცვლად ჩაშენებული დეკომპილატორი მუშაობს. მიიღეთ ის აქ: პარამეტრები → ძრავები.
+Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra ამ კომპიუტერზე ჯერ არ არის, ამიტომ მის ნაცვლად ჩაშენებული დეკომპილატორი მუშაობს.
+Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra ამ კომპიუტერის მეხსიერების ნახევარს გამოიყენებს ({gb} GB-მდე).
+Ghidra will use up to {gb} GB of memory.	Ghidra მეხსიერებიდან {gb} GB-მდე გამოიყენებს.
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	Ghidra, NSA-ის უფასო უკუინჟინერიის ხელსაწყო, ღრმა რეჟიმს უფრო მდიდარ დეკომპილირებულ კოდსა და ტიპებს აძლევს.
+Go home	მთავარზე გადასვლა
+Go program details	Go პროგრამის დეტალები
+Go to address	მისამართზე გადასვლა
+Go to offset (0x…)	წანაცვლებაზე გადასვლა (0x…)
+Go to the project	პროექტზე გადასვლა
+Good enough	საკმარისად კარგი
+Got it	გასაგებია
+Graph	გრაფი
+Half of this computer's memory, up to {gb} GB.	ამ კომპიუტერის მეხსიერების ნახევარი, {gb} GB-მდე.
+Here's a first look:	აი, პირველი შეხედვა:
+Here's what I found on that page:	აი, რა ვიპოვე იმ გვერდზე:
+Hex	Hex
+Hide pinned builds	მიმაგრებული აწყობების დამალვა
+Hide the answer	პასუხის დამალვა
+Hide the console	კონსოლის დამალვა
+High	მაღალი
+Home	მთავარი
+How alike a rebuild must look to the original before refining stops.	რამდენად უნდა ჰგავდეს ხელახალი აწყობა ორიგინალს, სანამ დახვეწა შეჩერდება.
+How closely may Craft Anything look at it?	რამდენად ახლოდან შეუძლია Craft Anything-ს მისი შესწავლა?
+How complete is the rebuild	რამდენად სრულია ხელახალი აწყობა
+How do I open an app?	როგორ გავხსნა აპი?
+How do the window and the page talk to each other?	როგორ ურთიერთობენ ფანჯარა და გვერდი?
+How does the % key work?	როგორ მუშაობს % ღილაკი?
+How is this app built?	როგორ არის ეს აპი აწყობილი?
+How is this app put together?	როგორ არის ეს აპი შედგენილი?
+How many projects may build at the same time. More wait their turn.	რამდენი პროექტი შეიძლება აიწყოს ერთდროულად. დანარჩენები თავის რიგს ელოდება.
+How should the builder use them?	როგორ გამოიყენოს ისინი შემქმნელმა?
+I have Ghidra	Ghidra მაქვს
+I have permission	ნებართვა მაქვს
+I want to make things work together	მინდა, რომ რაღაცები ერთად ამუშავდეს
+I'm checking whether it's safe	ვამოწმებ, უსაფრთხოა თუ არა
+I'm keeping old software alive	ძველ პროგრამებს სიცოცხლეს ვუხანგრძლივებ
+I'm learning how things work	ვსწავლობ, როგორ მუშაობს რაღაცები
+I'm new to this	ამაში ახალი ვარ
+ILSpy decompile	ILSpy-ით დეკომპილირება
+Ideas:	იდეები:
+Identify a Flutter build	Flutter-ის აწყობის ამოცნობა
+Import a source folder	წყარო საქაღალდის იმპორტი
+Import evidence	მტკიცებულებების იმპორტი
+Imports / Exports	იმპორტები / ექსპორტები
+In Deep mode this one takes a game's own files out after the study. Click to stop.	ღრმა რეჟიმში ეს ვარიანტი შესწავლის შემდეგ თამაშის საკუთარ ფაილებს იღებს. დაწკაპეთ შესაჩერებლად.
+In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	Unity Hub-ში: შედით სისტემაში (ან შექმენით უფასო ანგარიში) და მიიღეთ უფასო Personal ლიცენზია. შემდეგ გახსენით Installs, დააჭირეთ Install Editor-ს და აირჩიეთ რეკომენდებული ვერსია. დაახლოებით 10 GB.
+In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	ლაუნჩერში: შედით სისტემაში, გახსენით Unreal Engine, შემდეგ Library, და ერთის დასაინსტალირებლად დააჭირეთ +-ს Engine Versions-ის გვერდით. დაახლოებით 60 GB.
+In use	გამოიყენება
+Inside	შიგთავსი:
+Inspect a Dart AOT snapshot	Dart AOT სნეპშოტის შესწავლა
+Inspect a network recording	ქსელის ჩანაწერის შესწავლა
+Inspect a web page	ვებგვერდის შესწავლა
+Inspect an Electron page	Electron გვერდის შესწავლა
+Inspect data	მონაცემების შესწავლა
+Inspect instruction	ინსტრუქციის შესწავლა
+Inspector	ინსპექტორი
+Install Rust	Rust-ის დაინსტალირება
+Install Unity Hub	Unity Hub-ის დაინსტალირება
+Install Visual Studio Community (free) and tick "Game development with C++".	დააინსტალირეთ Visual Studio Community (უფასოა) და მონიშნეთ „Game development with C++“.
+Install Xcode	Xcode-ის დაინსტალირება
+Install an app	აპის დაინსტალირება
+Install an engine	ძრავის დაინსტალირება
+Install the launcher	ლაუნჩერის დაინსტალირება
+Installed	დაინსტალირებულია
+Installed apps	დაინსტალირებული აპები
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	პროცესთაშორისი კომუნიკაცია: როგორ უგზავნიან ერთმანეთს შეტყობინებებს აპის ორი ნაწილი (ან ორი აპი).
+Interface Builder documents	Interface Builder-ის დოკუმენტები
+Interrupted	შეწყვეტილია
+Inventory an archive or app bundle	არქივის ან აპის პაკეტის ინვენტარიზაცია
+Investigating	გამოძიება მიმდინარეობს
+Investigation so far	აქამდე ჩატარებული გამოძიება
+Is Apktool available?	ხელმისაწვდომია Apktool?
+Is adb available?	ხელმისაწვდომია adb?
+Is an asset key set up?	დაყენებულია რესურსების გასაღები?
+Is anything in here a program?	არის აქ რამე, რაც პროგრამაა?
+Is anything sensitive saved in plain text?	ინახება რამე მგრძნობიარე ღია ტექსტად?
+Is it safe to look inside programs?	უსაფრთხოა პროგრამების შიგნით ჩახედვა?
+Is it safe to run?	უსაფრთხოა მისი გაშვება?
+Is there any readable text inside?	არის შიგნით წაკითხვადი ტექსტი?
+Is this file safe to open?	უსაფრთხოა ამ ფაილის გახსნა?
+It closed straight away.	მაშინვე დაიხურა.
+It closed straight away. It said:	მაშინვე დაიხურა. მან თქვა:
+It isn't on this computer yet. Craft Anything can download Ghidra {version} and the Java runtime it needs (about {mb} MB), check both against their publishers' checksums, and set them up in its own folder. Nothing else on your computer changes.	ის ამ კომპიუტერზე ჯერ არ არის. Craft Anything-ს შეუძლია ჩამოტვირთოს Ghidra {version} და მისთვის საჭირო Java-ს გაშვების გარემო (დაახლოებით {mb} MB), ორივე გამომცემლების საკონტროლო ჯამებით შეამოწმოს და საკუთარ საქაღალდეში დააყენოს. თქვენს კომპიუტერზე სხვა არაფერი შეიცვლება.
+It isn't on this computer yet. Install Ghidra {version} from its release page, then choose its folder.	ის ამ კომპიუტერზე ჯერ არ არის. დააინსტალირეთ Ghidra {version} მისი გამოშვების გვერდიდან, შემდეგ აირჩიეთ მისი საქაღალდე.
+It's already open.	უკვე გახსნილია.
+It's already open. Right-click it to open another copy.	უკვე გახსნილია. მეორე ასლის გასახსნელად მასზე მარჯვენა ღილაკით დაწკაპეთ.
+It's done	მზადაა
+It's mine, or I'm allowed to look	ჩემია, ან ნახვის უფლება მაქვს
+Its copy is deleted, with anything it saved there. The project itself stays as it is.	მისი ასლი წაიშალა იმ ყველაფერთან ერთად, რაც იქ შეინახა. თავად პროექტი უცვლელად რჩება.
+Its folder is deleted with everything in it: what was built, the checks and the conversation.	მისი საქაღალდე წაიშალა მთელი შიგთავსით: რაც აიწყო, შემოწმებები და საუბარი.
+Its own code	მისი საკუთარი კოდი
+Java archive overview	Java არქივის მიმოხილვა
+Java class	Java კლასი
+Java method bytecode and pseudo-Java	Java მეთოდის ბაიტკოდი და ფსევდო-Java
+Java program code (one class)	Java პროგრამის კოდი (ერთი კლასი)
+Java programs	Java პროგრამები
+Java runtime	Java-ს გაშვების გარემო
+Jobs	დავალებები
+Jobs ({n_jobs})	დავალებები ({n_jobs})
+Jobs ({n})	დავალებები ({n})
+Just a question: nothing was changed. Answered by	მხოლოდ კითხვა: არაფერი შეცვლილა. უპასუხა:
+Just ask	უბრალოდ იკითხეთ
+Just look inside	მხოლოდ შიგნით ჩახედვა
+Keep going without asking	გაგრძელება კითხვის გარეშე
+Keep it	დატოვება
+Keep it in the sidebar to open any time, whatever later builds change.	დატოვეთ გვერდით პანელზე, რომ ნებისმიერ დროს გახსნათ, რაც არ უნდა შეცვალოს შემდგომმა აწყობებმა.
+Keep the build as it is and stop offering to carry on.	აწყობის ისე დატოვება, როგორც არის, და გაგრძელების შეთავაზების შეწყვეტა.
+Keep this version in the sidebar to open any time.	ამ ვერსიის გვერდით პანელზე დატოვება, რომ ნებისმიერ დროს გაიხსნას.
+Keeps this version exactly as it is now. Later builds can't change or break it, and anything it saves stays with the copy.	ინახავს ამ ვერსიას ზუსტად ისე, როგორიც ახლაა. შემდგომი აწყობები მას ვერ შეცვლის და ვერ გააფუჭებს, ხოლო ყველაფერი, რასაც ის ინახავს, ასლთან რჩება.
+Key saved	გასაღები შენახულია
+Keyed archive	გასაღებიანი არქივი
+Kind	სახეობა
+Language	ენა
+Last: {what}	ბოლო: {what}
+Launch an app	აპის გაშვება
+Leave a few GB for the rest of your computer.	დატოვეთ რამდენიმე GB თქვენი კომპიუტერის დანარჩენი ნაწილისთვის.
+Leave a path empty to use the managed install. We never need environment variables.	მართული ინსტალაციის გამოსაყენებლად ბილიკი ცარიელი დატოვეთ. გარემოს ცვლადები არასოდეს გვჭირდება.
+Leave empty to use the one Craft Anything sets up.	დატოვეთ ცარიელი, რომ Craft Anything-ის მიერ დაყენებული გამოიყენოს.
+Let a project generate assets	პროექტისთვის რესურსების გენერირების დაშვება
+Let's go	დავიწყოთ
+Lets the builder make realistic 3D models and textures for games, {model} a model, with a {budget} budget per project.	შემქმნელს საშუალებას აძლევს, თამაშებისთვის შექმნას რეალისტური 3D მოდელები და ტექსტურები, {model} თითო მოდელზე, პროექტზე {budget} ბიუჯეტით.
+Library resolution	ბიბლიოთეკების გარკვევა
+Light copy: shares big files with the project	მსუბუქი ასლი: დიდ ფაილებს პროექტთან იზიარებს
+Likeness	მსგავსება
+Line up code and behaviour	კოდისა და ქცევის შეჯერება
+Line up source with the bundle	წყაროს პაკეტთან შეჯერება
+List Electron pages	Electron გვერდების სია
+List JEB units	JEB ერთეულების სია
+List JS runtime targets	JS გაშვების გარემოს სამიზნეების სია
+List a Unity assets file	Unity რესურსების ფაილის შიგთავსის სია
+List a Unity bundle	Unity პაკეტის შიგთავსის სია
+List a game's archives	თამაშის არქივების სია
+List a node's event listeners	კვანძის მოვლენების მსმენელების სია
+List an AI's models	AI-ის მოდელების სია
+List an Unreal IoStore container	Unreal IoStore კონტეინერის შიგთავსის სია
+List an Unreal pak	Unreal pak-ის შიგთავსის სია
+List bookmarks	სანიშნეების სია
+List browser pages	ბრაუზერის გვერდების სია
+List documents	დოკუმენტების სია
+List engines	ძრავების სია
+List functions	ფუნქციების სია
+List names	სახელების სია
+List open targets	ღია სამიზნეების სია
+List pinned builds	მიმაგრებული აწყობების სია
+List plugins	პლაგინების სია
+List project files	პროექტის ფაილების სია
+List projects	პროექტების სია
+List questions about a build	აწყობის შესახებ კითხვების სია
+List radio decoders	რადიოდეკოდერების სია
+List segments	სეგმენტების სია
+List shared Cutter sessions	Cutter-ის საერთო სესიების სია
+List strings	სტრიქონების სია
+Live: the project's latest build	ცოცხალი: პროექტის უახლესი აწყობა
+Load a picture	სურათის ჩატვირთვა
+Load a screenshot	ეკრანის ანაბეჭდის ჩატვირთვა
+Loading…	იტვირთება…
+Log	ჟურნალი
+Look again	ხელახლა ძებნა
+Look at a game	თამაშის შესწავლა
+Look at a website	ვებსაიტის შესწავლა
+Look at the game	თამაშის შესწავლა
+Look for AI on this computer	AI-ის ძებნა ამ კომპიუტერზე
+Look for game engines	სათამაშო ძრავების ძებნა
+Look for projects again	პროექტების ხელახლა ძებნა
+Looked at everything	ყველაფერი შესწავლილია
+Looked at part of it	შესწავლილია ნაწილი
+Looked at {a} of {b}	შესწავლილია {a} / {b}
+Looking for AI on this computer…	ამ კომპიუტერზე AI-ის ძებნა…
+Looking for game engines on this computer…	ამ კომპიუტერზე სათამაშო ძრავების ძებნა…
+Looking for the game's files…	თამაშის ფაილების ძებნა…
+Looking inside needs Deep mode	შიგნით ჩახედვას ღრმა რეჟიმი სჭირდება
+Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	იმ პროგრამის შიგნით ჩახედვა, რომელიც თქვენ გეკუთვნით ან რომლის შესწავლის უფლებაც გაქვთ, ჩვეულებრივია და ხშირად დაცულიც (სწავლა, თავსებადობა, უსაფრთხოება). მიზეზის თქმა ამის დაცვაში გეხმარებათ; ის ამ კომპიუტერზე რჩება.
+Looking on this computer…	ამ კომპიუტერზე ძებნა…
+Low	დაბალი
+Mach-O structure	Mach-O სტრუქტურა
+Made a copy: {name}	შეიქმნა ასლი: {name}
+Made with fal.ai and paid from your account: {model} a 3D model, {picture} a picture. Off, the game is built without them.	იქმნება fal.ai-ით და იხდება თქვენი ანგარიშიდან: {model} — 3D მოდელი, {picture} — სურათი. გამორთვისას თამაში მათ გარეშე აიწყობა.
+Made with {engine}	შექმნილია {engine}-ით
+Made without looking inside the original.	შექმნილია ორიგინალის შიგნით ჩახედვის გარეშე.
+Make a game that plays like this	თამაშის შექმნა, რომელიც ასე თამაშდება
+Make a simpler version of this game	ამ თამაშის გამარტივებული ვერსიის შექმნა
+Make my own version	ჩემი ვერსიის შექმნა
+Make my own version of this app	ამ აპის ჩემი ვერსიის შექმნა
+Making my own thing talk to something else.	ჩემი შექმნილის რაღაც სხვასთან დაკავშირება.
+Many source files packed into one big file so an app or web page loads faster.	ბევრი წყარო ფაილი, ერთ დიდ ფაილში შეფუთული, რომ აპი ან ვებგვერდი უფრო სწრაფად ჩაიტვირთოს.
+Map a HarmonyOS app	HarmonyOS აპის რუკის შედგენა
+Map a page's module graph	გვერდის მოდულების გრაფის რუკის შედგენა
+Map an Android app	Android აპის რუკის შედგენა
+Map an Apple app	Apple-ის აპის რუკის შედგენა
+Markdown	Markdown
+Match functions between two builds	ფუნქციების შესაბამისობა ორ აწყობას შორის
+Match my pictures	ჩემს სურათებთან დამთხვევა
+Match static code to what ran	სტატიკური კოდის შეჯერება იმასთან, რაც შესრულდა
+Maximise	გაშლა
+May I run "{title}"?	შეიძლება გავუშვა „{title}“?
+May I {action}?	შეიძლება {action}?
+Measure which code ran	შესრულებული კოდის გაზომვა
+Medium	საშუალო
+Memory for Ghidra	მეხსიერება Ghidra-სთვის
+Minimise	ჩაკეცვა
+Mode	რეჟიმი
+Model	მოდელი
+Model: {model}	მოდელი: {model}
+Modules	მოდულები
+More detail	მეტი დეტალი
+More makes a big program's first look faster.	მეტი აჩქარებს დიდი პროგრამის პირველ დათვალიერებას.
+More memory makes Ghidra's first look at a big program faster; leave some for the rest of the computer. Used from the next time Ghidra starts.	მეტი მეხსიერება აჩქარებს დიდი პროგრამის პირველ დათვალიერებას Ghidra-ში; დატოვეთ ნაწილი კომპიუტერის დანარჩენი ნაწილისთვის. გამოიყენება Ghidra-ს შემდეგი გაშვებიდან.
+Name (optional)	სახელი (არასავალდებულო)
+Name an address	მისამართისთვის სახელის დარქმევა
+Name at address	სახელი მისამართზე
+Name many addresses	მრავალი მისამართისთვის სახელის დარქმევა
+Names the program's author gave to functions or variables that survived in the file.	სახელები, რომლებიც პროგრამის ავტორმა ფუნქციებს ან ცვლადებს დაარქვა და ფაილში შემორჩა.
+Needs a fal.ai key. Until then the game is built without them.	საჭიროა fal.ai გასაღები. მანამდე თამაში მათ გარეშე აიწყობა.
+Needs you	თქვენ გელოდებათ
+Network	ქსელი
+New	ახალი
+New project	ახალი პროექტი
+New projects go in	ახალი პროექტების ადგილი:
+Next address	შემდეგი მისამართი
+No AI (built-in engines only)	AI-ის გარეშე (მხოლოდ ჩაშენებული ძრავები)
+No AI brain is set up, so answers come straight from the built-in engines. Add one any time for plain-words explanations.	AI „ტვინი“ დაყენებული არ არის, ამიტომ პასუხები პირდაპირ ჩაშენებული ძრავებიდან მოდის. მარტივი სიტყვებით ახსნისთვის ნებისმიერ დროს დაამატეთ.
+No AI for now	ჯერჯერობით AI-ის გარეშე
+No AI is set up yet. The built-in engines still work; an AI adds plain-words answers.	AI ჯერ დაყენებული არ არის. ჩაშენებული ძრავები მაინც მუშაობს; AI მარტივი სიტყვებით პასუხებს ამატებს.
+No Unreal or Unity archives were found. Pick the folder the game is installed in.	Unreal-ის ან Unity-ის არქივები ვერ მოიძებნა. აირჩიეთ საქაღალდე, სადაც თამაშია დაინსტალირებული.
+No coding agent was found on this computer yet.	ამ კომპიუტერზე პროგრამირების აგენტი ჯერ ვერ მოიძებნა.
+No evidence yet	მტკიცებულებები ჯერ არ არის
+No game files here	აქ თამაშის ფაილები არ არის
+No jobs yet. Long tasks show their progress here, and you can cancel them.	დავალებები ჯერ არ არის. ხანგრძლივი ამოცანები აქ თავიანთ პროგრესს აჩვენებს და მათი გაუქმება შეგიძლიათ.
+No matches	დამთხვევა არ არის
+No open questions	პასუხგაუცემელი კითხვები არ არის
+No plugins yet.	პლაგინები ჯერ არ არის.
+No result yet	შედეგი ჯერ არ არის
+No targets	სამიზნეები არ არის
+No tool named {tool}	ხელსაწყო სახელით {tool} არ არსებობს
+None	არცერთი
+None yet. Screenshots help it look right.	ჯერ არცერთი. ეკრანის ანაბეჭდები სწორი იერის მიღწევაში ეხმარება.
+Not allowed	აკრძალულია
+Not allowed.	აკრძალულია.
+Not available yet	ჯერ ხელმისაწვდომი არ არის
+Not compared yet: {what}	ჯერ შეუდარებელია: {what}
+Not installed	არ არის დაინსტალირებული
+Not now	ახლა არა
+Nothing allowed yet.	ჯერ არაფერია დაშვებული.
+Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	ჯერ ვერაფერი აიწყობა: დააინსტალირეთ Claude Code (და ერთხელ შედით მასში) ან ქვემოთ დაამატეთ AI API გასაღებით.
+Nothing found	ვერაფერი მოიძებნა
+Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	ჯერ ვერაფერი მოიძებნა. ვეძებთ API გასაღებებს, მოდელების ლოკალურ სერვერებს (Ollama, LM Studio) და აგენტის აპებს, რომლებიც უკვე გაქვთ. სხვა პორტზე ან კომპიუტერზე არსებულის დამატება ქვემოთ მისი მისამართით შეიძლება.
+Nothing inside it is read.	შიგნით არაფერი იკითხება.
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	შიგნით არაფერი იკითხება; Craft Anything მუშაობს იმით, რასაც თქვენ ხედავთ. თქვენი ვერსია საკუთარ გრაფიკას მიიღებს.
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	ორიგინალის შიგნით არაფერი იკითხება: არც მისი კოდი, არც ფაილები, არც გვერდის წყარო. Craft Anything მუშაობს იმით, რასაც თქვენ ხედავთ: სურათებით, გვერდით ისე, როგორც მას ვიზიტორი ხედავს, და მისი მუშაობის დაკვირვებით.
+Nothing made yet. What you make shows up here.	ჯერ არაფერი შექმნილა. რასაც შექმნით, აქ გამოჩნდება.
+Nothing matches the filter.	ფილტრს არაფერი შეესაბამება.
+Nothing matches.	დამთხვევა არ არის.
+Nothing new for {time}. Long steps can be quiet; if it stays like this, press Pause.	{time} განმავლობაში ახალი არაფერია. ხანგრძლივი ნაბიჯები შეიძლება ჩუმად მიმდინარეობდეს; თუ ასე დარჩება, დააჭირეთ „პაუზას“.
+Nothing open	არაფერია გახსნილი
+Nothing open yet	ჯერ არაფერია გახსნილი
+Nothing selected	არაფერია მონიშნული
+Nothing to show	საჩვენებელი არაფერია
+Nothing uses it until it's on again; it keeps its key.	სანამ ხელახლა არ ჩაირთვება, მას არაფერი იყენებს; გასაღები ინახება.
+Nothing — start fresh	არაფერი — თავიდან დაწყება
+Now	ახლა
+Now: {what} ({time})	ახლა: {what} ({time})
+Objective-C classes	Objective-C კლასები
+Objective-C protocols	Objective-C პროტოკოლები
+Observe a JS runtime	JS გაშვების გარემოზე დაკვირვება
+Of this, {cost} was charged to an API key.	აქედან {cost} API გასაღებზე დაირიცხა.
+Off	გამორთული
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Ollama ან LM Studio სხვა კომპიუტერზე, ან ნებისმიერი სერვისი, რომელიც OpenAI API-ით საუბრობს.
+On	ჩართული
+One line, in plain words. It stays on this computer and is never sent anywhere.	ერთი სტრიქონი, მარტივი სიტყვებით. ის ამ კომპიუტერზე რჩება და არსად იგზავნება.
+One-shot instrumentation	ერთჯერადი ინსტრუმენტაცია
+Only for Ghidra. Empty = managed.	მხოლოდ Ghidra-სთვის. ცარიელი = მართული.
+Only its name changes; its folder stays where it is.	მხოლოდ სახელი იცვლება; მისი საქაღალდე თავის ადგილზე რჩება.
+Only take pictures out of games you made, or whose owner allows it. A game's art is usually protected by copyright and by the game's licence.	სურათები მხოლოდ იმ თამაშებიდან ამოიღეთ, რომლებიც თქვენ შექმენით ან რომელთა მფლობელიც ამის უფლებას იძლევა. თამაშის გრაფიკა ჩვეულებრივ დაცულია საავტორო უფლებით და თამაშის ლიცენზიით.
+Only the pin goes; the project and its app stay as they are.	მხოლოდ მიმაგრება იხსნება; პროექტი და მისი აპი უცვლელად რჩება.
+Open	გახსნა
+Open "Show me the proof" to see the exact code we found, and how sure we are.	გახსენით „დასტურის ჩვენება“, რომ ნახოთ ზუსტად ის კოდი, რომელიც ვიპოვეთ, და რამდენად დარწმუნებული ვართ.
+Open Ghidra's release page	Ghidra-ს გამოშვების გვერდის გახსნა
+Open Unity Hub	Unity Hub-ის გახსნა
+Open a calculator app and find the code behind one button.	გახსენით კალკულატორის აპი და იპოვეთ ერთი ღილაკის უკან მდგომი კოდი.
+Open a file in JEB	ფაილის გახსნა JEB-ში
+Open a file or drop one here.	გახსენით ფაილი ან ჩააგდეთ აქ.
+Open a file…	ფაილის გახსნა…
+Open a folder or app bundle	საქაღალდის ან აპის პაკეტის გახსნა
+Open a folder or app bundle…	საქაღალდის ან აპის პაკეტის გახსნა…
+Open a folder…	საქაღალდის გახსნა…
+Open a pinned build	მიმაგრებული აწყობის გახსნა
+Open a project's folder	პროექტის საქაღალდის გახსნა
+Open a website	ვებსაიტის გახსნა
+Open an app or file	აპის ან ფაილის გახსნა
+Open an engine's app	ძრავის აპის გახსნა
+Open another copy	სხვა ასლის გახსნა
+Open another target	სხვა სამიზნის გახსნა
+Open files, folders or apps; you can have several open at once.	გახსენით ფაილები, საქაღალდეები ან აპები; ერთდროულად რამდენიმეს გახსნა შეგიძლიათ.
+Open folder	საქაღალდის გახსნა
+Open in the workbench	სამუშაო მაგიდაზე გახსნა
+Open it	გახსნა
+Open log	ჟურნალის გახსნა
+Open one of the files inside it to see its bytes.	გახსენით შიგნით არსებული ერთ-ერთი ფაილი, რომ მისი ბაიტები ნახოთ.
+Open questions	პასუხგაუცემელი კითხვები
+Open something	რამის გახსნა
+Open something first: drop a file or app here, or choose "Just look inside" on New project. Then I can look inside it.	ჯერ რამე გახსენით: ჩააგდეთ აქ ფაილი ან აპი, ან „ახალ პროექტში“ აირჩიეთ „მხოლოდ შიგნით ჩახედვა“. შემდეგ შევძლებ მის შიგნით ჩახედვას.
+Open something to start	დასაწყებად რამე გახსენით
+Open the Epic Games Launcher	Epic Games Launcher-ის გახსნა
+Open the app	აპის გახსნა
+Open the app you're curious about.	გახსენით აპი, რომელიც გაინტერესებთ.
+Open the download page	ჩამოტვირთვის გვერდის გახსნა
+Open the folder	საქაღალდის გახსნა
+Open the installer app	ინსტალატორის აპის გახსნა
+Open the website	ვებსაიტის გახსნა
+Open {name}	{name}-ის გახსნა
+Opened {name}	გაიხსნა: {name}
+Opened {name}. Taking a first look…	გაიხსნა: {name}. პირველი დათვალიერება…
+Opened {}	გაიხსნა: {}
+Opening {name}…	იხსნება: {name}…
+Open…	გახსნა…
+Or type your answer…	ან აკრიფეთ თქვენი პასუხი…
+Original	ორიგინალი
+Other pages of a website studied and compared besides the one you gave.	ვებსაიტის სხვა გვერდები, შესწავლილი და შედარებული თქვენ მიერ მითითებულის გარდა.
+Overview	მიმოხილვა
+Packet capture overview	პაკეტების ჩანაწერის მიმოხილვა
+Packet fields	პაკეტის ველები
+Page through evidence	მტკიცებულებების ფურცვლა
+Part of the app got stuck, so it was stopped and the rest carried on. Your work is kept.	აპის ნაწილი გაიჭედა, ამიტომ ის შეჩერდა, დანარჩენმა კი მუშაობა გააგრძელა. თქვენი ნამუშევარი შენახულია.
+Part of the app is stuck. Restarting clears it, and your work is kept.	აპის ნაწილი გაიჭედა. გადატვირთვა ამას გამოასწორებს, თქვენი ნამუშევარი კი შენახულია.
+Part of this screen hit a bug and was skipped. Your work is safe.	ამ ეკრანის ნაწილს შეცდომა შეხვდა და გამოტოვებულ იქნა. თქვენი ნამუშევარი უსაფრთხოდაა.
+Paste pictures	სურათების ჩასმა
+Paste your API key (kept in your system keychain)	ჩასვით თქვენი API გასაღები (ინახება თქვენი სისტემის გასაღებების საცავში)
+Paste your {name} key	ჩასვით თქვენი {name} გასაღები
+Path	ბილიკი
+Pause	პაუზა
+Pausing…	პაუზაზე დაყენება…
+Pause the build first, then delete the project.	ჯერ დააპაუზეთ აწყობა, შემდეგ წაშალეთ პროექტი.
+Pause the build first.	ჯერ დააპაუზეთ აწყობა.
+Paused	დაპაუზებულია
+Paused.	დაპაუზებულია.
+Pick a folder with projects in it	აირჩიეთ საქაღალდე, რომელშიც პროექტებია
+Pick a game's folder	აირჩიეთ თამაშის საქაღალდე
+Pick another folder…	სხვა საქაღალდის არჩევა…
+Pick another game	სხვა თამაშის არჩევა
+Pick something on the left	აირჩიეთ რამე მარცხნივ
+Pick the app or game folder	აირჩიეთ აპის ან თამაშის საქაღალდე
+Pick the app, game or file to rebuild	აირჩიეთ აპი, თამაში ან ფაილი ხელახლა ასაწყობად
+Pick the folder for this project	აირჩიეთ საქაღალდე ამ პროექტისთვის
+Pick the game's folder	აირჩიეთ თამაშის საქაღალდე
+Picture a program's window	პროგრამის ფანჯრის სურათის გადაღება
+Picture model	სურათების მოდელი
+Pictures	სურათები
+Pictures can't be saved from IoStore containers yet; you can see what's inside.	IoStore კონტეინერებიდან სურათების შენახვა ჯერ შეუძლებელია; შიგთავსის ნახვა შეგიძლიათ.
+Pictures of the original	ორიგინალის სურათები
+Pieces of text stored inside a program, like messages, web addresses or file names.	პროგრამის შიგნით შენახული ტექსტის ნაწილები, მაგალითად შეტყობინებები, ვებმისამართები ან ფაილების სახელები.
+Pin a build	აწყობის მიმაგრება
+Pin a project's build	პროექტის აწყობის მიმაგრება
+Pin it	მიმაგრება
+Pin name	მიმაგრების სახელი
+Pin removed.	მიმაგრება მოიხსნა.
+Pin this build	ამ აწყობის მიმაგრება
+Pinned	მიმაგრებულია
+Pinned builds	მიმაგრებული აწყობები
+Pinned: {name}. Open it from the sidebar any time.	მიმაგრებულია: {name}. გახსენით გვერდითი პანელიდან ნებისმიერ დროს.
+Plain words, big buttons, and I'll explain everything.	მარტივი სიტყვები, დიდი ღილაკები, და ყველაფერს აგიხსნით.
+Plain words, short sentences, and every technical word explained.	მარტივი სიტყვები, მოკლე წინადადებები და ყოველი ტექნიკური სიტყვის ახსნა.
+Plan	გეგმა
+Plan connecting agent apps	აგენტის აპების დაკავშირების დაგეგმვა
+Play a project's result	პროექტის შედეგის გაშვება
+Play the game	თამაშის გაშვება
+Plugin added. Read its tools to start using them.	პლაგინი დაემატა. მისი ხელსაწყოების გამოსაყენებლად ჯერ წაიკითხეთ ისინი.
+Plugin arguments	პლაგინის არგუმენტები
+Plugin command or address	პლაგინის ბრძანება ან მისამართი
+Plugin id	პლაგინის id
+Plugin removed.	პლაგინი წაიშალა.
+Plugins	პლაგინები
+Plugins add tools Craft Anything offers as its own: MCP servers (a command or an address; read their tools after adding) or WebAssembly components (a .wasm file, which can't touch your files or the network).	პლაგინები ამატებს ხელსაწყოებს, რომლებსაც Craft Anything საკუთარივით გთავაზობთ: MCP სერვერებს (ბრძანება ან მისამართი; დამატების შემდეგ წაიკითხეთ მათი ხელსაწყოები) ან WebAssembly კომპონენტებს (.wasm ფაილი, რომელიც თქვენს ფაილებსა და ქსელს ვერ ეხება).
+Plugins added here always ask before each call.	აქ დამატებული პლაგინები ყოველი გამოძახების წინ ყოველთვის კითხულობს.
+Plugins read. Their new tools are offered from the next start.	პლაგინები წაკითხულია. მათი ახალი ხელსაწყოები შემდეგი გაშვებიდან იქნება შემოთავაზებული.
+Preserving software that's no longer supported.	პროგრამების შენარჩუნება, რომლებიც აღარ არის მხარდაჭერილი.
+Preview a project's website	პროექტის ვებსაიტის წინასწარი ნახვა
+Preview the website	ვებსაიტის წინასწარი ნახვა
+Previous address	წინა მისამართი
+Program: found automatically	პროგრამა: ნაპოვნია ავტომატურად
+Program: {path}	პროგრამა: {path}
+Programs (native code)	პროგრამები (ნატიური კოდი)
+Progress	პროგრესი
+Project details	პროექტის დეტალები
+Project name	პროექტის სახელი
+Projects	პროექტები
+Projects and builds	პროექტები და აწყობები
+Property list	თვისებების სია
+Pseudo-C	ფსევდო-C
+Purpose	დანიშნულება
+Raise the asset budget	რესურსების ბიუჯეტის გაზრდა
+Raise the budget by {amount}	ბიუჯეტის გაზრდა {amount}-ით
+Raw machine code	ნედლი მანქანური კოდი
+Read AI settings	AI-ის პარამეტრების წაკითხვა
+Read a Unity game's IL2CPP metadata	Unity თამაშის IL2CPP მეტამონაცემების წაკითხვა
+Read a game's files	თამაშის ფაილების წაკითხვა
+Read a project file	პროექტის ფაილის წაკითხვა
+Read a setting	პარამეტრის წაკითხვა
+Read an app's screen	აპის ეკრანის წაკითხვა
+Read bytes	ბაიტების წაკითხვა
+Read comment	კომენტარის წაკითხვა
+Read inline comment	ჩადგმული კომენტარის წაკითხვა
+Read its tools	მისი ხელსაწყოების წაკითხვა
+Read pinned builds	მიმაგრებული აწყობების წაკითხვა
+Read projects	პროექტების წაკითხვა
+Read the journal	ჟურნალის წაკითხვა
+Read the plugin's tools	პლაგინის ხელსაწყოების წაკითხვა
+Read the project	პროექტის წაკითხვა
+Reading what's inside…	შიგთავსის წაკითხვა…
+Ready	მზადაა
+Ready: {what} is on this computer.	მზადაა: {what} ამ კომპიუტერზეა.
+Rebuild status	ხელახალი აწყობის მდგომარეობა
+Record a finding	მიგნების ჩაწერა
+Record a hypothesis	ჰიპოთეზის ჩაწერა
+Record an open question	პასუხგაუცემელი კითხვის ჩაწერა
+Recover readable sources	წაკითხვადი წყაროების აღდგენა
+Recreate it with darker colours	ხელახლა შექმნა უფრო მუქი ფერებით
+Recreate just its main feature	მხოლოდ მისი მთავარი ფუნქციის ხელახლა შექმნა
+Recreate this website	ამ ვებსაიტის ხელახლა შექმნა
+Recreated games are built with the original's own engine when it's here (Unity, Unreal or Godot), else Unity, and Rust as the last resort.	ხელახლა შექმნილი თამაშები ორიგინალის საკუთარი ძრავით აიწყობა, თუ ის აქაა (Unity, Unreal ან Godot), თუ არა — Unity-ით, ბოლო გამოსავლად კი Rust-ით.
+References to a name	მიმართვები სახელზე
+Refining rounds	დახვეწის რაუნდები
+Refresh plugins	პლაგინების განახლება
+Regions of a program file, each with one purpose: code, text, pictures, settings.	პროგრამის ფაილის რეგიონები, თითოეული ერთი დანიშნულებით: კოდი, ტექსტი, სურათები, პარამეტრები.
+Reload	ხელახლა ჩატვირთვა
+Remember permission	ნებართვის დამახსოვრება
+Remove	წაშლა
+Remove a pin	მიმაგრების მოხსნა
+Remove a pinned build	მიმაგრებული აწყობის წაშლა
+Remove a plugin	პლაგინის წაშლა
+Remove an AI	AI-ის წაშლა
+Remove an app	აპის წაშლა
+Remove an asset key	რესურსების გასაღების წაშლა
+Remove bookmark	სანიშნის წაშლა
+Remove it	წაშლა
+Remove it and its key	მისი და მისი გასაღების წაშლა
+Remove {name}	{name}-ის წაშლა
+Remove {name}?	წავშალოთ {name}?
+Remove…	წაშლა…
+Rename	სახელის შეცვლა
+Rename a pinned build	მიმაგრებული აწყობის სახელის შეცვლა
+Rename a project	პროექტის სახელის შეცვლა
+Rename the pin	მიმაგრების სახელის შეცვლა
+Rename the project	პროექტის სახელის შეცვლა
+Rename…	სახელის შეცვლა…
+Reset	ჩამოყრა
+Resolve a call	გამოძახების გარკვევა
+Resolved	გადაწყვეტილია
+Resources	რესურსები
+Restart	გადატვირთვა
+Restore	აღდგენა
+Result	შედეგი
+Resume a Frida session	Frida-ს სესიის განახლება
+Rizin command	Rizin-ის ბრძანება
+Rizin debug command	Rizin-ის გამართვის ბრძანება
+Rizin debug session status	Rizin-ის გამართვის სესიის მდგომარეობა
+Rough guide:	მიახლოებით:
+Run	გაშვება
+Run a Frida script	Frida-ს სკრიპტის გაშვება
+Run a build command	აწყობის ბრძანების გაშვება
+Run a scripted Electron session	Electron-ის სკრიპტული სესიის გაშვება
+Run a scripted web session	სკრიპტული ვებსესიის გაშვება
+Run a tool from the command palette (Ctrl/⌘ K), or pick a finding in the Evidence panel.	გაუშვით ხელსაწყო ბრძანებების პალიტრიდან (Ctrl/⌘ K) ან აირჩიეთ მიგნება „მტკიცებულებების“ პანელში.
+Run and watch a program	პროგრამის გაშვება და დაკვირვება
+Run to study	გაშვება შესასწავლად
+Running	მუშაობს
+Running processes	გაშვებული პროცესები
+Running programs	გაშვებული პროგრამები
+Running {id}	მუშაობს: {id}
+Runs its tools without asking	თავის ხელსაწყოებს კითხვის გარეშე უშვებს
+Runs the first-run steps next time.	შემდეგ ჯერზე პირველი გაშვების ნაბიჯებს შეასრულებს.
+Rust program details	Rust პროგრამის დეტალები
+SHA-256	SHA-256
+SQLite database contents	SQLite მონაცემთა ბაზის შიგთავსი
+Safety	უსაფრთხოება
+Save	შენახვა
+Save a picture	სურათის შენახვა
+Save a report	ანგარიშის შენახვა
+Save an asset key	რესურსების გასაღების შენახვა
+Save picture	სურათის შენახვა
+Save settings	პარამეტრების შენახვა
+Save the key	გასაღების შენახვა
+Save the picture	სურათის შენახვა
+Save the report	ანგარიშის შენახვა
+Saved	შენახულია
+Saved in	შენახულია:
+Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	ზოგავს ადგილს: აკოპირებს პროგრამასა და კოდს, ხოლო დამოკიდებულებებსა და მედიას პროექტთან იზიარებს. ადგილზე გადაწერილი საერთო ფაილი აქაც შეიცვლება.
+Say what you want	თქვით, რა გინდათ
+Say what you want first.	ჯერ თქვით, რა გინდათ.
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	თქვით, რისი შექმნა გსურთ, ან ჩააგდეთ აპი ან ფაილი ფანჯარაზე, რომ მის შიგნით ჩაიხედოთ. ყველაფერი სუფთა ოთახის რეჟიმში მუშაობს, სანამ ღრმა რეჟიმს არ ჩართავთ.
+Screenshot	ეკრანის ანაბეჭდი
+Screenshot a page	გვერდის ეკრანის ანაბეჭდი
+Screenshots of how it should look. The builder opens each one and matches it.	ეკრანის ანაბეჭდები იმისა, როგორ უნდა გამოიყურებოდეს. შემქმნელი თითოეულს ხსნის და მას ემთხვევა.
+Search for bytes	ბაიტების ძიება
+Search functions	ფუნქციების ძიება
+Search strings	სტრიქონების ძიება
+Sections	სექციები
+Security research on software I'm allowed to examine.	უსაფრთხოების კვლევა პროგრამაზე, რომლის შესწავლის უფლებაც მაქვს.
+See how a page is built: its layout, styles, scripts and the requests it makes.	ნახეთ, როგორ არის აგებული გვერდი: მისი განლაგება, სტილები, სკრიპტები და მოთხოვნები, რომლებსაც აგზავნის.
+See how a program works: what it does, what it talks to, what's inside.	ნახეთ, როგორ მუშაობს პროგრამა: რას აკეთებს, რას უკავშირდება, რა არის შიგნით.
+See what a game packs and save its pictures as PNG files. Only for games you made, or whose owner lets you.	ნახეთ, რას შეიცავს თამაში, და შეინახეთ მისი სურათები PNG ფაილებად. მხოლოდ იმ თამაშებისთვის, რომლებიც თქვენ შექმენით ან რომელთა მფლობელიც ამის უფლებას გაძლევთ.
+See what a game packs, and save its pictures as PNG files.	ნახეთ, რას შეიცავს თამაში, და შეინახეთ მისი სურათები PNG ფაილებად.
+See what a stand-in was asked	შემცვლელისთვის დასმული მოთხოვნების ნახვა
+See which servers an app talks to, and what it says.	ნახეთ, რომელ სერვერებს უკავშირდება აპი და რას ეუბნება მათ.
+Seen it	ნანახია
+Seen it: read directly from the file, page or capture.	ვნახეთ: წაკითხულია პირდაპირ ფაილიდან, გვერდიდან ან ჩანაწერიდან.
+Selected	მონიშნულია
+Selection	მონიშნული
+Send	გაგზავნა
+Send (Enter)	გაგზავნა (Enter)
+Send now	ახლავე გაგზავნა
+Server address	სერვერის მისამართი
+Session status	სესიის მდგომარეობა
+Set a project's asset budget	პროექტის რესურსების ბიუჯეტის დაყენება
+Set an AI's program	AI-ის პროგრამის დაყენება
+Set one up	დაყენება
+Set up a brain…	„ტვინის“ დაყენება…
+Set up a builder	შემქმნელის დაყენება
+Settings	პარამეტრები
+Show a build's activity	აწყობის აქტივობის ჩვენება
+Show a project	პროექტის ჩვენება
+Show folder	საქაღალდის ჩვენება
+Show me everything	ყველაფრის ჩვენება
+Show me the proof	დასტურის ჩვენება
+Show pinned builds	მიმაგრებული აწყობების ჩვენება
+Show settings	პარამეტრების ჩვენება
+Show the answer	პასუხის ჩვენება
+Show the console	კონსოლის ჩვენება
+Show the folder	საქაღალდის ჩვენება
+Show the ones that are met	შესრულებულების ჩვენება
+Show the sidebar	გვერდითი პანელის ჩვენება
+Show the welcome again	მისალმების ხელახლა ჩვენება
+Showing	ნაჩვენებია
+Sign in and add the Unity Editor	შედით სისტემაში და დაამატეთ Unity Editor
+Sign in and install Unreal Engine	შედით სისტემაში და დააინსტალირეთ Unreal Engine
+Simple	მარტივი
+Simple: say what you want and it's handled for you. Advanced: every tool, the evidence and the logs.	მარტივი: თქვით, რა გინდათ, და ყველაფერს თქვენ ნაცვლად გააკეთებს. დამატებითი: ყველა ხელსაწყო, მტკიცებულებები და ჟურნალები.
+Since Craft Anything opened.	Craft Anything-ის გახსნის შემდეგ.
+Size	ზომა
+Skip setup	დაყენების გამოტოვება
+Smart contract interface	ჭკვიანი კონტრაქტის ინტერფეისი
+Software I made, bought, or have permission to examine.	პროგრამა, რომელიც შევქმენი, ვიყიდე ან რომლის შესწავლის ნებართვაც მაქვს.
+Solana program (sBPF)	Solana პროგრამა (sBPF)
+Some plugins couldn't be read:	ზოგიერთი პლაგინის წაკითხვა ვერ მოხერხდა:
+Something a program borrows from the operating system or a library, like "open a file".	რაღაც, რასაც პროგრამა ოპერაციული სისტემიდან ან ბიბლიოთეკიდან სესხულობს, მაგალითად „ფაილის გახსნა“.
+Something a program or library offers for other programs to use.	რაღაც, რასაც პროგრამა ან ბიბლიოთეკა სხვა პროგრამებს გამოსაყენებლად სთავაზობს.
+Source	წყარო
+Start	დაწყება
+Start a Frida session	Frida-ს სესიის დაწყება
+Start a GDB session	GDB-ის სესიის დაწყება
+Start a Rizin debug session	Rizin-ის გამართვის სესიის დაწყება
+Start a rebuild	ხელახალი აწყობის დაწყება
+Start a stand-in backend	შემცვლელი ბექენდის გაშვება
+Start an activity	აქტივობის გაშვება
+Start building	აწყობის დაწყება
+Start from them	მათით დაწყება
+Start it	გაშვება
+Start with Simple mode; you can set up AI later in Settings.	დაიწყეთ მარტივი რეჟიმით; AI-ის დაყენება მოგვიანებით პარამეტრებში შეგიძლიათ.
+Starting…	ეშვება…
+Starting… it opens in its own window.	ეშვება… ის საკუთარ ფანჯარაში გაიხსნება.
+Still working. Bigger jobs can take a few minutes.	ჯერ კიდევ მუშაობს. დიდ დავალებებს შეიძლება რამდენიმე წუთი დასჭირდეს.
+Stop	შეწყვეტა
+Stop a pinned build	მიმაგრებული აწყობის შეწყვეტა
+Stop a rebuild	ხელახალი აწყობის შეწყვეტა
+Stop a stand-in backend	შემცვლელი ბექენდის შეწყვეტა
+Stop generated assets	რესურსების გენერირების შეწყვეტა
+Stop listing {folder}	{folder}-ის სიაში ჩვენების შეწყვეტა
+Stopped here	აქ შეჩერდა
+Stops the current step and sends your notes straight away.	აჩერებს მიმდინარე ნაბიჯს და თქვენს შენიშვნებს მაშინვე აგზავნის.
+Strings	სტრიქონები
+Studio	სტუდია
+Studio (dark)	სტუდია (ბნელი)
+Studio Light	სტუდია (ღია)
+Study	შესწავლა
+Study apps by running them	აპების შესწავლა მათი გაშვებით
+Studying	შესწავლა მიმდინარეობს
+Studying software to understand it.	პროგრამის შესწავლა მის გასაგებად.
+Summarise what changed	ცვლილებების შეჯამება
+Swift types	Swift ტიპები
+Switch Beginner / Experienced	დამწყები / გამოცდილი რეჟიმის გადართვა
+Switch Clean room / Deep	სუფთა ოთახი / ღრმა რეჟიმის გადართვა
+Switch light / dark theme	ღია / ბნელი თემის გადართვა
+Switch target	სამიზნის შეცვლა
+System	სისტემა
+System services	სისტემის სერვისები
+Take a texture out of an Unreal game	Unreal თამაშიდან ტექსტურის ამოღება
+Take an asset out of a Unity game	Unity თამაშიდან რესურსის ამოღება
+Take back a note	შენიშვნის უკან დაბრუნება
+Take back: puts it in the box again	უკან დაბრუნება: ისევ ველში აბრუნებს
+Take files out of an Unreal pak	Unreal pak-იდან ფაილების ამოღება
+Take out packed files	შეფუთული ფაილების ამოღება
+Target	სამიზნე
+Targets	სამიზნეები
+That folder already has {names}, where Craft Anything keeps its own files. Pick another folder, or move those out first.	იმ საქაღალდეში უკვე არის {names}, სადაც Craft Anything საკუთარ ფაილებს ინახავს. აირჩიეთ სხვა საქაღალდე ან ჯერ ისინი გადაიტანეთ.
+That folder is already a project, so it's open now.	ეს საქაღალდე უკვე პროექტია, ამიტომ ის ახლა გახსნილია.
+The Rust toolchain (rustup.rs).	Rust-ის ხელსაწყოთა ნაკრები (rustup.rs).
+The builder answers its own questions and says what it chose ("I decided: …"), so you can change it.	შემქმნელი თავის კითხვებს თავად პასუხობს და ამბობს, რა აირჩია („გადავწყვიტე: …“), რომ შეცვლა შეძლოთ.
+The builder makes the game's 3D models and textures from descriptions of original designs, paid from your fal.ai account. Models are low-poly so the game runs fast. A textured model costs {model} and a picture {picture}. Each project has a {budget} budget, and you're asked before it goes over. The key is kept in your system keychain.	შემქმნელი თამაშის 3D მოდელებსა და ტექსტურებს ორიგინალური დიზაინების აღწერებიდან ქმნის, თქვენი fal.ai ანგარიშის ხარჯზე. მოდელები დაბალპოლიგონურია, რომ თამაში სწრაფად მუშაობდეს. ტექსტურიანი მოდელი ღირს {model}, სურათი — {picture}. ყოველ პროექტს აქვს {budget} ბიუჯეტი და მის გადაჭარბებამდე გკითხავენ. გასაღები ინახება თქვენი სისტემის გასაღებების საცავში.
+The builder reads them (code, notes, pictures) and builds the app in a new app folder beside them. Your files stay as they are.	შემქმნელი მათ კითხულობს (კოდს, შენიშვნებს, სურათებს) და აპს მათ გვერდით ახალ app საქაღალდეში აწყობს. თქვენი ფაილები უცვლელად რჩება.
+The builder will decide its questions and tell you what it chose.	შემქმნელი თავის კითხვებს თავად გადაწყვეტს და გეტყვით, რა აირჩია.
+The builder works on these files directly and keeps what works. Craft Anything adds a few records of its own beside them.	შემქმნელი ამ ფაილებზე პირდაპირ მუშაობს და ინახავს იმას, რაც მუშაობს. Craft Anything მათ გვერდით რამდენიმე საკუთარ ჩანაწერს ამატებს.
+The builder's questions	შემქმნელის კითხვები
+The builder's questions come to you as cards, and it waits for your answer.	შემქმნელის კითხვები ბარათებად მოგივათ და ის თქვენს პასუხს დაელოდება.
+The builder's questions will come to you.	შემქმნელის კითხვები თქვენ მოგივათ.
+The built-in engines still show you everything they find.	ჩაშენებული ძრავები მაინც გაჩვენებთ ყველაფერს, რასაც პოულობს.
+The clipboard can't be read:	გაცვლის ბუფერის წაკითხვა ვერ მოხერხდა:
+The code	კოდი
+The code format Android apps use.	კოდის ფორმატი, რომელსაც Android აპები იყენებს.
+The coding agent's estimate at API prices, not your bill. A subscription isn't charged this.	პროგრამირების აგენტის შეფასება API ფასებით, და არა თქვენი ანგარიშსწორება. გამოწერისას ეს თანხა არ ჩამოგეჭრებათ.
+The download keeps going in the background.	ჩამოტვირთვა ფონურ რეჟიმში გრძელდება.
+The first instruction a program runs when it starts.	პირველი ინსტრუქცია, რომელსაც პროგრამა გაშვებისას ასრულებს.
+The full toolset, evidence and logs.	ხელსაწყოების სრული ნაკრები, მტკიცებულებები და ჟურნალები.
+The installer is open. Follow its steps, then come back here.	ინსტალატორი გახსნილია. მიჰყევით მის ნაბიჯებს, შემდეგ დაბრუნდით აქ.
+The lowest-level human-readable form of machine code: one small instruction per line.	მანქანური კოდის ყველაზე დაბალი დონის ადამიანისთვის წაკითხვადი ფორმა: თითო მცირე ინსტრუქცია სტრიქონზე.
+The names were removed from the program before it was shipped, so we have to work them out.	სახელები პროგრამიდან მის გამოშვებამდე წაიშალა, ამიტომ მათი გარკვევა გვიწევს.
+The packed contents of an Electron app (a website inside a desktop app)	Electron აპის შეფუთული შიგთავსი (ვებსაიტი დესკტოპის აპის შიგნით)
+The pasted picture wasn't attached: another screen was opened meanwhile.	ჩასმული სურათი არ მიმაგრდა: ამასობაში სხვა ეკრანი გაიხსნა.
+The picture on the clipboard is too large.	გაცვლის ბუფერში არსებული სურათი ზედმეტად დიდია.
+The program's machine code written out as one tiny instruction per line.	პროგრამის მანქანური კოდი, ჩაწერილი თითო პაწია ინსტრუქციით სტრიქონზე.
+The project's name and round	პროექტის სახელი და რაუნდი
+The raw result	ნედლი შედეგი
+The smallest unit of data in a file: a number from 0 to 255.	მონაცემების უმცირესი ერთეული ფაილში: რიცხვი 0-დან 255-მდე.
+The smallest units of data in a file: numbers from 0 to 255.	მონაცემების უმცირესი ერთეულები ფაილში: რიცხვები 0-დან 255-მდე.
+The {name} view isn't available yet in this build.	ხედი „{name}“ ამ აწყობაში ჯერ მიუწვდომელია.
+The {} view isn't available yet in this build.	ხედი „{}“ ამ აწყობაში ჯერ მიუწვდომელია.
+Theme	თემა
+There's no /{name} command. You can use {commands}.	ბრძანება /{name} არ არსებობს. შეგიძლიათ გამოიყენოთ {commands}.
+There's no AI brain set up yet, so here's what the built-in engines found:	AI „ტვინი“ ჯერ დაყენებული არ არის, ამიტომ აი, რა იპოვა ჩაშენებულმა ძრავებმა:
+There's no picture on the clipboard to paste.	გაცვლის ბუფერში ჩასასმელი სურათი არ არის.
+They're my app: edit them in place	ეს ჩემი აპია: ადგილზე რედაქტირება
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	რაღაცები, რასაც პროგრამა ოპერაციული სისტემიდან ან ბიბლიოთეკებიდან სესხულობს, მაგალითად „ფაილის გახსნა“ ან „ფანჯრის დახატვა“.
+Things a program or library offers for other programs to use.	რაღაცები, რასაც პროგრამა ან ბიბლიოთეკა სხვა პროგრამებს გამოსაყენებლად სთავაზობს.
+Things we couldn't establish yet are listed here, with what would settle them.	აქ ჩამოთვლილია ის, რისი დადგენაც ჯერ ვერ მოვახერხეთ, და ისიც, რა გადაწყვეტდა ამას.
+This answer won't be there after a restart:	ეს პასუხი გადატვირთვის შემდეგ აღარ იქნება:
+This build stopped part-way	ეს აწყობა შუა გზაზე შეჩერდა
+This can't be undone.	ამის გაუქმება შეუძლებელია.
+This folder already has files	ამ საქაღალდეში უკვე არის ფაილები
+This is a big one. You can leave this open and come back later.	ეს დიდია. შეგიძლიათ ღიად დატოვოთ და მოგვიანებით დაბრუნდეთ.
+This is outside what the builder may do on its own. Nothing happens until you say so.	ეს სცდება იმას, რისი გაკეთებაც შემქმნელს დამოუკიდებლად შეუძლია. სანამ არ იტყვით, არაფერი მოხდება.
+This keeps going in the background, and each download is checked against its publisher's checksum before it's used.	ეს ფონურ რეჟიმში გრძელდება და ყოველი ჩამოტვირთული გამოყენებამდე მოწმდება გამომცემლის საკონტროლო ჯამით.
+This project is waiting its turn. Send your message once it starts.	ეს პროექტი თავის რიგს ელოდება. შეტყობინება გაგზავნეთ, როცა დაიწყება.
+This runs code from the target or changes a device. Clicking Run is your OK.	ეს უშვებს სამიზნის კოდს ან ცვლის მოწყობილობას. „გაშვებაზე“ დაწკაპება თქვენი თანხმობაა.
+This runs code from the target or changes a device. Nothing runs until you say so.	ეს უშვებს სამიზნის კოდს ან ცვლის მოწყობილობას. სანამ არ იტყვით, არაფერი გაეშვება.
+This tool takes no settings.	ამ ხელსაწყოს პარამეტრები არ აქვს.
+This updates by itself when it's done.	დასრულებისას ეს თავისით განახლდება.
+This view arrives with the next engines. The Hex and Result views work today.	ეს ხედი შემდეგ ძრავებთან ერთად გამოჩნდება. ხედები „Hex“ და „შედეგი“ უკვე მუშაობს.
+Those aren't pictures we can use (PNG, JPEG, WebP or GIF, up to 20 MB).	ეს სურათები ჩვენთვის გამოუსადეგარია (PNG, JPEG, WebP ან GIF, 20 MB-მდე).
+Time spent	დახარჯული დრო
+Tip: press Ctrl/⌘ K to run any tool.	რჩევა: ნებისმიერი ხელსაწყოს გასაშვებად დააჭირეთ Ctrl/⌘ K-ს.
+Tokens	ტოკენები
+Tools may now run code from what you open without asking. Turn this back on unless you're sure.	ხელსაწყოებს ახლა შეუძლიათ კითხვის გარეშე გაუშვან კოდი იქიდან, რასაც ხსნით. ხელახლა ჩართეთ, თუ დარწმუნებული არ ხართ.
+Tools that run code from a target or change a phone always ask first, unless you allowed them for a project.	ხელსაწყოები, რომლებიც სამიზნის კოდს უშვებს ან ტელეფონს ცვლის, ყოველთვის ჯერ კითხულობს, თუ პროექტისთვის ისინი არ დაგიშვიათ.
+Trace a UI action	ინტერფეისის მოქმედების მიდევნება
+Trace a feature	შესაძლებლობის მიდევნება
+Try again	ხელახლა ცდა
+Try asking	სცადეთ იკითხოთ
+Try it out, then ask below for any changes.	გამოსცადეთ, შემდეგ ქვემოთ მოითხოვეთ ნებისმიერი ცვლილება.
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	პროგრამის მანქანური კოდის უკან გარდაქმნა ისეთად, რაც წყარო კოდივით იკითხება. ეს რეკონსტრუქციაა და არა ორიგინალი.
+Turn off	გამორთვა
+Turn off an AI	AI-ის გამორთვა
+Turn on	ჩართვა
+Turn on Deep mode	ღრმა რეჟიმის ჩართვა
+Turn on an AI	AI-ის ჩართვა
+Turning a plugin on or off takes effect from the next start.	პლაგინის ჩართვა ან გამორთვა შემდეგი გაშვებიდან მოქმედებს.
+Type a command or tool…	აკრიფეთ ბრძანება ან ხელსაწყო…
+Type the website's address:	აკრიფეთ ვებსაიტის მისამართი:
+Type your question after /btw.	აკრიფეთ თქვენი კითხვა /btw-ის შემდეგ.
+Unity assets	Unity რესურსები
+Unity bundle	Unity პაკეტი
+Unity's own installer. It only opens if Unity's signature checks out.	Unity-ის საკუთარი ინსტალატორი. ის მხოლოდ მაშინ იხსნება, თუ Unity-ის ხელმოწერა შემოწმებას გაივლის.
+Unknown	უცნობი
+Unknown: we couldn't establish this yet.	უცნობი: ამის დადგენა ჯერ ვერ მოვახერხეთ.
+Unknowns	უცნობები
+Unload a Frida script	Frida-ს სკრიპტის გამოტვირთვა
+Unreal IoStore	Unreal IoStore
+Unreal builds games with Apple's Xcode, free in the App Store.	Unreal თამაშებს Apple-ის Xcode-ით აწყობს, რომელიც App Store-ში უფასოა.
+Unreal is here, but it also needs Visual Studio's C++ tools.	Unreal აქ არის, მაგრამ მას Visual Studio-ს C++ ხელსაწყოებიც სჭირდება.
+Unreal is here, but it also needs Xcode.	Unreal აქ არის, მაგრამ მას Xcode-იც სჭირდება.
+Unreal is here, but its bundled Clang C++ toolchain wasn't found.	Unreal აქ არის, მაგრამ მასთან ერთად მოწოდებული Clang C++ ხელსაწყოთა ნაკრები ვერ მოიძებნა.
+Unreal pak	Unreal pak
+Update a finding	მიგნების განახლება
+Update a hypothesis	ჰიპოთეზის განახლება
+Update an open question	პასუხგაუცემელი კითხვის განახლება
+Update the checklist	საკონტროლო სიის განახლება
+Update the plan	გეგმის განახლება
+Use	გამოყენება
+Use an API key…	API გასაღების გამოყენება…
+Use as a goal	მიზნად გამოყენება
+Use the projects folder	პროექტების საქაღალდის გამოყენება
+Use this	ამის გამოყენება
+Use {name}	{name}-ის გამოყენება
+Value flow	მნიშვნელობების ნაკადი
+Version	ვერსია
+View	ხედი
+Waiting	ელოდება
+Waiting for another build to finish: this one starts next.	სხვა აწყობის დასრულების მოლოდინი: ეს შემდეგი დაიწყება.
+Waiting for other builds to finish: {n} in line.	სხვა აწყობების დასრულების მოლოდინი: რიგში: {n}.
+Waiting: the builder reads it at its next step. Up arrow to edit.	ელოდება: შემქმნელი ამას შემდეგ ნაბიჯზე წაიკითხავს. რედაქტირებისთვის — ზემოთ ისარი.
+Waiting: the builder reads these at its next step. Up arrow to edit the last.	ელოდება: შემქმნელი ამათ შემდეგ ნაბიჯზე წაიკითხავს. ბოლოს რედაქტირებისთვის — ზემოთ ისარი.
+Want answers in plain words?	გსურთ პასუხები მარტივი სიტყვებით?
+Watch a Mac app's calls	Mac აპის გამოძახებებზე დაკვირვება
+Watch a page over time	გვერდზე დროში დაკვირვება
+We didn't find an AI on this computer yet	ამ კომპიუტერზე AI ჯერ ვერ ვიპოვეთ
+We list the web addresses and messages we can see inside it. Watching it live needs your OK first.	ჩამოვთვლით ვებმისამართებსა და შეტყობინებებს, რომლებსაც მის შიგნით ვხედავთ. პირდაპირ დაკვირვებას ჯერ თქვენი თანხმობა სჭირდება.
+We only read it; nothing runs. Every answer shows how sure we are.	მას მხოლოდ ვკითხულობთ; არაფერი ეშვება. ყოველი პასუხი აჩვენებს, რამდენად დარწმუნებული ვართ.
+WebAssembly module	WebAssembly მოდული
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly: სწრაფი კომპილირებული კოდი, რომელიც ვებბრაუზერებში მუშაობს.
+Website address	ვებსაიტის მისამართი
+Website pages	ვებსაიტის გვერდები
+Websites	ვებსაიტები
+Welcome	მოგესალმებით
+What a new game may spend on generated pictures and 3D models before you're asked. Each project keeps its own.	რამდენი შეუძლია ახალ თამაშს დახარჯოს გენერირებულ სურათებსა და 3D მოდელებზე, სანამ გკითხავენ. ყოველ პროექტს თავისი აქვს.
+What a program exports	რის ექსპორტს აკეთებს პროგრამა
+What a program imports	რის იმპორტს აკეთებს პროგრამა
+What are its main parts?	რა არის მისი მთავარი ნაწილები?
+What brings you here?	რამ მოგიყვანათ აქ?
+What can Craft Anything do?	რა შეუძლია Craft Anything-ს?
+What data was sent?	რა მონაცემები გაიგზავნა?
+What do you want to look inside?	რის შიგნით გსურთ ჩახედვა?
+What do you want to make?	რისი შექმნა გსურთ?
+What do you want to recreate?	რისი ხელახლა შექმნა გსურთ?
+What does it need from the page?	რა სჭირდება მას გვერდისგან?
+What does it send over the internet?	რას აგზავნის ის ინტერნეტით?
+What does this app do?	რას აკეთებს ეს აპი?
+What does this app store?	რას ინახავს ეს აპი?
+What does this contract do?	რას აკეთებს ეს კონტრაქტი?
+What does this module do?	რას აკეთებს ეს მოდული?
+What does this program do?	რას აკეთებს ეს პროგრამა?
+What does {what} do?	რას აკეთებს {what}?
+What happened in this build	რა მოხდა ამ აწყობაში
+What is it	რა არის ეს
+What is this?	რა არის ეს?
+What it calls	რას იძახებს ის
+What kind of file is this?	რა ტიპის ფაილია ეს?
+What permissions does it ask for?	რა ნებართვებს ითხოვს ის?
+What pictures and textures are made with.	რითი იქმნება სურათები და ტექსტურები.
+What settings are in here?	რა პარამეტრებია აქ?
+What tables are in here?	რა ცხრილებია აქ?
+What we couldn't check	რისი შემოწმება ვერ მოვახერხეთ
+What would you like to find out?	რისი გაგება გსურთ?
+What would you like to know about {name}?	რისი გაგება გსურთ {name}-ის შესახებ?
+What's at this address	რა არის ამ მისამართზე
+What's in this folder?	რა არის ამ საქაღალდეში?
+What's inside this archive?	რა არის ამ არქივში?
+Whatever Settings → AI builds with.	რითაც აწყობს „პარამეტრები → AI“.
+When a folder you pick has files	როცა თქვენ მიერ არჩეულ საქაღალდეში ფაილებია
+When the builder needs a choice made: show it to you and wait, or let it decide and say what it chose. Each project can choose for itself under its prompt box.	როცა შემქმნელს არჩევანის გაკეთება სჭირდება: გაჩვენოთ და დაელოდოს, თუ თავად გადაწყვიტოს და თქვას, რა აირჩია. ყოველ პროექტს შეუძლია თავისთვის აირჩიოს მოთხოვნის ველის ქვეშ.
+When you rebuild an app or game, start it once to picture its window and compare the rebuild with it. It runs that program.	აპის ან თამაშის ხელახლა აწყობისას ერთხელ გაუშვით ის, რომ მისი ფანჯრის სურათი გადაიღოს და ხელახალი აწყობა მას შეადაროს. ეს იმ პროგრამას უშვებს.
+Where am I	სად ვარ
+Where is Ghidra installed?	სად არის Ghidra დაყენებული?
+Where is the program?	სად არის პროგრამა?
+Where should new projects go?	სად შეინახოს ახალი პროექტები?
+Where we found it	სად ვიპოვეთ
+Whether they're the app to edit in place, or material the app starts from beside them.	არის თუ არა ისინი ადგილზე დასარედაქტირებელი აპი, თუ მასალა, რომლითაც აპი მათ გვერდით იწყება.
+Which AI answers your questions	რომელი AI პასუხობს თქვენს კითხვებს
+Which file is the main program?	რომელი ფაილია მთავარი პროგრამა?
+Which files does it read or write?	რომელ ფაილებს კითხულობს ან წერს ის?
+Which function is this in	რომელ ფუნქციაშია ეს
+Which servers does it talk to?	რომელ სერვერებს უკავშირდება ის?
+Which servers were contacted?	რომელ სერვერებს დაუკავშირდა?
+Which websites does it load?	რომელ ვებსაიტებს ტვირთავს ის?
+Who builds what you make	ვინ აწყობს იმას, რასაც ქმნით
+Who calls it	ვინ იძახებს მას
+Who can move funds?	ვის შეუძლია სახსრების გადატანა?
+Who signed this Windows program	ვინ მოაწერა ხელი ამ Windows პროგრამას
+Who uses this Android class?	ვინ იყენებს ამ Android კლასს?
+Who uses this Java class?	ვინ იყენებს ამ Java კლასს?
+Why we ask	რატომ ვკითხულობთ
+Window	ფანჯარა
+Window / focus info	ფანჯრის / ფოკუსის ინფორმაცია
+Windows resources	Windows რესურსები
+Wireshark tools check	Wireshark ხელსაწყოების შემოწმება
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	მის გარეშე ღრმა რეჟიმი Craft Anything-ის საკუთარ დეკომპილატორს იყენებს, რომელიც უფრო უხეშია.
+Work on a project you already have	მუშაობა პროექტზე, რომელიც უკვე გაქვთ
+Work on my project	ჩემს პროექტზე მუშაობა
+Work out a copy's size	ასლის ზომის გამოთვლა
+Work out what an installed app is built on	იმის გარკვევა, რაზეა აგებული დაინსტალირებული აპი
+Workbench	სამუშაო მაგიდა
+Worked it out	გავარკვიეთ
+Worked it out: computed step by step from things we saw.	გავარკვიეთ: ნაბიჯ-ნაბიჯ გამოთვლილია იმისგან, რაც ვნახეთ.
+Worked through {n} steps	გავლილი ნაბიჯი: {n}
+Working on it	ვმუშაობთ
+Working on your answer	ვმუშაობთ თქვენს პასუხზე
+Working out how much space a copy takes…	ვითვლით, რამდენ ადგილს იკავებს ასლი…
+Working…	მუშავდება…
+Working… ({n} steps so far)	მუშავდება… (ჯერჯერობით ნაბიჯი: {n})
+Write a project file	პროექტის ფაილის ჩაწერა
+Write a readable report	წაკითხვადი ანგარიშის დაწერა
+Write comment	კომენტარის დაწერა
+Write inline comment	ჩადგმული კომენტარის დაწერა
+Write pseudo-C to a folder	ფსევდო-C-ის საქაღალდეში ჩაწერა
+Write the brief	მოკლე აღწერის დაწერა
+Write the handoff	გადაცემის ჩანაწერის დაწერა
+Wrote {what} to {}	{what} ჩაიწერა აქ: {}
+You answered: {a}	თქვენ უპასუხეთ: {a}
+You can add a Claude, ChatGPT or OpenRouter key, a local model (Ollama, LM Studio) or an agent you already use, later in Settings → AI.	Claude-ის, ChatGPT-ის ან OpenRouter-ის გასაღების, ლოკალური მოდელის (Ollama, LM Studio) ან უკვე გამოყენებული აგენტის დამატება მოგვიანებით შეგიძლიათ აქ: პარამეტრები → AI.
+You chose:	თქვენ აირჩიეთ:
+You're all set	ყველაფერი მზადაა
+Your app is ready	თქვენი აპი მზადაა
+Your brains	თქვენი „ტვინები“
+Your fal.ai key	თქვენი fal.ai გასაღები
+Your game is ready	თქვენი თამაში მზადაა
+Your message wasn't sent: another project was opened while its pictures were copied.	თქვენი შეტყობინება არ გაიგზავნა: მისი სურათების კოპირებისას სხვა პროექტი გაიხსნა.
+Your own tool installs (optional)	ხელსაწყოების თქვენი საკუთარი ინსტალაციები (არასავალდებულო)
+Your project starts as soon as it's done.	თქვენი პროექტი დაიწყება, როგორც კი ეს დასრულდება.
+Your version	თქვენი ვერსია
+Your website is ready	თქვენი ვებსაიტი მზადაა
+a new folder in {dir}	ახალი საქაღალდე აქ: {dir}
+a picture	სურათი
+about ${n}	დაახლოებით ${n}
+address, e.g. http://192.168.1.20:11434/v1	მისამართი, მაგ. http://192.168.1.20:11434/v1
+and {n} more	და კიდევ {n}
+arguments (optional)	არგუმენტები (არასავალდებულო)
+call graph	გამოძახებების გრაფი
+clean room	სუფთა ოთახი
+command, https:// address or .wasm file	ბრძანება, https:// მისამართი ან .wasm ფაილი
+deep mode	ღრმა რეჟიმი
+entry point	შესვლის წერტილი
+files	ფაილი
+findings	მიგნებები
+first run	პირველი გაშვება
+found on this computer; set up when you start	ნაპოვნია ამ კომპიუტერზე; დაყენდება დაწყებისას
+from the builder's own memory of the build	შემქმნელის საკუთარი მეხსიერებიდან აწყობის შესახებ
+from the project's files	პროექტის ფაილებიდან
+id, e.g. docs	id, მაგ. docs
+is required	სავალდებულოა
+isn't available yet	ჯერ მიუწვდომელია
+job result	დავალების შედეგი
+job {title} panicked: {what}	დავალება {title} ავარიულად შეწყდა: {what}
+just now	ახლახან
+managed	მართული
+model (optional)	მოდელი (არასავალდებულო)
+must be a number	უნდა იყოს რიცხვი
+must be a whole number	უნდა იყოს მთელი რიცხვი
+name, e.g. Studio box	სახელი, მაგ. Studio box
+number	რიცხვი
+objdump output	objdump-ის გამონატანი
+or start with /btw to just ask	ან უბრალოდ შესაკითხად დაიწყეთ /btw-ით
+pinned builds couldn't be read: {}	მიმაგრებული აწყობების წაკითხვა ვერ მოხერხდა: {}
+say how to use the files there	თქვით, როგორ გამოვიყენოთ იქ არსებული ფაილები
+scene	სცენა
+scenes	სცენა
+source map	წყაროს რუკა
+start page	საწყისი გვერდი
+the app is built beside your files, starting from them	აპი თქვენი ფაილების გვერდით აიწყობა, მათზე დაყრდნობით
+the built-in engines	ჩაშენებული ძრავები
+the prompt box changed height	მოთხოვნის ველის სიმაღლე შეიცვალა
+title bar	სათაურის ზოლი
+under $0.01	$0.01-ზე ნაკლები
+yesterday	გუშინ
+your files there are the app, edited in place	იქ არსებული თქვენი ფაილები თავად აპია, ადგილზე რედაქტირებადი
+Zoom	მასშტაბი
+{:.1} GB	{:.1} GB
+{:.1}M	{:.1}M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend}: {input_tokens} შემავალი / {output_tokens} გამავალი{cost}
+{cost} (estimate)	{cost} (შეფასება)
+{c} · {size}	{c} · {size}
+{done} of {all} done	შესრულებულია {done} / {all}
+{gb} GB for bigger ones	{gb} GB უფრო დიდებისთვის
+{gb} GB for programs up to {size}	{gb} GB {size}-მდე პროგრამებისთვის
+{gb} GB up to {size}	{gb} GB {size}-მდე
+{held} of {n} requirements met	შესრულებულია {held} / {n} მოთხოვნა
+{id} · {summary}	{id} · {summary}
+{in} in, {out} out.	{in} შემავალი, {out} გამავალი.
+{k}: {s}	{k}: {s}
+{lbl}  {}	{lbl}  {}
+{line}, and {n} more	{line} და კიდევ {n}
+{mb} MB	{mb} MB
+{name} builds what you make.	{name} აწყობს იმას, რასაც ქმნით.
+{name} builds what you make; answers come from {brain}.	{name} აწყობს იმას, რასაც ქმნით; პასუხები მოდის {brain}-ისგან.
+{name} can't be attached: a message takes pictures up to 20 MB.	{name}-ის მიმაგრება შეუძლებელია: შეტყობინება იღებს სურათებს 20 MB-მდე.
+{name} can't be attached: it isn't a PNG, JPEG, GIF or WebP picture.	{name}-ის მიმაგრება შეუძლებელია: ის PNG, JPEG, GIF ან WebP სურათი არ არის.
+{name} is ready	{name} მზადაა
+{name} is ready.	{name} მზადაა.
+{name} isn't available yet in this build.	{name} ამ აწყობაში ჯერ მიუწვდომელია.
+{name} isn't on this computer yet.	{name} ამ კომპიუტერზე ჯერ არ არის.
+{name} key	{name} გასაღები
+{n} actions done so far	შესრულებული მოქმედება: {n}
+{n} days ago	{n} დღის წინ
+{n} h ago	{n} სთ-ის წინ
+{n} item(s)	ელემენტი: {n}
+{n} job(s) running	მიმდინარე დავალება: {n}
+{n} min ago	{n} წთ-ის წინ
+{n} picture(s) to match.	შესადარებელი სურათი: {n}.
+{n} step(s) didn't work and were retried or skipped.	ნაბიჯი, რომელიც არ გამოვიდა და ხელახლა იქნა ნაცადი ან გამოტოვებული: {n}.
+{n} tokens	ტოკენი: {n}
+{n} · ${spent:.2} of ${budget:.2}	{n} · ${spent:.2} / ${budget:.2}
+{n} · ${spent} of ${budget}	{n} · ${spent} / ${budget}
+{scenes} {}	{scenes} {}
+{text}, {}	{text}, {}
+{title} hit a bug and stopped safely. ({what})	{title}-ს შეცდომა შეხვდა და უსაფრთხოდ შეჩერდა. ({what})
+{title} {id}	{title} {id}
+{title} · {:.0}%	{title} · {:.0}%
+{tool} finished	{tool} დასრულდა
+{tool}: {}	{tool}: {}
+{what} panicked: {msg}	{what} ავარიულად შეწყდა: {msg}
+{} GB	{} GB
+{} isn't available yet in this build.	{} ამ აწყობაში ჯერ მიუწვდომელია.
+{} item(s)	ელემენტი: {}
+{} key	{} გასაღები
+{} report.md	{} report.md
+{} {name}	{} {name}
+{} {said}	{} {said}
+{} {then}	{} {then}
+{} {v}	{} {v}
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+{}: {e}	{}: {e}
+{}: {some}{more}.	{}: {some}{more}.
+{}: {state}	{}: {state}
+{}h {:02}m	{}სთ {:02}წთ
+{}m {:02}s	{}წთ {:02}წმ
+— use the filter to find the rest.	— დანარჩენის საპოვნელად გამოიყენეთ ფილტრი.
+… {n} more	… კიდევ {n}
+… {n} older	… კიდევ {n} ძველი
+… {} more	… კიდევ {}
+… {} older	… კიდევ {} ძველი
+← Back	← უკან
+↑↓ to move · Enter to run · Esc to close	↑↓ — გადაადგილება · Enter — გაშვება · Esc — დახურვა
+Apply model options	მოდელის პარამეტრების გამოყენება
+Extended	გაფართოებული
+For example: add a dark mode	მაგალითად: ბნელი რეჟიმის დამატება
+Harnesses	აგენტები
+Model options	მოდელის პარამეტრები
+Providers	მომწოდებლები
+Reasoning	მსჯელობა
+Show model options	მოდელის პარამეტრების ჩვენება
+Standard	სტანდარტული
+Where is your project?	სად არის თქვენი პროექტი?
+Choose what the builder's approvals get	აირჩიეთ, რას იღებს ამწყობის ნებართვები
+Reading the web	ვების კითხვა
+Other commands	სხვა ბრძანებები
+Files outside the project	ფაილები პროექტის გარეთ
+Pushing and publishing	Push და გამოქვეყნება
+Deleting outside the project	წაშლა პროექტის გარეთ
+System changes	სისტემის ცვლილებები
+Other tools	სხვა ხელსაწყოები
+Allow	დაშვება
+Ask	კითხვა
+Refuse	უარყოფა
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	/approvals-ის შემდეგ აკრიფეთ სახე და allow, ask, refuse ან default, მაგალითად /approvals publish ask. სახეები: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	სახე {name} არ არსებობს. სახეები: {kinds}.
+Approvals	ნებართვები
+In this project, {kind}: {choice}.	ამ პროექტში {kind}: {choice}.
+Couldn't change the approvals:	ნებართვების შეცვლა ვერ მოხერხდა:
+What the builder may do without asking you, in this project.	რისი გაკეთება შეუძლია ამწყობს ამ პროექტში თქვენი კითხვის გარეშე.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	ნაგულისხმევი ავტორეჟიმს მიჰყვება: როცა ჩართულია, რისი გაუქმებაც შეიძლება, სრულდება, დანარჩენი კი უარყოფილია; როცა გამორთულია, ამწყობი გეკითხებათ.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room არ კითხულობს ორიგინალის კოდს, ფაილებს ან გვერდის წყაროს: იყენებს მხოლოდ იმას, რასაც ხედავთ. Deep კითხულობს ყველა ხელსაწყოთი და IDA ან Ghidra, როცა დაყენებულია. ყველა აღმოჩენა ინახავს რომელი გამოიყენეს.
+Deep decompiler	Deep დეკომპილერი
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	ავტომატური ჯერ IDA-ს, შემდეგ Ghidra-ს ირჩევს. თქვენ ასევე შეგიძლიათ პირდაპირ აირჩიოთ.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: ვკითხულობთ მის კოდს, ფაილებსა და გვერდის წყაროს ყველა ხელსაწყოთი და გარე დეკომპილერით, როცა დაყენებულია. დააწკაპუნეთ გადასართვლად.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} არ არის დაყენებული, ამიტომ ჩაშენებული დეკომპილერი იმუშავებს. აირჩიეთ ძრავა პარამეტრები → ძრავები.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ჯერ არ არის ამ კომპიუტერში, ამიტომ ჩაშენებული დეკომპილერი იმუშავებს.

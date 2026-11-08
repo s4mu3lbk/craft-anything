@@ -87,7 +87,7 @@ pub fn specs() -> Vec<ToolSpec> {
         spec(
             "game_unity_asset_export",
             "Take an asset out of a Unity game",
-            "Save one object of a Unity serialized file (absolute path of a .assets or level file, or of a bundle: then `file` picks the serialized file inside, the first by default) as a file anyone can open: a texture (Texture2D, by its path_id from game_unity_list) becomes a PNG at `output` (an absolute path that doesn't exist yet). Pixels are read inside the object or from the .resS file it streams from. Formats: Alpha8, R8, RGB24, RGBA32, ARGB32, BGRA32, RGB565, RGBA4444, ARGB4444, DXT1, DXT5, BC4, BC5, BC6H (tone-mapped to 8 bits; brighter than white clips) and BC7; others (crunched, ASTC, ETC…) are refused with their name. Unity 2017.3 and later.",
+            "Save one object of a Unity serialized file (absolute path of a .assets or level file, or of a bundle: then `file` picks the serialized file inside, the first by default) as a file anyone can open: a texture (Texture2D, by its path_id from game_unity_list) becomes a PNG at `output` (an absolute path that doesn't exist yet). Pixels are read inside the object or from the .resS file it streams from. Formats: Alpha8, R8, RGB24, RGBA32, ARGB32, BGRA32, RGB565, RGBA4444, ARGB4444, RHalf, RGHalf, RGBAHalf, RFloat, RGFloat, RGBAFloat, DXT1, DXT5, BC4, BC5, BC6H and BC7. Floating-point colours are shown in 8-bit sRGB and clip at white. Other formats (crunched, ASTC, ETC…) are refused with their name. Unity 2017.3 and later.",
             "Save a picture from a Unity game as a PNG.",
             Toolset::Formats,
             Effects::EVIDENCE.union(Effects::WRITES_FILESYSTEM),

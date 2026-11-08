@@ -150,6 +150,7 @@ It is part of these rules: read it before your first change (Claude Code loads i
 
 ```sh
 cargo fmt --all
+cargo build -p craft-anything-cli   # if you touched crates/ai: two of its tests start this helper
 cargo test -p <crates you touched>
 cargo clippy -p <crates> --all-targets -- -D warnings
 cargo xtask layers

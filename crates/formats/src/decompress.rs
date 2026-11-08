@@ -96,6 +96,42 @@ pub fn lzma(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
     }
 }
 
+/// Decode a complete LZMA piece with properties but no size header, bounding its dictionary and output.
+pub(crate) fn lzma_raw_complete(input: &[u8], out_len: u32) -> Result<Vec<u8>, DecompressError> {
+    let cap = usize::try_from(out_len).map_err(|_| DecompressError::TooLarge)?;
+    if cap > isize::MAX as usize {
+        return Err(DecompressError::TooLarge);
+    }
+    let (properties, stream) = input.split_at_checked(5).ok_or(DecompressError::Truncated)?;
+    let [property, d0, d1, d2, d3] = <[u8; 5]>::try_from(properties).map_err(|_| DecompressError::Truncated)?;
+    // No match can reach farther back than the entire output. Keep the decoder's minimum window,
+    // but avoid oversized dictionary arithmetic on 32-bit targets before its memory limit is checked.
+    let dictionary = u32::from_le_bytes([d0, d1, d2, d3]).max(4096).min(out_len.max(4096));
+    let [d0, d1, d2, d3] = dictionary.to_le_bytes();
+    let properties = [property, d0, d1, d2, d3];
+    let decode = |size: Option<u64>| {
+        let options =
+            lzma_rs::decompress::Options { unpacked_size: lzma_rs::decompress::UnpackedSize::UseProvided(size), memlimit: Some(cap), ..Default::default() };
+        let mut out = CapWrite::new(cap);
+        let mut cursor = io::Cursor::new(properties).chain(io::Cursor::new(stream));
+        match lzma_rs::lzma_decompress_with_options(&mut cursor, &mut out, &options) {
+            Ok(()) if cursor.get_ref().1.position() == stream.len() as u64 => Ok(out.buf),
+            Ok(()) => Err(DecompressError::Corrupt),
+            Err(_) if out.exceeded => Err(DecompressError::TooLarge),
+            Err(lzma_rs::error::Error::HeaderTooShort(_)) => Err(DecompressError::Truncated),
+            Err(_) => Err(DecompressError::Corrupt),
+        }
+    };
+    let output = decode(None)?;
+    if output.len() == cap {
+        return Ok(output);
+    }
+    // A zero range code at EOF can precede the last zero literals in a stream without an end marker.
+    // Retry a short result with its known size only after completion succeeded; never recover a failed probe.
+    drop(output);
+    decode(Some(u64::from(out_len)))
+}
+
 /// Decompress a bzip2 stream, producing at most `max_out` bytes.
 pub fn bzip2(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
     read_capped(bzip2_rs::DecoderReader::new(input), cap_of(max_out))

@@ -191,6 +191,9 @@ pub fn parse(data: &[u8]) -> Result<Signature, FormatError> {
     }
     let length = r.u32_be(4).ok_or_else(|| FormatError::Truncated("superblob header".into()))?;
     let count = r.u32_be(8).ok_or_else(|| FormatError::Truncated("superblob header".into()))? as usize;
+    if length < 12 {
+        return Err(FormatError::Malformed("superblob length is smaller than its header".into()));
+    }
     let mut sig = Signature {
         length,
         blobs: Vec::new(),
@@ -209,6 +212,7 @@ pub fn parse(data: &[u8]) -> Result<Signature, FormatError> {
     if count > MAX_BLOBS {
         sig.warnings.push(format!("{count} blobs listed; reading {MAX_BLOBS}"));
     }
+    let r = Reader::new(r.slice(0, (length as usize).min(data.len())).unwrap_or(&[]));
     for i in 0..count.min(MAX_BLOBS) {
         let (Some(slot), Some(off)) = (r.u32_be(12 + i * 8), r.u32_be(16 + i * 8)) else {
             sig.warnings.push("blob index cut short".into());
@@ -216,7 +220,7 @@ pub fn parse(data: &[u8]) -> Result<Signature, FormatError> {
         };
         let o = off as usize;
         let bmagic = r.u32_be(o);
-        let blen = r.u32_be(o + 4);
+        let blen = o.checked_add(4).and_then(|at| r.u32_be(at));
         sig.blobs.push(BlobIndex { slot, slot_name: slot_name(slot), magic: bmagic.map(|m| format!("{m:#x}")).unwrap_or_default(), offset: off, length: blen });
         let (Some(bmagic), Some(blen)) = (bmagic, blen) else {
             sig.warnings.push(format!("blob {i} lies outside the signature"));

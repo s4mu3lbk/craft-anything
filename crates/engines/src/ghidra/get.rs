@@ -30,7 +30,7 @@ pub fn can_install() -> bool {
 /// folders where an unpacked copy is usually kept (#740).
 pub fn headless(install_dir: Option<&Path>, store: &Path) -> Option<PathBuf> {
     headless_configured(install_dir, store)
-        .or_else(|| crate::find_on_path(&["analyzeHeadless.bat", "analyzeHeadless"]))
+        .or_else(|| crate::find_on_path(crate::engine(ID)?.host_exes()))
         .or_else(|| crate::well_known(ID).into_iter().find(|p| p.is_file()))
         .or_else(|| {
             let e = crate::engine(ID)?;
@@ -228,6 +228,13 @@ mod tests {
         assert_eq!(java_home(None, store.path()), Some(jdk.join("Home")));
         let linux = crate::engine("java").and_then(|e| e.pin_for("linux", "x86_64")).unwrap();
         assert_eq!((linux.format, linux.strip_prefix), (crate::ArchiveFormat::TarGz, None), "Linux keeps jdk-…/bin/java, one folder down");
+    }
+
+    /// Ghidra's folder holds both scripts; the `.bat` can't start off Windows (#1084).
+    #[test]
+    fn the_launcher_looked_for_on_path_is_this_systems_own() {
+        let exes = crate::engine(ID).unwrap().host_exes();
+        assert_eq!(exes, [if cfg!(windows) { "analyzeHeadless.bat" } else { "analyzeHeadless" }]);
     }
 
     #[test]

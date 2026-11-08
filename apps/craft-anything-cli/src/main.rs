@@ -57,6 +57,16 @@ pub enum Command {
         /// List every tool instead of the Essentials plus enabled toolsets.
         #[arg(long)]
         all_tools: bool,
+        /// Run in restricted mode for shared hosts: turn off machine-acting tools,
+        /// and turn off web and capture tools by default.
+        #[arg(long)]
+        restricted: bool,
+        /// Turn on web tools (web_site_open) in restricted mode.
+        #[arg(long)]
+        allow_web: bool,
+        /// Turn on capture tools (web_site_capture, web_page_states_capture) in restricted mode.
+        #[arg(long)]
+        allow_capture: bool,
         /// A folder where questions and approvals for the person are posted (`core_person_ask`,
         /// `core_action_approve`); the Craft Anything app answers them.
         #[arg(long)]
@@ -219,7 +229,13 @@ fn open_or_create_project(dir: &Path) -> Result<Project, ToolError> {
 
 pub fn call_options(cli: &Cli, cancel: &CancelToken) -> CallOptions<'static> {
     let consent = if cli.allow_run { Consent::Granted } else { Consent::NotAsked };
-    CallOptions::new(Caller::Cli).with_consent(consent).with_cancel(cancel.clone())
+    CallOptions::new(caller()).with_consent(consent).with_cancel(cancel.clone())
+}
+
+/// The person, unless a coding agent Craft Anything started is running this CLI (it then calls
+/// tools as an agent, which can't loosen a project's approvals).
+fn caller() -> Caller {
+    if std::env::var_os(craft_anything_engine::AGENT_ENV).is_some() { Caller::Agent } else { Caller::Cli }
 }
 
 /// A cancel token that trips on Ctrl-C.
@@ -246,7 +262,7 @@ fn run(cli: Cli) -> u8 {
             }
             0
         }
-        Command::Mcp { all_tools, inbox, targets } => {
+        Command::Mcp { all_tools, restricted, allow_web, allow_capture, inbox, targets } => {
             let engine = match make_engine(cli.project.as_deref(), cli.deep_for_run()) {
                 Ok(e) => e,
                 Err(e) => {
@@ -274,6 +290,9 @@ fn run(cli: Cli) -> u8 {
                 return 1;
             }
             opts.all_tools |= *all_tools;
+            opts.restricted |= *restricted;
+            opts.allow_web |= *allow_web;
+            opts.allow_capture |= *allow_capture;
             opts.allow_run = cli.allow_run;
             match craft_anything_mcp::serve_stdio(engine, opts) {
                 Ok(()) => 0,

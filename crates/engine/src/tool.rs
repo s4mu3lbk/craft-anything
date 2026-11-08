@@ -207,6 +207,11 @@ pub enum Caller {
     Agent,
 }
 
+/// Set in the environment of every coding agent Craft Anything starts, and inherited by what it
+/// runs, so a `craft-anything-cli` a builder starts calls tools as [`Caller::Agent`], not as the
+/// person (it can't loosen a project's approvals that way).
+pub const AGENT_ENV: &str = "CRAFT_ANYTHING_AGENT";
+
 /// Cooperative cancellation, shared with long-running work (it lives in `platform`, so the
 /// transports below the engine can take it too).
 pub use craft_anything_platform::cancel::CancelToken;

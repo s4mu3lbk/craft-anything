@@ -141,11 +141,33 @@ impl TargetKind for WebsiteKind {
         }
     }
 
+    /// A website wins when the target already is one, the request names one, or the chosen stack
+    /// builds sites. The generic word "web" is not enough: "a web app" is an app.
     fn detect(&self, cx: &DetectCx) -> Option<u32> {
         if matches!(cx.target, TargetRef::Website { .. }) {
             Some(100)
-        } else if cx.says(&[" website", " web page", " webpage", " landing page", " site ", " webseite", " internetseite", "网站", "網站", "网页", "網頁"])
-        {
+        } else if cx.says(&[
+            " website",
+            " web page",
+            " webpage",
+            " landing page",
+            " site ",
+            " webseite",
+            " internetseite",
+            " sitio web",
+            " página web",
+            " pagina web",
+            " sito ",
+            " web sitesi",
+            " internet sitesi",
+            " trang web",
+            "เว็บไซต์",
+            "หน้าเว็บ",
+            "网站",
+            "網站",
+            "网页",
+            "網頁",
+        ]) {
             Some(50)
         } else if matches!(cx.target, TargetRef::None) && stacks::get(cx.stack).is_some_and(|s| s.site) {
             // Built as a site with nothing to recreate: "add a contact form" never says website.

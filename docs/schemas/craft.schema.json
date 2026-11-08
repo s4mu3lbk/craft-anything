@@ -31,6 +31,24 @@
       "description": "The app is the project folder itself: the person's own files, which the builder edits in\nplace, instead of app/.",
       "type": "boolean"
     },
+    "approvals": {
+      "description": "What the builder's approvals get in this project, by kind of action; a kind that isn't here\nfollows Auto mode ([`ActionKind::default_in`]). The person's, like the budget.",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/Approval"
+      },
+      "propertyNames": {
+        "enum": [
+          "web",
+          "commands",
+          "outside_files",
+          "publish",
+          "delete_outside",
+          "system",
+          "other_tools"
+        ]
+      }
+    },
     "asset_budget_usd": {
       "description": "What generated pictures and 3D models may cost before the person is asked (US dollars).",
       "type": "number",
@@ -139,6 +157,26 @@
     "updated_ms"
   ],
   "$defs": {
+    "Approval": {
+      "description": "What an action of one [`ActionKind`] gets.",
+      "oneOf": [
+        {
+          "description": "Done without asking.",
+          "type": "string",
+          "const": "allow"
+        },
+        {
+          "description": "A card for the person, and the builder waits for the answer.",
+          "type": "string",
+          "const": "ask"
+        },
+        {
+          "description": "Not done, without asking: the builder is told to find another way.",
+          "type": "string",
+          "const": "refuse"
+        }
+      ]
+    },
     "CheckResult": {
       "description": "One check of the build: whether it works and, when it could be compared with the original,\nhow alike it is. Decisions read `passed` and `similarity`, never `note` (which is for people).",
       "type": "object",

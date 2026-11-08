@@ -184,6 +184,9 @@ fn shorten(s: String) -> (String, bool) {
 }
 
 fn element_count(shape: &[u64]) -> (u64, bool) {
+    if shape.contains(&0) {
+        return (0, false);
+    }
     let mut n: u64 = 1;
     for d in shape {
         match n.checked_mul(*d) {

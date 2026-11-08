@@ -1444,6 +1444,24 @@ Zoom	缩放
 Bring all to front	前置全部窗口
 Drag to give the plan more or less room; double-click to reset	拖动以调整计划占用的空间；双击恢复默认
 Copy the message	复制这条消息
+Choose what the builder's approvals get	选择如何处理构建助手的审批
+Reading the web	读取网页
+Other commands	其他命令
+Files outside the project	项目以外的文件
+Pushing and publishing	推送和发布
+Deleting outside the project	在项目以外删除
+System changes	系统更改
+Other tools	其他工具
+Allow	允许
+Ask	询问
+Refuse	拒绝
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	在 /approvals 后输入一个类别和 allow、ask、refuse 或 default，例如 /approvals publish ask。类别：{kinds}。
+There's no kind called {name}. Kinds: {kinds}.	没有名为 {name} 的类别。类别：{kinds}。
+Approvals	审批
+In this project, {kind}: {choice}.	在这个项目中，{kind}：{choice}。
+Couldn't change the approvals:	无法更改审批：
+What the builder may do without asking you, in this project.	在这个项目中，构建助手无需问你就可以做的事。
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	默认跟随自动模式：开启时，可撤销的操作会执行，其余的会被拒绝；关闭时，构建助手会询问。
 Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	净室模式不会读取原作的代码、文件或网页源码，只依据可见内容工作。深度模式会使用全部工具读取这些内容，安装 IDA 或 Ghidra 后也会使用它们。每项发现都会记录所用模式。
 Deep decompiler	深度反编译器
 Automatic prefers IDA, then Ghidra. You can also choose one directly.	自动模式优先使用 IDA，其次 Ghidra。也可以直接指定一个。

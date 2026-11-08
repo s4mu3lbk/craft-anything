@@ -26,6 +26,10 @@ vt100 = "0.16"
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 xcap = "0.9"
 
+# Whether Screen Recording is allowed (a safe call; xcap uses the same crate).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-graphics = "0.3"
+
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", default-features = false, features = ["signal", "process"] }
 

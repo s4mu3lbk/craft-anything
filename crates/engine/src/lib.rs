@@ -30,6 +30,7 @@ pub mod target;
 pub mod testing;
 pub mod tool;
 pub mod tool_list;
+pub mod toolchains;
 pub mod tools;
 pub mod versioned;
 pub mod wasm_plugins;
@@ -40,7 +41,7 @@ pub use registry::Registry;
 pub use session::Session;
 pub use settings::{DeepEngine, Mode, Settings};
 pub use target::{Target, TargetKind};
-pub use tool::{Caller, CancelToken, Ctx, Effects, Progress, Requires, ToolOutput, ToolSpec, Toolset};
+pub use tool::{AGENT_ENV, Caller, CancelToken, Ctx, Effects, Progress, Requires, ToolOutput, ToolSpec, Toolset};
 
 use craft_anything_evidence::{ErrorCode, ToolError};
 use craft_anything_platform::sync::{Mutex, MutexGuard};
@@ -184,10 +185,10 @@ impl Engine {
             }
             Requires::Engine(id) => match session.settings.engine_path(id) {
                 Some(_) => Availability::ok(),
-                None => Availability::no(
-                    format!("This needs {} installed.", craft_anything_engines::display_name(id)),
-                    format!("Install {} from Settings → Engines.", craft_anything_engines::display_name(id)),
-                ),
+                None => {
+                    let (reason, remediation) = session.settings.engine_not_found(id);
+                    Availability::no(reason, remediation)
+                }
             },
             Requires::Os(hosts) => {
                 if hosts.contains(&std::env::consts::OS) {
@@ -309,6 +310,17 @@ mod tests {
         let e = Engine::new(crate::testing::session());
         let err = e.call("no_such_tool", Value::Null, CallOptions::new(Caller::Cli)).unwrap_err();
         assert_eq!(err.code, ErrorCode::BadInput);
+    }
+
+    /// #841: Try again repeated "install a browser" for a person who had set a path to theirs.
+    #[test]
+    fn a_tool_says_when_the_path_set_for_its_engine_is_not_there() {
+        let mut session = crate::testing::session();
+        session.settings.engines.tools.chromium = Some("/nowhere/brave".into());
+        let e = Engine::new(session);
+        let err = e.call("web_site_open", serde_json::json!({"url": "https://example.com"}), CallOptions::new(Caller::Cli)).unwrap_err();
+        assert_eq!(err.code, ErrorCode::EngineMissing);
+        assert!(err.message.contains("isn't there") && err.message.contains("brave"), "{}", err.message);
     }
 
     #[test]

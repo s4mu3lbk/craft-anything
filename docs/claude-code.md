@@ -23,8 +23,18 @@ integration does, why it is shaped this way, and what remains to confirm.
   Every other action (writing files, running commands, fetching the web) goes through
   `--permission-prompt-tool mcp__craft-anything__core_action_approve`. That tool allows edits
   inside the project's `app/` folder and a fixed list of build commands (`npm install`,
-  `npm run build`, `cargo build`…), refuses dev servers (they never exit), and asks the person
-  in the app for anything else ("Allow once / Always for this project / Don't allow").
+  `npm run build`, `cargo build`…), refuses dev servers (they never exit), and decides the rest
+  by its kind (the web, commands, files outside the project, pushing and publishing, deletes
+  outside the project, system changes, other tools): each project can choose allow, ask or
+  refuse per kind (`project_approvals_set`), and an unchosen kind follows Auto mode. Asking shows
+  a card in the app ("Allow once / Always for this project / Don't allow"); "Always" on a push,
+  delete or system change allows that whole kind for the project. A builder's own call to
+  `project_approvals_set` can only make a kind stricter, also through `craft-anything-cli` run
+  from its shell (agents we start have `CRAFT_ANYTHING_AGENT` set), and a command that names
+  `craft.json`, the inbox, the approvals tool or that variable counts as a system change. These
+  raise the bar; they aren't a wall: a builder allowed to run any command runs with the person's
+  own permissions and could change those files another way, so "commands: allow" (Auto mode's
+  default) trusts the builder.
 - Questions: Claude Code's own question tool is disabled for these runs (`--disallowedTools
   AskUserQuestion`); the agent uses our `core_person_ask` tool, which shows a card with buttons.
 - Before a build starts, `claude auth status` is checked. If Claude Code isn't signed in, the run

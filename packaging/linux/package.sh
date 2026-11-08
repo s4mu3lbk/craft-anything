@@ -12,9 +12,9 @@
 # Usage: packaging/linux/package.sh [--skip-build] [--formats "appimage deb rpm tar"]
 #
 # Needs: cargo; nfpm for deb/rpm (https://nfpm.goreleaser.com); appimagetool for the AppImage
-# (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
-# glibc 2.35) so the binaries run on newer ones. Optional: desktop-file-validate, appstreamcli,
-# zsyncmake (the zsync package) for the AppImage's .zsync.
+# (a pinned release, downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI:
+# Ubuntu 22.04, glibc 2.35) so the binaries run on newer ones. Optional: desktop-file-validate,
+# appstreamcli, zsyncmake (the zsync package) for the AppImage's .zsync.
 #
 # Cross-compiling (CI's linux-riscv64 job; tar only): CROSS_ARCH (e.g. riscv64), CROSS_TARGET
 # (the Rust target), CROSS_COMPILE (binutils prefix for strip) and optionally EMULATOR (e.g.
@@ -116,19 +116,47 @@ if has appimage; then
   cp "$ROOT/assets/app-icon/hicolor/256x256/apps/$APP_ID.png" "$APPDIR/$APP_ID.png"
   ln -s "$APP_ID.png" "$APPDIR/.DirIcon"
 
+  # appimagetool, and the runtime it puts at the front of every AppImage, come from GitHub when
+  # missing. Both are pinned to a release and checked against its SHA-256: the `continuous`
+  # builds change under the same URL, and appimagetool fetches the runtime's unless given a file.
+  APPIMAGETOOL_VERSION=1.9.1
+  APPIMAGE_RUNTIME_VERSION=20251108
+  case "$ARCH" in
+    x86_64)
+      APPIMAGETOOL_SHA256=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+      APPIMAGE_RUNTIME_SHA256=2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d ;;
+    aarch64)
+      APPIMAGETOOL_SHA256=f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158
+      APPIMAGE_RUNTIME_SHA256=00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444 ;;
+    *) echo "no pinned AppImage runtime for $ARCH; build the AppImage on x86_64 or aarch64" >&2; exit 2 ;;
+  esac
+  # Usage: fetch_pinned <url> <sha256> <file>. Downloads next to <file> and moves it into place;
+  # a file already there is checked too, and one that doesn't match is removed.
+  fetch_pinned() {
+    if [ ! -f "$3" ]; then
+      curl --proto '=https' -fsSL -o "$3.download" "$1"
+      mv "$3.download" "$3"
+    fi
+    if [ "$(sha256 "$3")" != "$2" ]; then
+      rm -f "$3"
+      echo "$1: SHA-256 doesn't match the pinned release" >&2
+      exit 2
+    fi
+  }
   TOOL="${APPIMAGETOOL:-$(command -v appimagetool || true)}"
   if [ -z "$TOOL" ]; then
-    TOOL="$CARGO_TARGET_DIR/appimagetool-$ARCH.AppImage"
-    if [ ! -x "$TOOL" ]; then
-      curl -fsSL -o "$TOOL" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$ARCH.AppImage"
-      chmod +x "$TOOL"
-    fi
+    TOOL="$CARGO_TARGET_DIR/appimagetool-$APPIMAGETOOL_VERSION-$ARCH.AppImage"
+    fetch_pinned "https://github.com/AppImage/appimagetool/releases/download/$APPIMAGETOOL_VERSION/appimagetool-$ARCH.AppImage" "$APPIMAGETOOL_SHA256" "$TOOL"
+    chmod 755 "$TOOL"
   fi
+  RUNTIME="$CARGO_TARGET_DIR/appimage-runtime-$APPIMAGE_RUNTIME_VERSION-$ARCH"
+  fetch_pinned "https://github.com/AppImage/type2-runtime/releases/download/$APPIMAGE_RUNTIME_VERSION/runtime-$ARCH" "$APPIMAGE_RUNTIME_SHA256" "$RUNTIME"
   # Absolute, because appimagetool runs in $DIST below (CARGO_TARGET_DIR or APPIMAGETOOL may be
   # relative, e.g. target/agent-<name>).
   OUT="$(cd "$DIST" && pwd)/$BASENAME.AppImage"
   APPDIR="$(cd "$APPDIR" && pwd)"
   TOOL="$(cd "$(dirname "$TOOL")" && pwd)/$(basename "$TOOL")"
+  RUNTIME="$(cd "$(dirname "$RUNTIME")" && pwd)/$(basename "$RUNTIME")"
   # A .zsync left by an earlier run would hide a missing zsyncmake and describe another file.
   rm -f "$OUT.zsync"
   # Update information: AppImageUpdate, AppImageLauncher and the like read it from the
@@ -140,7 +168,7 @@ if has appimage; then
   # Extract-and-run: works without FUSE (containers, CI). The output embeds the static runtime,
   # so users don't need libfuse2 either. With zsyncmake on the host (CI installs the zsync
   # package) appimagetool also writes the .zsync, into its working directory, hence the cd.
-  (cd "$DIST" && ARCH="$ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" --no-appstream -u "$UPDATE_INFO" "$APPDIR" "$OUT")
+  (cd "$DIST" && ARCH="$ARCH" APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" --no-appstream --runtime-file "$RUNTIME" -u "$UPDATE_INFO" "$APPDIR" "$OUT")
   echo "wrote $OUT"
   if [ -s "$OUT.zsync" ]; then
     echo "wrote $OUT.zsync"

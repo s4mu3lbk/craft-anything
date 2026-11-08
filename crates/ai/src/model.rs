@@ -26,6 +26,12 @@ pub enum Block {
         name: String,
         input: Value,
     },
+    /// What the server attached to the tool call `tool_use_id`, sent back with it unchanged
+    /// (Gemini's thought signature: a call without it is refused).
+    ToolExtra {
+        tool_use_id: String,
+        extra: Value,
+    },
     ToolResult {
         tool_use_id: String,
         content: String,
@@ -217,6 +223,8 @@ pub struct TurnResult {
     pub stop: StopReason,
     pub usage: Usage,
     pub model: String,
+    /// A provider-specific instruction to send to the model before continuing.
+    pub follow_up: Option<String>,
 }
 
 /// Streaming pieces while a turn is generated.

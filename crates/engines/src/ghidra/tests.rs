@@ -423,7 +423,8 @@ fn a_second_analysis_waits_for_the_running_one_and_a_dead_ones_lock_is_taken_ove
         compiler_spec: None,
         memory_gb: None,
     };
-    let (sha, digest) = ("ab".repeat(32), "cd".repeat(32));
+    // The bytes and their real sha, so this reaches the launch instead of failing on a mismatch.
+    let (sha, digest) = (craft_anything_evidence::sha256_hex(b"x"), "cd".repeat(32));
     // A temp folder can be under a dot folder (`/tmp/.tmpXXXX`): the project is then reached
     // through the store's link, which is the path analyse() gives back.
     let (_link, root) = LinkGuard::root(d.path());
@@ -443,13 +444,95 @@ fn a_second_analysis_waits_for_the_running_one_and_a_dead_ones_lock_is_taken_ove
     assert_eq!(got.ok(), Some(project.clone()), "waited for the running analysis instead of starting another");
 
     // A lock left by a process that died goes stale and is taken over (here: an attempt to run).
+    // What that process had half-written is moved aside, never deleted under it (#951).
     std::fs::remove_dir_all(&project).unwrap();
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(project.join("half-written.gpr"), "the other analysis may still be filling this").unwrap();
     let lock = std::fs::File::options().write(true).open(lock_path(&project)).unwrap();
     lock.set_modified(std::time::SystemTime::now() - LOCK_STALE - Duration::from_secs(5)).unwrap();
     drop(lock);
-    let err = analyse(&cfg, b"x", &sha, &digest, &|| false, &|_, _| {}).unwrap_err();
+    // Seen while the analysis runs, not after: by then both paths have cleaned up.
+    // The project sits beside its lock, which the store may reach through a link.
+    let store = project.parent().unwrap().to_path_buf();
+    let saw_aside = AtomicBool::new(false);
+    let progress = |_: f32, msg: &str| {
+        if msg.contains("Ghidra is analysing") {
+            let aside = std::fs::read_dir(&store).unwrap().flatten().any(|e| e.file_name().to_string_lossy().contains(".orphaned-"));
+            saw_aside.store(aside, Ordering::Relaxed);
+        }
+    };
+    let err = analyse(&cfg, b"x", &sha, &digest, &|| false, &progress).unwrap_err();
     assert!(matches!(err, GhidraError::Launch(_)), "took over and tried to run Ghidra: {err:?}");
     assert!(!lock_path(&project).exists(), "its own lock is released when it fails");
+    assert!(saw_aside.load(Ordering::Relaxed), "the folder the other analysis was filling must still be on disk, under its own name");
+    assert!(!project.join("half-written.gpr").exists(), "it wrote into the folder the other analysis was filling");
+}
+
+/// Which refusals to move a folder are worth waiting on: Windows reports the live Ghidra this PR
+/// is about as a permission problem, and everything else is the caller's to hear now.
+#[test]
+fn a_move_that_cannot_pass_is_told_apart_from_one_that_might() {
+    use std::io::{Error, ErrorKind};
+    assert!(move_may_pass(&Error::from(ErrorKind::PermissionDenied)), "a folder Windows has open files in reads as a permission problem");
+    assert!(!move_may_pass(&Error::from(ErrorKind::InvalidInput)), "a path we cannot name will not fix itself");
+    assert!(!move_may_pass(&Error::from(ErrorKind::NotFound)), "gone is not a reason to wait");
+}
+
+/// A lock that cannot be released reads to every other process as an analysis in progress, so
+/// releasing it says why instead of failing silently.
+#[test]
+fn giving_back_a_lock_that_is_already_gone_is_not_a_failure() {
+    let d = tempfile::tempdir().unwrap();
+    assert!(release(&d.path().join("never-existed.analysing")).is_ok(), "nothing to release is not an error");
+    let lock = d.path().join("held.analysing");
+    std::fs::write(&lock, "").unwrap();
+    assert!(release(&lock).is_ok());
+    assert!(!lock.exists(), "the lock is gone once it is given back");
+}
+
+/// A move that cannot pass ends the attempt, so the lock goes back with it. Both outcomes are
+/// checked here by making the release itself fail, which is a folder named as the lock file:
+/// `remove_file` refuses that on every system, and no rename has to fail for the test to run.
+#[test]
+fn a_move_that_cannot_pass_gives_the_lock_back_and_says_why() {
+    let d = tempfile::tempdir().unwrap();
+    let project = d.path().join("target-abcd");
+    let lock = d.path().join("held.analysing");
+    std::fs::write(&lock, "").unwrap();
+
+    let refusal = std::io::Error::from(std::io::ErrorKind::InvalidInput);
+    let err = refuse_move(&lock, &project, &refusal);
+    assert!(err.to_string().contains("out of the way"), "{err}");
+    assert!(!err.to_string().contains("and releasing"), "a clean release is not worth mentioning: {err}");
+    assert!(!lock.exists(), "the lock is gone");
+
+    // Now the lock cannot be released: a folder where the lock file should be.
+    let stuck = d.path().join("stuck.analysing");
+    std::fs::create_dir(&stuck).unwrap();
+    let err = refuse_move(&stuck, &project, &refusal);
+    let text = err.to_string();
+    assert!(text.contains("out of the way"), "the move is still what is reported: {text}");
+    assert!(text.contains("and releasing the analysis lock"), "and the lock that could not be freed: {text}");
+}
+
+/// #951: the folder a stale lock was guarding is moved, not removed, so a Ghidra that outlived the
+/// app that started it keeps writing into its own folder instead of into this analysis's.
+#[test]
+fn a_half_written_project_is_moved_aside_with_its_files() {
+    let d = tempfile::tempdir().unwrap();
+    let project = d.path().join("target-abcd");
+    std::fs::create_dir_all(&project).unwrap();
+    std::fs::write(project.join("half-written.gpr"), "still being filled").unwrap();
+
+    let aside = set_aside(&project).unwrap().expect("there was a folder to move");
+    assert!(!project.exists(), "the folder this analysis needs is free");
+    let moved =
+        std::fs::read_dir(d.path()).unwrap().flatten().map(|e| e.path()).find(|p| p != &project).expect("the folder is still on disk, under a name of its own");
+    assert!(moved.join("half-written.gpr").is_file(), "it kept the files the other analysis left");
+
+    drop(aside);
+    assert!(!moved.exists(), "and it goes once this analysis has its own folder");
+    assert!(set_aside(&project).unwrap().is_none(), "nothing to move is not a failure");
 }
 
 #[test]
@@ -596,4 +679,37 @@ fn a_bridge_that_stops_early_leaves_its_log_beside_the_analysis() {
     let none = d.path().join("none.log");
     assert_eq!(keep_log(&[&none], &d.path().join("other.bridge.log")), none);
     assert!(!d.path().join("other.bridge.log").exists());
+}
+
+/// An install's decompiler folder, with this program in it.
+fn install_with(root: &std::path::Path, folder: &[&str], exe: &str) {
+    let mut dir = root.join("Ghidra").join("Features").join("Decompiler");
+    for part in folder {
+        dir = dir.join(part);
+    }
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join(exe), b"").unwrap();
+}
+
+#[test]
+fn a_public_download_on_macos_has_no_decompiler_until_it_is_built() {
+    let d = tempfile::tempdir().unwrap();
+    install_with(d.path(), &["os", "linux_x86_64"], "decompile");
+    install_with(d.path(), &["os", "win_x86_64"], "decompile.exe");
+    assert!(!has_decompiler_for(d.path(), "mac_"), "other systems' programs don't count");
+    assert!(has_decompiler_for(d.path(), "linux_"));
+    assert!(has_decompiler_for(d.path(), "win_"));
+
+    install_with(d.path(), &["build", "os", "mac_arm_64"], "decompile");
+    assert!(has_decompiler_for(d.path(), "mac_"), "`gradlew buildNatives` puts it under build/os");
+}
+
+#[test]
+fn an_empty_platform_folder_is_not_a_decompiler_and_an_unknown_layout_is_left_to_ghidra() {
+    let d = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(d.path().join("Ghidra/Features/Decompiler/os/mac_arm_64")).unwrap();
+    assert!(!has_decompiler_for(d.path(), "mac_"));
+
+    let unknown = tempfile::tempdir().unwrap();
+    assert!(has_decompiler_for(unknown.path(), "mac_"), "never refused on a guess");
 }

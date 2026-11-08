@@ -18,7 +18,7 @@
 pub mod prompts;
 
 use craft_anything_engine::tools::investigation_tools;
-use craft_anything_engine::{CallOptions, Caller, CancelToken, Consent, Engine, Progress, ToolOutput, Toolset};
+use craft_anything_engine::{CallOptions, Caller, CancelToken, Consent, Effects, Engine, Progress, ToolOutput, Toolset};
 use craft_anything_evidence::{ErrorCode, ToolError, is_evidence_id};
 use craft_anything_platform::sync::Mutex;
 use serde_json::{Value, json};
@@ -58,26 +58,64 @@ pub struct ServerOptions {
     pub all_tools: bool,
     /// Treat every call as consented (the user started the server with `--allow-run`).
     pub allow_run: bool,
+    /// Restricted mode for shared hosts (#855, #856): hide tools that act on the host machine,
+    /// and turn off web and capture tools unless explicitly allowed.
+    pub restricted: bool,
+    /// Allow tools that open or reach websites (`web_site_open`) in restricted mode.
+    pub allow_web: bool,
+    /// Allow website capture tools (`web_site_capture`, `web_page_states_capture`) in restricted mode.
+    pub allow_capture: bool,
     pub max_response_bytes: usize,
     /// Lower the budget for a client known to take less (Claude Code), from its name in
     /// `initialize`. Off when the budget was set explicitly.
     pub budget_for_client: bool,
 }
 
+/// Tools that change the machine without an effect that says so.
+const ACTS_ON_MACHINE: [&str; 3] = ["plugins_add", "engines_install", "native_cutter_command_run"];
+
 impl Default for ServerOptions {
     fn default() -> Self {
-        ServerOptions { all_tools: false, allow_run: false, max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES, budget_for_client: true }
+        ServerOptions {
+            all_tools: false,
+            allow_run: false,
+            restricted: false,
+            allow_web: false,
+            allow_capture: false,
+            max_response_bytes: DEFAULT_MAX_RESPONSE_BYTES,
+            budget_for_client: true,
+        }
     }
 }
 
 impl ServerOptions {
-    /// Defaults plus `CRAFT_ANYTHING_MCP_ALL_TOOLS=1` and `CRAFT_ANYTHING_MCP_MAX_RESPONSE_BYTES`.
+    /// Defaults plus environment flags:
+    /// - `CRAFT_ANYTHING_MCP_ALL_TOOLS=1`
+    /// - `CRAFT_ANYTHING_MCP_RESTRICTED=1`
+    /// - `CRAFT_ANYTHING_MCP_ALLOW_WEB=1`
+    /// - `CRAFT_ANYTHING_MCP_ALLOW_CAPTURE=1`
+    /// - `CRAFT_ANYTHING_MCP_MAX_RESPONSE_BYTES`
     pub fn from_env() -> Self {
+        Self::from_env_vars(|k| std::env::var(k).ok())
+    }
+
+    /// Parse options using a custom environment variable lookup function.
+    pub fn from_env_vars<F: Fn(&str) -> Option<String>>(lookup: F) -> Self {
         let mut o = ServerOptions::default();
-        if std::env::var("CRAFT_ANYTHING_MCP_ALL_TOOLS").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")) {
+        let is_truthy = |k: &str| lookup(k).is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"));
+        if is_truthy("CRAFT_ANYTHING_MCP_ALL_TOOLS") {
             o.all_tools = true;
         }
-        if let Some(n) = std::env::var("CRAFT_ANYTHING_MCP_MAX_RESPONSE_BYTES").ok().and_then(|v| v.trim().parse::<usize>().ok()) {
+        if is_truthy("CRAFT_ANYTHING_MCP_RESTRICTED") {
+            o.restricted = true;
+        }
+        if is_truthy("CRAFT_ANYTHING_MCP_ALLOW_WEB") {
+            o.allow_web = true;
+        }
+        if is_truthy("CRAFT_ANYTHING_MCP_ALLOW_CAPTURE") {
+            o.allow_capture = true;
+        }
+        if let Some(n) = lookup("CRAFT_ANYTHING_MCP_MAX_RESPONSE_BYTES").and_then(|v| v.trim().parse::<usize>().ok()) {
             o.max_response_bytes = n.max(MIN_MAX_RESPONSE_BYTES);
             o.budget_for_client = false;
         }
@@ -311,13 +349,44 @@ impl Server {
 
     // ---- tools ----
 
+    /// In restricted mode, the refusal for `name` when it's off: tools that act on the machine or
+    /// reach the network, going by what each declares, not a list that can drift. Web and capture
+    /// tools have flags of their own (#855, #856).
+    fn restricted_refusal(&self, name: &str) -> Option<ToolError> {
+        if !self.opts.restricted {
+            return None;
+        }
+        let spec = self.engine.registry().get(self.engine.registry().canonical(name).unwrap_or(name))?;
+        let effects = spec.effects;
+        let web = spec.id.starts_with("web_") && effects.intersects(Effects::ACCESSES_NETWORK | Effects::LAUNCHES_PROCESS);
+        let capture = web && spec.id.contains("capture");
+        let (off, way_back) = if capture {
+            (!self.opts.allow_capture, "Start the MCP server with --allow-capture to turn capture tools on.")
+        } else if web {
+            (!self.opts.allow_web, "Start the MCP server with --allow-web to turn web tools on.")
+        } else {
+            let machine =
+                effects.needs_consent() || effects.contains(Effects::ACCESSES_NETWORK) || spec.id.starts_with("adb_") || ACTS_ON_MACHINE.contains(&spec.id);
+            (machine, "Start the MCP server without --restricted to allow tools that act on the machine.")
+        };
+        off.then(|| {
+            ToolError::new(craft_anything_evidence::ErrorCode::FeatureMissing, format!("{} is turned off in restricted mode.", spec.id))
+                .with_remediation(way_back)
+                .with_details(json!({"reason": "restricted_mode", "tool": spec.id}))
+        })
+    }
+
     fn visible(&self, set: Toolset) -> bool {
         self.opts.all_tools || self.enabled.lock().unwrap_or_else(PoisonError::into_inner).contains(&set)
     }
 
     /// Whether a tool is on this connection's list: its toolset is shown and, in Clean room, it's
-    /// one Clean room runs (the rest would only be refused).
+    /// one Clean room runs (the rest would only be refused). In restricted mode, tools that act on
+    /// the machine or reach the network without allowance are omitted.
     fn listed(&self, s: &craft_anything_engine::ToolSpec, clean: bool) -> bool {
+        if self.restricted_refusal(s.id).is_some() {
+            return false;
+        }
         self.visible(s.toolset) && (!clean || craft_anything_engine::clean_room::allows(s.id))
     }
 
@@ -446,6 +515,9 @@ impl Server {
     }
 
     fn call_engine(&self, name: &str, args: Value, token: &CancelToken, progress_token: Option<&Value>, seq: Arc<AtomicU64>) -> Result<ToolOutput, ToolError> {
+        if let Some(err) = self.restricted_refusal(name) {
+            return Err(err);
+        }
         // A tool from a toolset that isn't enabled yet: enable it rather than refusing.
         if let Some(spec) = self.engine.registry().get(name)
             && !self.visible(spec.toolset)
@@ -541,7 +613,7 @@ impl Server {
 
     /// The tool declares that its results carry content from the target.
     fn carries_target_content(&self, name: &str) -> bool {
-        self.engine.registry().get(name).is_some_and(|s| s.effects.contains(craft_anything_engine::Effects::CARRIES_TARGET_CONTENT))
+        self.engine.registry().get(name).is_some_and(|s| s.effects.contains(Effects::CARRIES_TARGET_CONTENT))
     }
 
     fn attach_provenance(&self, body: &mut Value, name: &str) {

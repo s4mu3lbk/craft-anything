@@ -6,6 +6,7 @@ use crate::i18n::{tr, trf};
 use crate::state::Modal;
 use crate::theme::{self, Tokens};
 use crate::{CraftApp, icons, widgets};
+use craft_anything_ai::rebuild::replaced_builder_notice;
 use craft_anything_ai::{BackendConfig, BackendKind};
 use egui::{RichText, Ui, Vec2};
 
@@ -138,8 +139,17 @@ impl CraftApp {
     /// only found is set up now (it needs no key, and the person pressed Start).
     pub fn builder_backend(&mut self, wanted: Option<&str>) -> Option<String> {
         let choices = self.builder_choices();
-        let name = wanted.filter(|w| choices.iter().any(|c| c.name == *w)).map(str::to_string).or_else(|| self.default_builder())?;
-        let Some(found) = self.found_agents().find(|b| b.name == name).cloned() else { return Some(name) };
+        let kept = wanted.filter(|w| choices.iter().any(|c| c.name == *w));
+        let name = kept.map(str::to_string).or_else(|| self.default_builder())?;
+        // A saved choice that was turned off or removed is replaced. The notice waits until a
+        // builder is committed, so a failed setup doesn't claim one will build.
+        let replaced = wanted.filter(|w| !w.is_empty() && kept.is_none() && *w != name.as_str());
+        let Some(found) = self.found_agents().find(|b| b.name == name).cloned() else {
+            if let Some(saved) = replaced {
+                self.toast(replaced_builder_notice(saved, &name), false);
+            }
+            return Some(name);
+        };
         // Saved but switched off (#423): turn it on, keeping its program and folder, rather than
         // saving a second copy over it.
         let saved = self.backends.iter().any(|b| b.name == found.name);
@@ -149,6 +159,9 @@ impl CraftApp {
                 match self.backends.iter_mut().find(|b| b.name == found.name) {
                     Some(b) => b.enabled = true,
                     None => self.backends.push(found),
+                }
+                if let Some(saved) = replaced {
+                    self.toast(replaced_builder_notice(saved, &name), false);
                 }
                 Some(name)
             }
@@ -348,9 +361,12 @@ pub fn built_by(app: &mut CraftApp, ui: &mut Ui) {
         return;
     };
     let choices = app.builder_choices();
-    // A choice that was removed or turned off meanwhile goes back to automatic.
-    if app.state.make.ai.as_ref().is_some_and(|a| !choices.iter().any(|c| &c.name == a)) {
+    // A choice that was removed or turned off meanwhile goes back to automatic, and the toast
+    // says which AI builds instead: switching silently would hide the replacement.
+    let replaced = app.state.make.ai.clone().filter(|a| !a.is_empty() && !choices.iter().any(|c| &c.name == a));
+    if let Some(saved) = &replaced {
         app.state.make.ai = None;
+        app.toast(replaced_builder_notice(saved, &default), false);
     }
     let automatic = trf("Automatic ({name})", &[("name", &default)]);
     let shown = app.state.make.ai.clone().unwrap_or_else(|| automatic.clone());
@@ -402,9 +418,14 @@ pub fn need_builder_modal(app: &mut CraftApp, ui: &mut Ui, start: bool, close: &
             ui.add(crate::widgets::Spinner::new().color(t.accent));
             ui.label(RichText::new(tr("Looking on this computer…")).color(t.text_dim));
         });
-    } else if found.is_empty() {
-        ui.label(RichText::new(tr("No coding agent was found on this computer yet.")).color(t.text_dim));
-        for hint in &app.detect_hints {
+    } else {
+        if found.is_empty() {
+            ui.label(RichText::new(tr("No coding agent was found on this computer yet.")).color(t.text_dim));
+        }
+        // Agents on other computers (from `~/.ssh/config`) are offered without checking them, so
+        // they don't make the hints about this one any less true.
+        let hints = if found.iter().all(|b| b.ssh_host.as_deref().is_some_and(|h| !h.trim().is_empty())) { &app.detect_hints[..] } else { &[] };
+        for hint in hints {
             match hint {
                 craft_anything_ai::detect::DetectHint::ClaudeDesktopWithoutCli { .. } => ui.add(
                     egui::Label::new(

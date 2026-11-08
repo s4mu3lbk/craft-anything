@@ -1,0 +1,1470 @@
+# tr: Turkish UI translations. Licensed MIT OR Apache-2.0.
+# UTF-8: English source<TAB>translation. Keep placeholders and escapes intact.
+OpenCode default	OpenCode varsayılanı
+Model default	Model varsayılanı
+Thinking depth	Düşünme derinliği
+OpenCode model	OpenCode modeli
+Remote program	Uzak program
+Reload models	Modelleri yenile
+Apply	Uygula
+No chat models are visible in {agent}. Check its setup, then reload.	{agent} içinde görünür sohbet modeli yok. Kurulumunu kontrol edip yeniden yükleyin.
+The saved model is no longer visible. Choose another model or the {agent} default.	Kaydedilen model artık görünmüyor. Başka bir model ya da {agent} varsayılanını seçin.
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode'da görünür sohbet modeli yok. OpenCode'da bir sağlayıcı bağlayıp yeniden yükleyin.
+The saved model is no longer visible. Choose another model or the OpenCode default.	Kaydedilen model artık görünmüyor. Başka bir model ya da OpenCode varsayılanını seçin.
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	Kaydedilen düşünme derinliği bu modelde kullanılamıyor. Varsayılanını ya da sunulan bir derinliği seçin.
+List an agent's models	Bir ajanın modellerini listele
+Choose an agent's model and thinking	Bir ajanın modelini ve düşünme derinliğini seç
+ GB	 GB
+ and {n} more	 ve {n} tane daha
+ {ascii}	 {ascii}
+ · ${c:.2}	 · ${c:.2}
+ · ssh {h}	 · ssh {h}
+(1 picture attached)	(1 resim eklendi)
+({n} pictures attached)	({n} resim eklendi)
+, ${c:.4}	, ${c:.4}
+.NET application graph	.NET uygulama grafiği
+.NET apps	.NET uygulamaları
+.NET assembly overview	.NET derlemesine genel bakış
+.NET native calls	.NET yerel çağrıları
+.NET types and methods	.NET türleri ve metotları
+/btw {}	/btw {}
+0x… or number	0x… veya sayı
+A .NET program (C#, F# or VB)	Bir .NET programı (C#, F# veya VB)
+A DOS program	Bir DOS programı
+A Java program	Bir Java programı
+A Linux (or Unix) program	Bir Linux (veya Unix) programı
+A Mac or iPhone program	Bir Mac veya iPhone programı
+A SQLite database (how an app stores its data)	Bir SQLite veritabanı (bir uygulamanın verilerini nasıl sakladığı)
+A WebAssembly module (code that runs in a browser)	Bir WebAssembly modülü (tarayıcıda çalışan kod)
+A Windows program	Bir Windows programı
+A ZIP archive	Bir ZIP arşivi
+A bundle of ready-made code that many programs share.	Birçok programın paylaştığı hazır kod paketi.
+A coding agent such as Claude Code builds it, and an AI answers your questions in plain words. Change this any time in Settings → AI.	Claude Code gibi bir kodlama ajanı oluşturur, bir AI da sorularınızı sade bir dille yanıtlar. Bunu Ayarlar → AI bölümünden istediğiniz zaman değiştirebilirsiniz.
+A command's output shows here when it finishes.	Bir komutun çıktısı bittiğinde burada görünür.
+A copy to try something else from here.	Buradan başka bir şey denemek için bir kopya.
+A file of machine code that a computer can run directly, like an .exe or an app.	Bilgisayarın doğrudan çalıştırabildiği makine kodu dosyası; .exe veya uygulama gibi.
+A file that a computer can run as a program.	Bilgisayarın program olarak çalıştırabildiği dosya.
+A file that links packed web code back to the original, readable source files.	Paketlenmiş web kodunu özgün, okunabilir kaynak dosyalarına bağlayan dosya.
+A file we don't recognise yet	Henüz tanımadığımız bir dosya
+A first look at a file you're unsure about, without running it.	Emin olmadığınız bir dosyaya, çalıştırmadan önce ilk bakış.
+A folder	Bir klasör
+A folder has no bytes of its own	Bir klasörün kendi baytları yoktur
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	NSA'nın ücretsiz tersine mühendislik aracı. Derin mod ek ayrıntı için kullanır; Temiz oda modu asla kullanmaz.
+A frozen copy (recommended)	Dondurulmuş bir kopya (önerilir)
+A frozen copy takes {size}. That's a lot of space: a light copy takes {light}.	Dondurulmuş kopya {size} yer kaplar. Bu çok fazla: hafif kopya {light} yer kaplar.
+A frozen copy takes {size}; a light copy takes {light}.	Dondurulmuş kopya {size}, hafif kopya {light} yer kaplar.
+A game	Bir oyun
+A game's files	Bir oyunun dosyaları
+A light copy	Hafif bir kopya
+A locked room for running a program so it can't touch the rest of your computer.	Bir programı bilgisayarınızın geri kalanına dokunamayacağı şekilde çalıştırmak için kilitli oda.
+A map of which functions call which other functions.	Hangi fonksiyonun hangi fonksiyonu çağırdığını gösteren harita.
+A name the program's author gave to a function or variable that survived in the file.	Programın yazarının dosyada kalmış bir fonksiyona veya değişkene verdiği ad.
+A named piece of a program that does one job, like "add two numbers" or "save the file".	Bir programın tek bir işi yapan adlandırılmış parçası; "iki sayıyı topla" veya "dosyayı kaydet" gibi.
+A number that says where something is in a program's memory, like a house number.	Bir şeyin programın belleğinde nerede olduğunu söyleyen sayı; kapı numarası gibi.
+A piece of text stored inside a program, like a message, a web address or a file name.	Programın içinde saklanan metin parçası; bir mesaj, web adresi veya dosya adı gibi.
+A program, an app bundle, an APK, a JavaScript bundle, a folder… or drop it on the window.	Bir program, uygulama paketi, APK, JavaScript paketi, klasör… ya da pencereye bırakın.
+A recording of network traffic	Ağ trafiği kaydı
+A region of a program as it sits in memory while running.	Bir programın çalışırken bellekte kapladığı alan.
+A region of a program file with one purpose: code, text, pictures, settings.	Bir program dosyasının tek amaçlı bölgesi: kod, metin, resimler, ayarlar.
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	Pratik bir kural. Genelde doğru, bazen yanlış; bu yüzden sonucu tahmin olarak işaretliyoruz.
+A saved, checkable record of something we found, with how sure we are and where we found it.	Bulduğumuz bir şeyin kaydedilmiş, denetlenebilir kaydı; ne kadar emin olduğumuz ve nerede bulduğumuz dahil.
+A script or web page	Bir betik veya web sayfası
+A set of commands a program offers to other programs.	Bir programın diğer programlara sunduğu komut kümesi.
+A simple snake game	Basit bir yılan oyunu
+A small download (under 200 MB). Free, no account needed.	Küçük bir indirme (200 MB'ın altında). Ücretsiz, hesap gerekmez.
+A small file that lists what an app is called, what it needs and what it's allowed to do.	Bir uygulamanın adını, neye ihtiyaç duyduğunu ve neleri yapabileceğini listeleyen küçük dosya.
+A smart contract (EVM bytecode)	Bir akıllı sözleşme (EVM bayt kodu)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	Baytları iki karakterlik kodlarla (00–FF) yazma biçimi. Bir dosyanın en ham görünümü.
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	Masaüstü uygulamalarını web sayfalarından yapma yolu. Uygulama, aslında kendi tarayıcısı olan bir web sitesidir.
+A website	Bir web sitesi
+A website for my bakery	Fırınım için bir web sitesi
+AI	AI
+AI cost	AI maliyeti
+AI cost (estimate)	AI maliyeti (tah.)
+AI cost (part estimate)	AI maliyeti (kısmi tah.)
+AI model file	AI model dosyası
+AI name	AI adı
+AI use this session	Bu oturumdaki AI kullanımı
+API boundary	API sınırı
+API key	API anahtarı
+API key (stored in your system keychain)	API anahtarı (sistem anahtarlığınızda saklanır)
+API key, if it needs one	Gerekliyse API anahtarı
+About 10 GB. Free for personal use with a Unity account.	Yaklaşık 10 GB. Unity hesabıyla kişisel kullanım için ücretsiz.
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	Yaklaşık 60 GB, bir Epic Games hesabı ve Visual Studio'nun C++ araçları.
+Add	Ekle
+Add Visual Studio's C++ tools	Visual Studio'nun C++ araçlarını ekle
+Add a brain	Bir beyin ekle
+Add a fal.ai key	Bir fal.ai anahtarı ekle
+Add a folder…	Klasör ekle…
+Add a plugin	Eklenti ekle
+Add an AI brain and I'll read this evidence for you, answer follow-up questions and point at the proof.	Bir AI beyni ekleyin; bu kanıtı sizin için okuyayım, devam sorularını yanıtlayayım ve kanıtı göstereyim.
+Add an AI by its address	Adresinden bir AI ekle
+Add another	Bir tane daha ekle
+Add it again, to choose another account's folder for it.	Başka bir hesabın klasörünü seçmek için yeniden ekleyin.
+Add more info. The builder reads it at its next step.	Daha fazla bilgi ekleyin. Oluşturucu bir sonraki adımında okur.
+Add pictures	Resim ekle
+Add pictures of the original	Orijinalin resimlerini ekle
+Add pictures of the original (optional: screenshots help it look right)	Orijinalin resimlerini ekle (isteğe bağlı: ekran görüntüleri doğru görünmesine yardımcı olur)
+Add to a running build	Çalışan bir derlemeye ekle
+Added	Eklendi
+Added {n} picture(s). The builder uses them from your next change.	{n} resim eklendi. Oluşturucu bunları bir sonraki değişikliğinizden itibaren kullanır.
+Address to file offset	Adresten dosya konumuna
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	Derin moda kendi decompiler'ını ekler. Craft Anything bunu sizin için indirip kurabilir.
+Advanced	Gelişmiş
+After installing one, look for it again.	Birini kurduktan sonra tekrar arayın.
+Agent	Ajan
+Allow generated assets	Oluşturulan varlıklara izin ver
+Allow once	Bir kez izin ver
+Allowed for this project	Bu proje için izinli
+Allowed for this project.	Bu proje için izinli.
+Allowed in	İzin verildiği yer
+Allowed once	Bir kez izin verildi
+Allowed once.	Bir kez izin verildi.
+Also list projects from	Ayrıca şuradaki projeleri de listele
+Always for this project	Bu proje için her zaman
+An Android app	Bir Android uygulaması
+An Android app package: the file you install on a phone.	Bir Android uygulama paketi: telefona kurduğunuz dosya.
+An Apple settings file (plist)	Bir Apple ayar dosyası (plist)
+An app	Bir uygulama
+An app or a file	Bir uygulama veya dosya
+Analyse a JavaScript app	Bir JavaScript uygulamasını çözümle
+Analyse a page's JavaScript	Bir sayfanın JavaScript'ini çözümle
+Android app code (DEX)	Android uygulama kodu (DEX)
+Android app components	Android uygulama bileşenleri
+Android app package	Android uygulama paketi
+Android apps	Android uygulamaları
+Android class	Android sınıfı
+Android method bytecode	Android metot bayt kodu
+Android resources	Android kaynakları
+Annotate function	Fonksiyonu notlandır
+Another build is working, so this one waits its turn.	Başka bir derleme çalışıyor, bu yüzden bu sırasını bekliyor.
+Answer a project's question	Bir projenin sorusunu yanıtla
+Answer any of them in a message below.	Hepsini aşağıdaki mesajda yanıtlayın.
+Answered by {name}	{name} yanıtladı
+Answers come from {brain}. To build, set up a coding agent in Settings → AI.	Yanıtlar {brain} kaynağından geliyor. Derlemek için Ayarlar → AI bölümünde bir kodlama ajanı kurun.
+App	Uygulama
+App details on device	Cihazdaki uygulama ayrıntıları
+Apple apps	Apple uygulamaları
+Apply model options	Model seçeneklerini uygula
+Approve an agent action	Bir ajan eylemini onayla
+Apps and games: keep refining until they look this alike to your pictures. Off, the likeness is only reported.	Uygulamalar ve oyunlar: resimlerinize bu kadar benzeyene dek iyileştirmeye devam et. Kapalıyken benzerlik yalnızca bildirilir.
+Architectures	Mimariler
+Archive	Arşiv
+Archives	Arşivler
+Ask a question	Soru sor
+Ask about a build	Bir derleme hakkında sor
+Ask about the build	Derleme hakkında sor
+Ask about the build, e.g. "where are the latest files?" Nothing changes and no build starts.	Derleme hakkında sorun, ör. "en son dosyalar nerede?" Hiçbir şey değişmez ve derleme başlamaz.
+Ask about this game	Bu oyun hakkında sor
+Ask anything, e.g. "What does this program do?"	Her şeyi sorun, ör. "Bu program ne yapıyor?"
+Ask before running anything	Bir şey çalıştırmadan önce sor
+Ask each time	Her seferinde sor
+Ask first	Önce sor
+Ask for a change	Bir değişiklik iste
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	Bir değişiklik isteyin, ör. "daha büyük düğmeler" veya "koyu tema ekle"
+Ask for a change, e.g. "make it faster" or "add a high-score table"	Bir değişiklik isteyin, ör. "daha hızlı yap" veya "yüksek skor tablosu ekle"
+Ask for a change, e.g. "make the header blue" or "add a contact form"	Bir değişiklik isteyin, ör. "başlığı mavi yap" veya "iletişim formu ekle"
+Ask in your own words. Every answer shows how sure we are, and the proof.	Kendi sözcüklerinizle sorun. Her yanıt ne kadar emin olduğumuzu ve kanıtı gösterir.
+Ask me	Bana sor
+Ask the agent about this	Ajana bunu sor
+Ask the agent about this target. It cites evidence for every claim.	Ajana bu hedefi sorun. Her iddia için kanıt gösterir.
+Ask the agent…	Ajana sor…
+Ask the person	Kişiye sor
+Ask: "How does the % key work?"	Sorun: "% tuşu nasıl çalışıyor?"
+Ask: "Is it safe to run?"	Sorun: "Çalıştırmak güvenli mi?"
+Ask: "What does it send over the internet?"	Sorun: "İnternete ne gönderiyor?"
+Asking for its models…	Modelleri isteniyor…
+Asset catalog	Varlık kataloğu
+At most this many rounds of fixes after the first build.	İlk derlemeden sonra en fazla bu kadar düzeltme turu.
+Attach pictures	Resim ekle
+Attach pictures (or drop or paste them here)	Resim ekleyin (ya da buraya bırakın veya yapıştırın)
+Auto mode	Otomatik mod
+Automatic	Otomatik
+Automatic ({name})	Otomatik ({name})
+Back	Geri
+Best guess	Tahmin
+Best guess: a reasonable reading, but not proven.	Tahmin: makul bir yorum, ama kanıtlanmadı.
+Binary layout	İkili dosya düzeni
+Blocked	Engellendi
+Bookmark	Yer imi
+Budget for a new project	Yeni proje için bütçe
+Bug report	Hata bildirimi
+Build	Derle
+Build a rebuild ledger	Yeniden derleme defteri oluştur
+Build a stand-in backend	Yedek bir arka uç oluştur
+Build with	Şununla derle
+Build with this	Bununla derle
+Build with {name}	{name} ile derle
+Build with {name} instead	Bunun yerine {name} ile derle
+Build without it	Onsuz derle
+Builder's questions:	Oluşturucunun soruları:
+Building	Derleniyor
+Building needs a coding agent on this computer (Claude Code, Codex or Gemini CLI: install one and sign in to it once in its own window), or an AI with an API key. Craft Anything never sees your account.	Derlemek için bu bilgisayarda bir kodlama ajanı (Claude Code, Codex veya Gemini CLI: birini kurun ve kendi penceresinde bir kez oturum açın) ya da API anahtarı olan bir AI gerekir. Craft Anything hesabınızı hiçbir zaman görmez.
+Building needs a coding agent such as Claude Code, or an AI with an API key.	Derlemek için Claude Code gibi bir kodlama ajanı ya da API anahtarı olan bir AI gerekir.
+Builds	Derlemeler
+Builds and answers may use it again.	Derlemeler ve yanıtlar bunu yeniden kullanabilir.
+Builds at once	Aynı anda derleme
+Builds keep going without stopping to ask you before an action. The builder still never deletes outside its project, changes system settings or publishes anything, and stays within each project's asset budget.	Derlemeler bir eylemden önce durup sormadan devam eder. Oluşturucu yine de projesinin dışında hiçbir şeyi silmez, sistem ayarlarını değiştirmez, hiçbir şey yayımlamaz ve her projenin varlık bütçesini aşmaz.
+Builds use this one. Click to choose automatically again.	Derlemeler bunu kullanıyor. Yeniden otomatiğe dönmek için tıklayın.
+Built by	Yapan
+Built with	Şununla derlendi
+Built with {stack}, as you asked, so no game engine is needed.	İstediğiniz gibi {stack} ile derlendi, bu yüzden oyun motoru gerekmiyor.
+Call graph	Çağrı grafiği
+Call path	Çağrı yolu
+Call the build done	Derlemeyi bitti say
+Called done. A new message carries on from here.	Bitti olarak işaretlendi. Yeni bir mesaj buradan devam eder.
+Cancel	İptal
+Cancel: don't use this folder	İptal: bu klasörü kullanma
+Capture a website for rebuilding	Yeniden derlemek için bir web sitesi yakala
+Capture inventories	Envanterleri yakala
+Capture menus, dialogs and tabs	Menüleri, iletişim kutularını ve sekmeleri yakala
+Change	Değiştir
+Change a setting	Bir ayarı değiştir
+Change an AI's model	Bir AI'ın modelini değiştir
+Change how hard an AI thinks	Bir AI'ın ne kadar derin düşüneceğini değiştir
+Change it	Bunu değiştir
+Change…	Değiştir…
+Check	Denetle
+Check .NET native calls	.NET yerel çağrılarını denetle
+Check a rebuild claim	Bir yeniden derleme iddiasını denetle
+Check a scripted web session	Betikli bir web oturumunu denetle
+Check an answer	Bir yanıtı denetle
+Check decompiled C#	Ters derlenmiş C# kodunu denetle
+Check my build	Derlememi denetle
+Check the JEB connection	JEB bağlantısını denetle
+Check the asset keys	Varlık anahtarlarını denetle
+Check the setup	Kurulumu denetle
+Check {n}	{n} öğeyi denetle
+Check {n}: about {s}% like the original	{n} denetle: orijinale yaklaşık %{s} benzer
+Checked against Godot's official checksums before it's used.	Kullanılmadan önce Godot'un resmî sağlama toplamlarıyla doğrulanır.
+Checking	Denetleniyor
+Choose a file	Bir dosya seç
+Choose a folder…	Bir klasör seç…
+Choose a function, string or section to see it here.	Görüntülemek için bir fonksiyon, dize veya bölüm seçin.
+Choose an AI's job	Bir AI'ın işini seç
+Choose the folder Ghidra is installed in.	Ghidra'nın kurulu olduğu klasörü seçin.
+Choose what the builder's questions get	Oluşturucunun sorularına ne olacağını seç
+Choose what to recreate, say what you want, then press Start.	Neyi yeniden oluşturacağınızı seçin, isteğinizi yazın, sonra Başlat'a basın.
+Choose…	Seç…
+Classes	Sınıflar
+Claude Code folder (CLAUDE_CONFIG_DIR)	Claude Code klasörü (CLAUDE_CONFIG_DIR)
+Clean room	Temiz oda
+Clean room / Deep	Temiz oda / Derin
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	Temiz oda orijinalin kodunu, dosyalarını veya sayfa kaynağını asla okumaz. Derin mod bunları Craft Anything'in sahip olduğu her araçla okur.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	Temiz oda orijinalin kodunu, dosyalarını veya sayfa kaynağını asla okumaz: görebildiklerinizden çalışır. Derin mod bunları her araçla, Ghidra kuruluysa onunla da okur. Her bulgu hangisinin kullanıldığını kaydeder.
+Clean room on	Temiz oda açık
+Clean room or Deep	Temiz oda veya Derin
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	Temiz oda: orijinalin içinden hiçbir şey okunmaz. Görebildiklerinizden çalışırız: resimler, sayfanın ziyaretçinin gördüğü hâli ve çalışırken izlenmesi.
+Clear finished	Bitmişleri temizle
+Close	Kapat
+Close a Frida session	Bir Frida oturumunu kapat
+Close a GDB session	Bir GDB oturumunu kapat
+Close a Rizin debug session	Bir Rizin hata ayıklama oturumunu kapat
+Close a pinned build	Sabitlenmiş bir derlemeyi kapat
+Close it	Kapat
+Close it first.	Önce onu kapatın.
+Close the website	Web sitesini kapat
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	C diline benzeyen bir programdan yeniden oluşturulmuş kod. Programın yaptığına yakın, ama özgün kaynağı değil.
+Code signature	Kod imzası
+Coding agent app	Kodlama ajanı uygulaması
+Command palette (Ctrl/⌘ K)	Komut paleti (Ctrl/⌘ K)
+Commands:	Komutlar:
+Compare WebAssembly interfaces	WebAssembly arayüzlerini karşılaştır
+Compare module exports	Modül dışa aktarımlarını karşılaştır
+Compare two .NET builds	İki .NET derlemesini karşılaştır
+Compare two app versions	İki uygulama sürümünü karşılaştır
+Compare two artifacts	İki yapıtı karşılaştır
+Compare two evidence bundles	İki kanıt paketini karşılaştır
+Compare two functions	İki fonksiyonu karşılaştır
+Compare two page captures	İki sayfa yakalamasını karşılaştır
+Compare two runs	İki çalıştırmayı karşılaştır
+Compare two screenshots	İki ekran görüntüsünü karşılaştır
+Comparing and rebuilding	Karşılaştırma ve yeniden derleme
+Compiled Python file	Derlenmiş Python dosyası
+Connect	Bağlan
+Connect agent apps	Ajan uygulamalarını bağla
+Connect to a browser	Bir tarayıcıya bağlan
+Connect {name}	{name} bağla
+Connected devices	Bağlı cihazlar
+Connected phone	Bağlı telefon
+Context window	Bağlam penceresi
+Continue	Devam et
+Contradicted	Çelişkili
+Control-flow graph: a map of every path a function can take, like a flowchart.	Denetim akışı grafiği: bir fonksiyonun alabileceği her yolun haritası, akış şeması gibi.
+Copies share the files it saves beside itself.	Kopyalar, yanına kaydettiği dosyaları paylaşır.
+Copy a file off the phone	Telefondan bir dosya kopyala
+Copy a file to the phone	Telefona bir dosya kopyala
+Copy an app off the phone	Telefondan bir uygulama kopyala
+Copy the command	Komutu kopyala
+Copy the evidence id	Kanıt kimliğini kopyala
+Couldn't add the pictures:	Resimler eklenemedi:
+Couldn't answer:	Yanıt verilemedi:
+Couldn't attach the pictures:	Resimler eklenemedi:
+Couldn't look through that folder.	O klasöre bakılamadı.
+Couldn't open it.	Açılamadı.
+Couldn't open the folder.	Klasör açılamadı.
+Couldn't open {}: {}	{} açılamadı: {}
+Couldn't start a worker thread: {e}	İşçi iş parçacığı başlatılamadı: {e}
+Couldn't start it.	Başlatılamadı.
+Coverage unknown	Kapsam bilinmiyor
+Craft Anything	Craft Anything
+Craft Anything can't build with {engine}, so Unity is the closest match.	Craft Anything {engine} ile derleyemez, bu yüzden Unity en yakın eşleşme.
+Craft Anything or the computer closed while it was working. Everything so far is kept; Continue picks up where it stopped.	Craft Anything çalışırken kendisi ya da bilgisayar kapandı. Şimdiye kadarki her şey korundu; Devam et kaldığı yerden sürdürür.
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything kodunu ve dosyalarını sahip olduğu her araçla okur. Kişisel kullanımınız için.
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything orijinalin kodunu, dosyalarını ve sayfa kaynağını sahip olduğu her araçla, Ghidra kuruluysa onunla da okur.
+Craft Anything report.md	Craft Anything report.md
+Craft Anything's records, checks and anything it built in app/ are deleted. Your own files in the folder stay as they are.	Craft Anything'in kayıtları, denetimleri ve app/ içinde derledikleri silinir. Klasördeki kendi dosyalarınız olduğu gibi kalır.
+Crash dump	Çökme dökümü
+Create the project	Projeyi oluştur
+Critical	Kritik
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	Çapraz başvuru: programda, baktığınız şeyi kullanan veya çağıran bir yer.
+Cross-references	Çapraz başvurular
+Cross-references: the places in the program that use or call the thing you're looking at.	Çapraz başvurular: programda baktığınız şeyi kullanan veya çağıran yerler.
+Current document	Geçerli belge
+Cursor address	İmleç adresi
+Cursor function	İmleçteki fonksiyon
+Custom	Özel
+Cutter command	Cutter komutu
+DOS load image	DOS yükleme imajı
+Databases	Veritabanları
+Decide yourself	Kendin karar ver
+Decode a radio recording	Bir radyo kaydının kodunu çöz
+Decompile	Ters derle
+Decompile Java with Vineflower	Java'yı Vineflower ile ters derle
+Decompile many	Çok sayıda ters derle
+Decompile with JEB	JEB ile ters derle
+Deep	Derin
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	Derin mod artık Ghidra ile ters derliyor. Büyük bir programa ilk bakış birkaç dakika sürebilir.
+Deep mode on	Derin mod açık
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	Derin: kodunu, dosyalarını ve sayfa kaynağını sahip olduğumuz her araçla, Ghidra kuruluysa onunla da okuruz. Geçmek için tıklayın.
+Default	Varsayılan
+Delete a project	Bir projeyi sil
+Delete it	Sil
+Delete the project	Projeyi sil
+Delete {name}?	{name} silinsin mi?
+Deleted.	Silindi.
+Deleted. Your own files are still in the folder.	Silindi. Kendi dosyalarınız hâlâ klasörde.
+Delete…	Sil…
+Deliberately scrambled to make it hard to read, without changing what it does.	Okunmasını zorlaştırmak için bilerek karıştırılmış, yaptığı iş değişmeden.
+Demangle Swift symbols	Swift sembollerini çöz
+Details	Ayrıntılar
+Details about the selected item appear here.	Seçili öğeyle ilgili ayrıntılar burada görünür.
+Detect	Algıla
+Device details	Cihaz ayrıntıları
+Device features	Cihaz özellikleri
+Device folder	Cihaz klasörü
+Device log	Cihaz günlüğü
+Disassemble sBPF code	sBPF kodunu ayır
+Disassembly	Ayrık kod
+Disconnect agent apps	Ajan uygulamalarının bağlantısını kes
+Dismiss	Kapat
+Dispatch metadata	Gönderim üst verisi
+Display info	Ekran bilgisi
+Do you have permission?	İzniniz var mı?
+Does it talk to the internet?	İnternete bağlanıyor mu?
+Does it track me?	Beni izliyor mu?
+Don't allow	İzin verme
+Don't ask again (you can change this in Settings)	Bir daha sorma (bunu Ayarlar'dan değiştirebilirsiniz)
+Done	Bitti
+Download	İndir
+Download Godot {v}	Godot {v} indir
+Download Unity Hub	Unity Hub'ı indir
+Download and use Ghidra	Ghidra'yı indir ve kullan
+Download it from unity.com and install it.	unity.com'dan indirip kurun.
+Download it from unrealengine.com and install it.	unrealengine.com'dan indirip kurun.
+Download the Epic Games Launcher	Epic Games Launcher'ı indir
+Downloads keep going in the background.	İndirmeler arka planda devam eder.
+Drive an app's screen	Bir uygulamanın ekranını sür
+Drop a calculator app (or any small program) on the window.	Pencereye bir hesap makinesi uygulaması (ya da herhangi küçük bir program) bırakın.
+Drop a file or app anywhere in this window.	Bu pencerenin herhangi bir yerine bir dosya veya uygulama bırakın.
+Drop the file on the window. We only read it; nothing runs.	Dosyayı pencereye bırakın. Yalnızca okuruz; hiçbir şey çalışmaz.
+Drop to attach	Eklemek için bırakın
+Drop to open it	Açmak için bırakın
+Duplicate	Çoğalt
+Duplicate a project	Bir projeyi çoğalt
+Duplicate the project	Projeyi çoğalt
+Each answer says how sure we are: Seen it, Worked it out or Best guess.	Her yanıt ne kadar emin olduğumuzu söyler: Gördük, Çıkardık veya Tahmin.
+Edit a project file	Bir proje dosyasını düzenle
+Edit them in place	Yerinde düzenle
+Effort:	Emek:
+Electron and JavaScript	Electron ve JavaScript
+Electron fuses	Electron sigortaları
+Engines	Motorlar
+Engines and settings	Motorlar ve ayarlar
+Enter a full web address, like example.com or https://example.com/page.	Tam bir web adresi girin, ör. example.com veya https://example.com/page.
+Enter to send · Shift+Enter for a new line	Göndermek için Enter · yeni satır için Shift+Enter
+Epic's own installer. It only opens if Epic's signature checks out.	Epic'in kendi kurulumu. Yalnızca Epic'in imzası doğrulanırsa açılır.
+Essentials	Temel
+Every build of this project.	Bu projenin her derlemesi.
+Every finding is saved here with how sure we are.	Her bulgu, ne kadar emin olduğumuzla birlikte burada kaydedilir.
+Every tool as well: a workbench with functions, bytes, references and evidence.	Tüm araçlar da: fonksiyonlar, baytlar, başvurular ve kanıtlarla bir çalışma tezgâhı.
+Everything found so far, as a Markdown file.	Şimdiye kadar bulunan her şey, Markdown dosyası olarak.
+Everything so far is kept. Continue picks up where it stopped.	Şimdiye kadarki her şey korundu. Devam et kaldığı yerden sürdürür.
+Evidence	Kanıt
+Evidence ledger	Kanıt defteri
+Evidence so far	Şimdiye kadarki kanıtlar
+Explain a function	Bir fonksiyonu açıkla
+Explain like I'm new	Yeni başlayan biri gibi anlat
+Export a report	Rapor dışa aktar
+Export a report (Markdown)	Rapor dışa aktar (Markdown)
+Export captured scripts	Yakalanan betikleri dışa aktar
+Export evidence	Kanıtı dışa aktar
+Export report	Raporu dışa aktar
+Extended	Genişletilmiş
+Extract an archive	Bir arşivi çıkar
+Extract firmware	Yazılımı (firmware) çıkar
+Extract with this	Bununla çıkar
+Extracts	Çıkarmalar
+File formats	Dosya biçimleri
+Files packed inside a file	Bir dosyanın içine paketlenmiş dosyalar
+Filter	Filtrele
+Filter by name	Ada göre filtrele
+Filter the files	Dosyaları filtrele
+Filter…	Filtrele…
+Find Android classes	Android sınıflarını bul
+Find Java classes	Java sınıflarını bul
+Find a call path	Bir çağrı yolu bul
+Find a game's files	Bir oyunun dosyalarını bul
+Find an app	Bir uygulama bul
+Find in-page MCP tools	Sayfa içi MCP araçlarını bul
+Find it automatically	Otomatik bul
+Find out how any software works, then craft your own.	Herhangi bir yazılımın nasıl çalıştığını öğrenin, sonra kendinizinkini yapın.
+Find the original source line	Özgün kaynak satırını bul
+Firmware regions	Yazılım bölgeleri
+Fold the sidebar	Kenar çubuğunu katla
+Folders of projects, and projects started in a folder you picked. Removing one only takes it off the list.	Proje klasörleri ve seçtiğiniz bir klasörde başlatılan projeler. Birini kaldırmak yalnızca listeden çıkarır.
+Follow the installer that opened. Come back here when it's done.	Açılan kurulumu izleyin. Bitince buraya dönün.
+Follow the steps on rustup.rs, then come back here.	rustup.rs'deki adımları izleyin, sonra buraya dönün.
+For everything you make, like the switch in the title bar.	Yaptığınız her şey için, başlık çubuğundaki anahtar gibi.
+For example: a website for my bakery	Örneğin: fırınım için bir web sitesi
+For example: recreate this website	Örneğin: bu web sitesini yeniden oluştur
+For example: the same app, but simpler	Örneğin: aynı uygulama, ama daha basit
+For example: the same game, with a high-score table	Örneğin: aynı oyun, yüksek skor tablosuyla
+Force-stop an app	Bir uygulamayı zorla durdur
+Forget the key	Anahtarı unut
+Found on this computer	Bu bilgisayarda bulundu
+Found {} AI option(s) on this computer	Bu bilgisayarda {} AI seçeneği bulundu
+Frida devices	Frida cihazları
+Frida instrumentation	Frida enstrümantasyonu
+Frida processes	Frida süreçleri
+Frida session status	Frida oturum durumu
+From	Kaynak
+Frozen copy	Dondurulmuş kopya
+Function address	Fonksiyon adresi
+Function assembly	Fonksiyon assembly kodu
+Function dossier	Fonksiyon dosyası
+Function info	Fonksiyon bilgisi
+Function instructions	Fonksiyon komutları
+Function references	Fonksiyon başvuruları
+Functions	Fonksiyonlar
+GDB command	GDB komutu
+GDB session status	GDB oturum durumu
+Game assets	Oyun varlıkları
+Game engines	Oyun motorları
+Game files	Oyun dosyaları
+General	Genel
+Generate a 3D model	3B model üret
+Generate a picture	Resim üret
+Generate custom pictures and models	Özel resimler ve modeller üret
+Generated art (games)	Üretilen görseller (oyunlar)
+Generated assets	Üretilen varlıklar
+Generated pictures and 3D models are made with fal.ai.	Üretilen resimler ve 3B modeller fal.ai ile yapılır.
+Get Ghidra	Ghidra'yı edin
+Get Ghidra for Deep mode	Derin mod için Ghidra edin
+Get Unity Hub	Unity Hub'ı edin
+Get a key at {name}	{name} adresinden anahtar alın
+Get the Epic Games Launcher	Epic Games Launcher'ı edin
+Get {name}	{name} edin
+Getting Ghidra	Ghidra alınıyor
+Getting Godot	Godot alınıyor
+Getting Unity Hub	Unity Hub alınıyor
+Getting the Epic Games Launcher	Epic Games Launcher alınıyor
+Ghidra	Ghidra
+Ghidra folder	Ghidra klasörü
+Ghidra is ready	Ghidra hazır
+Ghidra is ready. Deep mode uses it from now on.	Ghidra hazır. Derin mod bundan sonra onu kullanır.
+Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra kurulu değil, bu yüzden yerleşik ters derleyici devrede. Ayarlar → Motorlar bölümünden edinin.
+Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra bu bilgisayarda henüz yok, bu yüzden yerleşik ters derleyici devrede.
+Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra bu bilgisayarın belleğinin yarısını kullanır (en fazla {gb} GB).
+Ghidra will use up to {gb} GB of memory.	Ghidra en fazla {gb} GB bellek kullanır.
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	NSA'nın ücretsiz tersine mühendislik aracı Ghidra, Derin moda daha zengin ters derlenmiş kod ve türler verir.
+Go home	Ana sayfaya git
+Go program details	Program ayrıntılarına git
+Go to address	Adrese git
+Go to offset (0x…)	Konuma git (0x…)
+Go to the project	Projeye git
+Good enough	Yeterince iyi
+Got it	Anladım
+Graph	Grafik
+Half of this computer's memory, up to {gb} GB.	Bu bilgisayarın belleğinin yarısı, en fazla {gb} GB.
+Here's a first look:	İşte ilk bakış:
+Here's what I found on that page:	İşte o sayfada bulduklarım:
+Hex	Hex
+Hide pinned builds	Sabitlenmiş derlemeleri gizle
+Hide the answer	Yanıtı gizle
+Hide the console	Konsolu gizle
+High	Yüksek
+Home	Ana sayfa
+How alike a rebuild must look to the original before refining stops.	İyileştirme durmadan önce bir yeniden derlemenin orijinale ne kadar benzemesi gerektiği.
+How closely may Craft Anything look at it?	Craft Anything ona ne kadar yakından bakabilir?
+How complete is the rebuild	Yeniden derleme ne kadar tamam
+How do I open an app?	Bir uygulamayı nasıl açarım?
+How do the window and the page talk to each other?	Pencere ile sayfa birbiriyle nasıl konuşuyor?
+How does the % key work?	% tuşu nasıl çalışıyor?
+How is this app built?	Bu uygulama nasıl derlendi?
+How is this app put together?	Bu uygulama nasıl bir araya getirildi?
+How many projects may build at the same time. More wait their turn.	Aynı anda kaç projenin derlenebileceği. Fazlası sırasını bekler.
+How should the builder use them?	Oluşturucu bunları nasıl kullansın?
+I have Ghidra	Ghidra'm var
+I have permission	İznim var
+I want to make things work together	Şeylerin birlikte çalışmasını istiyorum
+I'm checking whether it's safe	Güvenli olup olmadığını kontrol ediyorum
+I'm keeping old software alive	Eski yazılımları ayakta tutuyorum
+I'm learning how things work	Bir şeylerin nasıl çalıştığını öğreniyorum
+I'm new to this	Bu işte yeniyim
+ILSpy decompile	ILSpy ile ters derle
+Ideas:	Fikirler:
+Identify a Flutter build	Bir Flutter derlemesini tanımla
+Import a source folder	Bir kaynak klasörü içe aktar
+Import evidence	Kanıtı içe aktar
+Imports / Exports	İçe / Dışa aktarımlar
+In Deep mode this one takes a game's own files out after the study. Click to stop.	Derin modda bu, incelemeden sonra bir oyunun kendi dosyalarını çıkarır. Durdurmak için tıklayın.
+In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	Unity Hub'da: oturum açın (veya ücretsiz hesap oluşturun) ve ücretsiz Personal lisansını kabul edin. Sonra Installs bölümünü açın, Install Editor'a basın ve önerilen sürümü seçin. Yaklaşık 10 GB.
+In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	Başlatıcıda: oturum açın, Unreal Engine'i, sonra Library'yi açın ve bir tane kurmak için Engine Versions yanındaki + düğmesine basın. Yaklaşık 60 GB.
+In use	Kullanımda
+Inside	İçerik
+Inspect a Dart AOT snapshot	Bir Dart AOT anlık görüntüsünü incele
+Inspect a network recording	Bir ağ kaydını incele
+Inspect a web page	Bir web sayfasını incele
+Inspect an Electron page	Bir Electron sayfasını incele
+Inspect data	Veriyi incele
+Inspect instruction	Komutu incele
+Inspector	Denetçi
+Install Rust	Rust'ı kur
+Install Unity Hub	Unity Hub'ı kur
+Install Visual Studio Community (free) and tick "Game development with C++".	Visual Studio Community'yi (ücretsiz) kurun ve "Game development with C++" seçeneğini işaretleyin.
+Install Xcode	Xcode'u kur
+Install an app	Bir uygulama kur
+Install an engine	Bir motor kur
+Install the launcher	Başlatıcıyı kur
+Installed	Kurulu
+Installed apps	Kurulu uygulamalar
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	Süreçler arası iletişim: bir uygulamanın iki parçasının (veya iki uygulamanın) birbirine nasıl mesaj gönderdiği.
+Interface Builder documents	Interface Builder belgeleri
+Interrupted	Kesildi
+Inventory an archive or app bundle	Bir arşivin veya uygulama paketinin envanterini çıkar
+Investigating	İnceleniyor
+Investigation so far	Şimdiye kadarki inceleme
+Is Apktool available?	Apktool var mı?
+Is adb available?	adb var mı?
+Is an asset key set up?	Varlık anahtarı ayarlı mı?
+Is anything in here a program?	Buradaki herhangi bir şey program mı?
+Is anything sensitive saved in plain text?	Düz metin olarak kaydedilmiş hassas bir şey var mı?
+Is it safe to look inside programs?	Programların içine bakmak güvenli mi?
+Is it safe to run?	Çalıştırmak güvenli mi?
+Is there any readable text inside?	İçinde okunabilir metin var mı?
+Is this file safe to open?	Bu dosyayı açmak güvenli mi?
+It closed straight away.	Hemen kapandı.
+It closed straight away. It said:	Hemen kapandı. Şunu söyledi:
+It isn't on this computer yet. Craft Anything can download Ghidra {version} and the Java runtime it needs (about {mb} MB), check both against their publishers' checksums, and set them up in its own folder. Nothing else on your computer changes.	Bu bilgisayarda henüz yok. Craft Anything, Ghidra {version} ve ihtiyaç duyduğu Java çalışma zamanını (yaklaşık {mb} MB) indirebilir, ikisini de yayıncılarının sağlama toplamlarıyla doğrulayabilir ve kendi klasörüne kurabilir. Bilgisayarınızda başka hiçbir şey değişmez.
+It isn't on this computer yet. Install Ghidra {version} from its release page, then choose its folder.	Bu bilgisayarda henüz yok. Ghidra {version} sürümünü yayın sayfasından kurun, sonra klasörünü seçin.
+It's already open.	Zaten açık.
+It's already open. Right-click it to open another copy.	Zaten açık. Başka bir kopya açmak için sağ tıklayın.
+It's done	Bitti
+It's mine, or I'm allowed to look	Benim ya da bakmama izin var
+Its copy is deleted, with anything it saved there. The project itself stays as it is.	Kopyası, oraya kaydettiği her şeyle birlikte silindi. Projenin kendisi olduğu gibi kalır.
+Its folder is deleted with everything in it: what was built, the checks and the conversation.	Klasörü içindeki her şeyle birlikte silindi: derlenenler, denetimler ve konuşma.
+Its own code	Kendi kodu
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	Kendi oturum açması, ayarları ve konuşmaları: başka klasör, başka hesap. Boş: her zamanki klasörü.
+Java archive overview	Java arşivine genel bakış
+Java class	Java sınıfı
+Java method bytecode and pseudo-Java	Java metot bayt kodu ve sözde Java
+Java program code (one class)	Java program kodu (tek sınıf)
+Java programs	Java programları
+Java runtime	Java çalışma zamanı
+Jobs	İşler
+Jobs ({n_jobs})	İşler ({n_jobs})
+Jobs ({n})	İşler ({n})
+Just a question: nothing was changed. Answered by	Sadece soru: hiçbir şey değişmedi. Yanıtlayan
+Just ask	Sadece sor
+Just look inside	Sadece içine bak
+Work on my project	Projem üzerinde çalış
+Work on a project you already have	Zaten sahip olduğunuz bir proje üzerinde çalış
+Pick its folder, say what you want, then press Start.	Klasörünü seçin, isteğinizi yazın, sonra Başlat'a basın.
+Where is your project?	Projeniz nerede?
+Choose your project's folder…	Projenizin klasörünü seçin…
+For example: add a dark mode	Örneğin: koyu tema ekle
+Pick your project's folder first.	Önce projenizin klasörünü seçin.
+Pick your project's folder	Projenizin klasörünü seçin
+That folder is empty. Pick the folder your project's files are in.	O klasör boş. Projenizin dosyalarının bulunduğu klasörü seçin.
+Keep going without asking	Sormadan devam et
+Keep it	Tut
+Keep it in the sidebar to open any time, whatever later builds change.	Her zaman açmak için kenar çubuğunda tut, sonraki derlemeler neyi değiştirirse değiştirsin.
+Keep the build as it is and stop offering to carry on.	Derlemeyi olduğu gibi bırak ve devam etmeyi önermeyi bırak.
+Keep this version in the sidebar to open any time.	Bu sürümü her zaman açmak için kenar çubuğunda tut.
+Keeps this version exactly as it is now. Later builds can't change or break it, and anything it saves stays with the copy.	Bu sürümü şu anki hâliyle birebir korur. Sonraki derlemeler onu değiştiremez veya bozamaz ve kaydettiği her şey kopyayla birlikte kalır.
+Key saved	Anahtar kaydedildi
+Keyed archive	Anahtarlı arşiv
+Kind	Tür
+Language	Dil
+Last: {what}	Son: {what}
+Launch an app	Bir uygulama başlat
+Leave a few GB for the rest of your computer.	Bilgisayarınızın geri kalanı için birkaç GB bırakın.
+Leave a path empty to use the managed install. We never need environment variables.	Yönetilen kurulumu kullanmak için yolu boş bırakın. Ortam değişkenlerine hiç ihtiyacımız yok.
+Leave empty to use the one Craft Anything sets up.	Craft Anything'in kurduğunu kullanmak için boş bırakın.
+Let a project generate assets	Bir projenin varlık üretmesine izin ver
+Let's go	Başlayalım
+Lets the builder make realistic 3D models and textures for games, {model} a model, with a {budget} budget per project.	Oluşturucunun oyunlar için gerçekçi 3B modeller ve dokular yapmasını sağlar; {model} bir model, proje başına {budget} bütçeyle.
+Library resolution	Kitaplık çözünürlüğü
+Light copy: shares big files with the project	Hafif kopya: büyük dosyaları projeyle paylaşır
+Likeness	Benzerlik
+Line up code and behaviour	Kodu ve davranışı hizala
+Line up source with the bundle	Kaynağı paketle hizala
+List Electron pages	Electron sayfalarını listele
+List JEB units	JEB birimlerini listele
+List JS runtime targets	JS çalışma zamanı hedeflerini listele
+List a Unity assets file	Bir Unity varlık dosyasını listele
+List a Unity bundle	Bir Unity paketini listele
+List a game's archives	Bir oyunun arşivlerini listele
+List a node's event listeners	Bir düğümün olay dinleyicilerini listele
+List an AI's models	Bir AI'ın modellerini listele
+List an Unreal IoStore container	Bir Unreal IoStore kapsayıcısını listele
+List an Unreal pak	Bir Unreal pak dosyasını listele
+List bookmarks	Yer imlerini listele
+List browser pages	Tarayıcı sayfalarını listele
+List documents	Belgeleri listele
+List engines	Motorları listele
+List functions	Fonksiyonları listele
+List names	Adları listele
+List open targets	Açık hedefleri listele
+List pinned builds	Sabitlenmiş derlemeleri listele
+List plugins	Eklentileri listele
+List project files	Proje dosyalarını listele
+List projects	Projeleri listele
+List questions about a build	Bir derleme hakkındaki soruları listele
+List radio decoders	Radyo çözücülerini listele
+List segments	Bölümleri listele
+List shared Cutter sessions	Paylaşılan Cutter oturumlarını listele
+List strings	Dizeleri listele
+Live: the project's latest build	Canlı: projenin son derlemesi
+Load a picture	Bir resim yükle
+Load a screenshot	Bir ekran görüntüsü yükle
+Load model options	Model seçeneklerini yükle
+Loading…	Yükleniyor…
+Log	Günlük
+Look again	Yeniden bak
+Look at a game	Bir oyuna bak
+Look at a website	Bir web sitesine bak
+Look at the game	Oyuna bak
+Look for AI on this computer	Bu bilgisayarda AI ara
+Look for game engines	Oyun motorlarını ara
+Look for projects again	Projeleri yeniden ara
+Looked at everything	Her şeye bakıldı
+Looked at part of it	Bir kısmına bakıldı
+Looked at {a} of {b}	{b} öğeden {a} tanesine bakıldı
+Looking for AI on this computer…	Bu bilgisayarda AI aranıyor…
+Looking for game engines on this computer…	Bu bilgisayarda oyun motorları aranıyor…
+Looking for the game's files…	Oyunun dosyaları aranıyor…
+Looking inside needs Deep mode	İçine bakmak Derin mod gerektirir
+Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	Sahip olduğunuz veya incelemenize izin verilen yazılımların içine bakmak normaldir ve çoğu zaman korunur (öğrenme, uyumluluk, güvenlik). Nedeni söylemek buna uymanıza yardımcı olur; bu bilgi bu bilgisayarda kalır.
+Looking on this computer…	Bu bilgisayarda aranıyor…
+Low	Düşük
+Mach-O structure	Mach-O yapısı
+Made a copy: {name}	Kopya oluşturuldu: {name}
+Made with fal.ai and paid from your account: {model} a 3D model, {picture} a picture. Off, the game is built without them.	fal.ai ile yapılır ve hesabınızdan ödenir: {model} bir 3B model, {picture} bir resim. Kapalıyken oyun bunlar olmadan derlenir.
+Made with {engine}	{engine} ile yapıldı
+Made without looking inside the original.	Orijinalin içine bakmadan yapıldı.
+Make a game that plays like this	Bunun gibi oynanan bir oyun yap
+Make a simpler version of this game	Bu oyunun daha basit bir sürümünü yap
+Make my own version	Kendi sürümümü yap
+Make my own version of this app	Bu uygulamanın kendi sürümümü yap
+Making my own thing talk to something else.	Kendi şeyimin başka bir şeyle konuşmasını sağlıyorum.
+Many source files packed into one big file so an app or web page loads faster.	Bir uygulamanın veya web sayfasının daha hızlı yüklenmesi için birçok kaynak dosyanın tek büyük dosyaya paketlenmesi.
+Map a HarmonyOS app	Bir HarmonyOS uygulamasını haritala
+Map a page's module graph	Bir sayfanın modül grafiğini haritala
+Map an Android app	Bir Android uygulamasını haritala
+Map an Apple app	Bir Apple uygulamasını haritala
+Markdown	Markdown
+Match functions between two builds	İki derleme arasındaki fonksiyonları eşleştir
+Match my pictures	Resimlerimi eşleştir
+Match static code to what ran	Statik kodu çalışanla eşleştir
+Maximise	Tam ekran
+May I run "{title}"?	"{title}" çalıştırılsın mı?
+May I {action}?	{action} yapılsın mı?
+Measure which code ran	Hangi kodun çalıştığını ölç
+Medium	Orta
+Memory for Ghidra	Ghidra için bellek
+Minimise	Simge durumuna küçült
+Mode	Mod
+Model	Model
+Model options	Model seçenekleri
+Model: {model}	Model: {model}
+Modules	Modüller
+More detail	Daha fazla ayrıntı
+More makes a big program's first look faster.	Daha fazlası büyük bir programın ilk bakışını hızlandırır.
+More memory makes Ghidra's first look at a big program faster; leave some for the rest of the computer. Used from the next time Ghidra starts.	Daha fazla bellek, Ghidra'nın büyük bir programa ilk bakışını hızlandırır; bilgisayarın geri kalanı için biraz bırakın. Ghidra'nın bir sonraki açılışından itibaren kullanılır.
+Name (optional)	Ad (isteğe bağlı)
+Name an address	Bir adrese ad ver
+Name at address	Adresteki ad
+Name many addresses	Birçok adrese ad ver
+Names the program's author gave to functions or variables that survived in the file.	Programın yazarının dosyada kalmış fonksiyonlara veya değişkenlere verdiği adlar.
+Needs a fal.ai key. Until then the game is built without them.	fal.ai anahtarı gerekir. O zamana kadar oyun bunlar olmadan derlenir.
+Needs you	Sizi bekliyor
+Network	Ağ
+New	Yeni
+New project	Yeni proje
+New projects go in	Yeni projeler şuraya gider
+Next address	Sonraki adres
+No AI (built-in engines only)	AI yok (yalnızca yerleşik motorlar)
+No AI brain is set up, so answers come straight from the built-in engines. Add one any time for plain-words explanations.	AI beyni ayarlı değil, bu yüzden yanıtlar doğrudan yerleşik motorlardan gelir. Sade dille açıklamalar için istediğiniz zaman bir tane ekleyin.
+No AI for now	Şimdilik AI yok
+No AI is set up yet. The built-in engines still work; an AI adds plain-words answers.	Henüz AI ayarlanmadı. Yerleşik motorlar yine çalışır; bir AI sade dilli yanıtlar ekler.
+No Unreal or Unity archives were found. Pick the folder the game is installed in.	Unreal veya Unity arşivi bulunamadı. Oyunun kurulu olduğu klasörü seçin.
+No coding agent was found on this computer yet.	Bu bilgisayarda henüz kodlama ajanı bulunamadı.
+No evidence yet	Henüz kanıt yok
+No game files here	Burada oyun dosyası yok
+No jobs yet. Long tasks show their progress here, and you can cancel them.	Henüz iş yok. Uzun görevler ilerlemelerini burada gösterir ve iptal edebilirsiniz.
+No matches	Eşleşme yok
+No open questions	Açık soru yok
+No plugins yet.	Henüz eklenti yok.
+No result yet	Henüz sonuç yok
+No targets	Hedef yok
+No tool named {tool}	{tool} adında araç yok
+None	Hiçbiri
+None yet. Screenshots help it look right.	Henüz yok. Ekran görüntüleri doğru görünmesine yardımcı olur.
+Not allowed	İzin verilmedi
+Not allowed.	İzin verilmedi.
+Not available yet	Henüz kullanılamıyor
+Not compared yet: {what}	Henüz karşılaştırılmadı: {what}
+Not installed	Kurulu değil
+Not now	Şimdi değil
+Nothing allowed yet.	Henüz hiçbir şeye izin verilmedi.
+Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	Henüz hiçbir şey derleyemez: Claude Code'u kurun (ve bir kez oturum açın) ya da aşağıda API anahtarı olan bir AI ekleyin.
+Nothing found	Hiçbir şey bulunamadı
+Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	Henüz bir şey bulunamadı. API anahtarlarını, yerel model sunucularını (Ollama, LM Studio) ve hâlihazırda sahip olduğunuz ajan uygulamalarını ararız. Başka bir bağlantı noktasında veya bilgisayarda olan biri aşağıda adresiyle eklenebilir.
+Nothing inside it is read.	İçindeki hiçbir şey okunmaz.
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	İçindeki hiçbir şey okunmaz; Craft Anything görebildiklerinizden çalışır. Sizin sürümünüz kendi görsellerini alır.
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	Orijinalin içinden hiçbir şey okunmaz: kodu, dosyaları veya sayfa kaynağı. Craft Anything görebildiklerinizden çalışır: resimler, sayfanın ziyaretçinin gördüğü hâli ve çalışırken izlenmesi.
+Nothing made yet. What you make shows up here.	Henüz bir şey yapılmadı. Yaptıklarınız burada görünür.
+Nothing matches the filter.	Filtreyle eşleşen yok.
+Nothing matches.	Eşleşen yok.
+Nothing new for {time}. Long steps can be quiet; if it stays like this, press Pause.	{time} boyunca yeni bir şey yok. Uzun adımlar sessiz geçebilir; böyle devam ederse Duraklat'a basın.
+Nothing open	Açık bir şey yok
+Nothing open yet	Henüz açık bir şey yok
+Nothing selected	Hiçbir şey seçili değil
+Nothing to show	Gösterilecek bir şey yok
+Nothing uses it until it's on again; it keeps its key.	Yeniden açılana kadar hiçbir şey onu kullanmaz; anahtarını korur.
+Nothing — start fresh	Hiçbir şey — sıfırdan başla
+Now	Şimdi
+Now: {what} ({time})	Şimdi: {what} ({time})
+Objective-C classes	Objective-C sınıfları
+Objective-C protocols	Objective-C protokolleri
+Observe a JS runtime	Bir JS çalışma zamanını gözle
+Of this, {cost} was charged to an API key.	Bunun {cost} kadarı bir API anahtarına yazıldı.
+Off	Kapalı
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Başka bir bilgisayardaki Ollama veya LM Studio ya da OpenAI API'sini konuşan herhangi bir hizmet.
+On	Açık
+One line, in plain words. It stays on this computer and is never sent anywhere.	Tek satır, sade bir dille. Bu bilgisayarda kalır ve hiçbir yere gönderilmez.
+One-shot instrumentation	Tek seferlik enstrümantasyon
+Only for Ghidra. Empty = managed.	Yalnızca Ghidra için. Boş = yönetilen.
+Only its name changes; its folder stays where it is.	Yalnızca adı değişir; klasörü olduğu yerde kalır.
+Only take pictures out of games you made, or whose owner allows it. A game's art is usually protected by copyright and by the game's licence.	Görselleri yalnızca kendi yaptığınız ya da sahibinin izin verdiği oyunlardan alın. Bir oyunun görselleri genellikle telif hakkı ve oyunun lisansıyla korunur.
+Only the pin goes; the project and its app stay as they are.	Yalnızca sabitleme kalkar; proje ve uygulaması olduğu gibi kalır.
+Open	Aç
+Open "Show me the proof" to see the exact code we found, and how sure we are.	"Kanıtı göster"i açarak bulduğumuz tam kodu ve ne kadar emin olduğumuzu görün.
+Open Ghidra's release page	Ghidra'nın yayın sayfasını aç
+Open Unity Hub	Unity Hub'ı aç
+Open a calculator app and find the code behind one button.	Bir hesap makinesi uygulaması aç ve bir düğmenin arkasındaki kodu bul.
+Open a file in JEB	Bir dosyayı JEB'de aç
+Open a file or drop one here.	Bir dosya aç veya buraya bırak.
+Open a file…	Bir dosya aç…
+Open a folder or app bundle	Bir klasör veya uygulama paketi aç
+Open a folder or app bundle…	Bir klasör veya uygulama paketi aç…
+Open a folder…	Bir klasör aç…
+Open a pinned build	Sabitlenmiş bir derlemeyi aç
+Open a project's folder	Bir projenin klasörünü aç
+Open a website	Bir web sitesi aç
+Open an app or file	Bir uygulama veya dosya aç
+Open an engine's app	Bir motorun uygulamasını aç
+Open another copy	Başka bir kopya aç
+Open another target	Başka bir hedef aç
+Open files, folders or apps; you can have several open at once.	Dosya, klasör veya uygulama açın; aynı anda birkaçını açabilirsiniz.
+Open folder	Klasörü aç
+Open in the workbench	Çalışma tezgâhında aç
+Open it	Aç
+Open log	Günlüğü aç
+Open one of the files inside it to see its bytes.	Baytlarını görmek için içindeki dosyalardan birini açın.
+Open questions	Açık sorular
+Open something	Bir şey aç
+Open something first: drop a file or app here, or choose "Just look inside" on New project. Then I can look inside it.	Önce bir şey açın: buraya bir dosya veya uygulama bırakın ya da Yeni proje'de "Sadece içine bak"ı seçin. Sonra içine bakabilirim.
+Open something to start	Başlamak için bir şey aç
+Open the Epic Games Launcher	Epic Games Launcher'ı aç
+Open the app	Uygulamayı aç
+Open the app you're curious about.	Merak ettiğiniz uygulamayı açın.
+Open the download page	İndirme sayfasını aç
+Open the folder	Klasörü aç
+Open the installer app	Kurulum uygulamasını aç
+Open the website	Web sitesini aç
+Open {name}	{name} aç
+Opened {name}	{name} açıldı
+Opened {name}. Taking a first look…	{name} açıldı. İlk bakış atılıyor…
+Opened {}	{} açıldı
+Opening {name}…	{name} açılıyor…
+Open…	Aç…
+Or type your answer…	Ya da yanıtınızı yazın…
+Original	Orijinal
+Other pages of a website studied and compared besides the one you gave.	Verdiğiniz sayfanın yanı sıra incelenen ve karşılaştırılan diğer web sitesi sayfaları.
+Overview	Genel bakış
+Packet capture overview	Paket yakalama özeti
+Packet fields	Paket alanları
+Page through evidence	Kanıt içinde sayfala
+Part of the app got stuck, so it was stopped and the rest carried on. Your work is kept.	Uygulamanın bir kısmı takıldı, bu yüzden durduruldu ve gerisi devam etti. Çalışmanız korundu.
+Part of the app is stuck. Restarting clears it, and your work is kept.	Uygulamanın bir kısmı takıldı. Yeniden başlatmak düzeltir; çalışmanız korunur.
+Part of this screen hit a bug and was skipped. Your work is safe.	Bu ekranın bir kısmı bir hataya takıldı ve atlandı. Çalışmanız güvende.
+Paste pictures	Resim yapıştır
+Paste your API key (kept in your system keychain)	API anahtarınızı yapıştırın (sistem anahtarlığınızda saklanır)
+Paste your {name} key	{name} anahtarınızı yapıştırın
+Path	Yol
+Pause	Duraklat
+Pausing…	Duraklatılıyor…
+Pause the build first, then delete the project.	Önce derlemeyi duraklatın, sonra projeyi silin.
+Pause the build first.	Önce derlemeyi duraklatın.
+Paused	Duraklatıldı
+Paused.	Duraklatıldı.
+Pick a folder with projects in it	İçinde projeler olan bir klasör seç
+Pick a game's folder	Bir oyun klasörü seç
+Pick another folder…	Başka bir klasör seç…
+Pick another game	Başka bir oyun seç
+Pick something on the left	Soldan bir şey seç
+Pick the app or game folder	Uygulama veya oyun klasörünü seç
+Pick the app, game or file to rebuild	Yeniden derlenecek uygulamayı, oyunu veya dosyayı seç
+Pick the folder for this project	Bu projenin klasörünü seç
+Pick the game's folder	Oyunun klasörünü seç
+Picture a program's window	Bir programın penceresini görüntüle
+Picture model	Resim modeli
+Pictures	Resimler
+Pictures can't be saved from IoStore containers yet; you can see what's inside.	IoStore kapsayıcılarından henüz resim kaydedilemiyor; içindekileri görebilirsiniz.
+Pictures of the original	Orijinalin resimleri
+Pieces of text stored inside a program, like messages, web addresses or file names.	Bir programın içinde saklanan metin parçaları; mesajlar, web adresleri veya dosya adları gibi.
+Pin a build	Bir derlemeyi sabitle
+Pin a project's build	Bir projenin derlemesini sabitle
+Pin it	Sabitle
+Pin name	Sabitleme adı
+Pin removed.	Sabitleme kaldırıldı.
+Pin this build	Bu derlemeyi sabitle
+Pinned	Sabitlendi
+Pinned builds	Sabitlenmiş derlemeler
+Pinned: {name}. Open it from the sidebar any time.	Sabitlendi: {name}. İstediğiniz zaman kenar çubuğundan açın.
+Plain words, big buttons, and I'll explain everything.	Sade sözcükler, büyük düğmeler; her şeyi açıklarım.
+Plain words, short sentences, and every technical word explained.	Sade sözcükler, kısa cümleler ve her teknik terimin açıklaması.
+Plan	Plan
+Plan connecting agent apps	Ajan uygulamalarını bağlamayı planla
+Play a project's result	Bir projenin sonucunu oynat
+Play the game	Oyunu oyna
+Plugin added. Read its tools to start using them.	Eklenti eklendi. Kullanmaya başlamak için araçlarını okuyun.
+Plugin arguments	Eklenti argümanları
+Plugin command or address	Eklenti komutu veya adresi
+Plugin id	Eklenti kimliği
+Plugin removed.	Eklenti kaldırıldı.
+Plugins	Eklentiler
+Plugins add tools Craft Anything offers as its own: MCP servers (a command or an address; read their tools after adding) or WebAssembly components (a .wasm file, which can't touch your files or the network).	Eklentiler, Craft Anything'in kendi araçlarıyla sunduğu araçları ekler: MCP sunucuları (bir komut veya adres; ekledikten sonra araçlarını okuyun) ya da WebAssembly bileşenleri (bir .wasm dosyası; dosyalarınıza veya ağa dokunamaz).
+Plugins added here always ask before each call.	Buradan eklenen eklentiler her çağrıdan önce sorar.
+Plugins read. Their new tools are offered from the next start.	Eklentiler okundu. Yeni araçları bir sonraki açılıştan itibaren sunulur.
+Preserving software that's no longer supported.	Artık desteklenmeyen yazılımları korumak.
+Preview a project's website	Bir projenin web sitesini önizle
+Preview the website	Web sitesini önizle
+Previous address	Önceki adres
+Program: found automatically	Program: otomatik bulundu
+Program: {path}	Program: {path}
+Programs (native code)	Programlar (yerel kod)
+Progress	İlerleme
+Project details	Proje ayrıntıları
+Project name	Proje adı
+Projects	Projeler
+Projects and builds	Projeler ve derlemeler
+Property list	Özellik listesi
+Pseudo-C	Sözde C
+Purpose	Amaç
+Raise the asset budget	Varlık bütçesini artır
+Raise the budget by {amount}	Bütçeyi {amount} artır
+Raw machine code	Ham makine kodu
+Read AI settings	AI ayarlarını oku
+Read a Unity game's IL2CPP metadata	Bir Unity oyununun IL2CPP üst verisini oku
+Read a game's files	Bir oyunun dosyalarını oku
+Read a project file	Bir proje dosyasını oku
+Read a setting	Bir ayarı oku
+Read an app's screen	Bir uygulamanın ekranını oku
+Read bytes	Baytları oku
+Read comment	Yorumu oku
+Read inline comment	Satır içi yorumu oku
+Read its tools	Araçlarını oku
+Read pinned builds	Sabitlenmiş derlemeleri oku
+Read projects	Projeleri oku
+Read the journal	Günlüğü oku
+Read the plugin's tools	Eklentinin araçlarını oku
+Read the project	Projeyi oku
+Reading what's inside…	İçindekiler okunuyor…
+Ready	Hazır
+Ready: {what} is on this computer.	Hazır: {what} bu bilgisayarda.
+Reasoning	Muhakeme
+Rebuild status	Yeniden derleme durumu
+Record a finding	Bir bulguyu kaydet
+Record a hypothesis	Bir varsayımı kaydet
+Record an open question	Açık bir soruyu kaydet
+Recover readable sources	Okunabilir kaynakları kurtar
+Recreate it with darker colours	Daha koyu renklerle yeniden oluştur
+Recreate just its main feature	Yalnızca ana özelliğini yeniden oluştur
+Recreate this website	Bu web sitesini yeniden oluştur
+Recreated games are built with the original's own engine when it's here (Unity, Unreal or Godot), else Unity, and Rust as the last resort.	Yeniden oluşturulan oyunlar, motoru buradaysa orijinalin kendi motoruyla (Unity, Unreal veya Godot), yoksa Unity ile, en son çare olarak Rust ile derlenir.
+References to a name	Bir ada yapılan başvurular
+Refining rounds	İyileştirme turu
+Refresh plugins	Eklentileri yenile
+Regions of a program file, each with one purpose: code, text, pictures, settings.	Bir program dosyasının her biri tek amaçlı bölgeleri: kod, metin, resimler, ayarlar.
+Reload	Yenile
+Remember permission	İzni hatırla
+Remove	Kaldır
+Remove a pin	Sabitlemeyi kaldır
+Remove a pinned build	Sabitlenmiş bir derlemeyi kaldır
+Remove a plugin	Bir eklentiyi kaldır
+Remove an AI	Bir AI'ı kaldır
+Remove an app	Bir uygulamayı kaldır
+Remove an asset key	Varlık anahtarını kaldır
+Remove bookmark	Yer imini kaldır
+Remove it	Kaldır
+Remove it and its key	Onu ve anahtarını kaldır
+Remove {name}	{name} kaldır
+Remove {name}?	{name} kaldırılsın mı?
+Remove…	Kaldır…
+Rename	Yeniden adlandır
+Rename a pinned build	Sabitlenmiş bir derlemeyi yeniden adlandır
+Rename a project	Bir projeyi yeniden adlandır
+Rename the pin	Sabitlemeyi yeniden adlandır
+Rename the project	Projeyi yeniden adlandır
+Rename…	Yeniden adlandır…
+Reset	Sıfırla
+Resolve a call	Bir çağrıyı çözümle
+Resolved	Çözümlendi
+Resources	Kaynaklar
+Restart	Yeniden başlat
+Restore	Geri yükle
+Result	Sonuç
+Resume a Frida session	Bir Frida oturumunu sürdür
+Rizin command	Rizin komutu
+Rizin debug command	Rizin hata ayıklama komutu
+Rizin debug session status	Rizin hata ayıklama oturum durumu
+Rough guide:	Kaba kılavuz:
+Run	Çalıştır
+Run a Frida script	Bir Frida betiği çalıştır
+Run a build command	Bir derleme komutu çalıştır
+Run a scripted Electron session	Betikli bir Electron oturumu çalıştır
+Run a scripted web session	Betikli bir web oturumu çalıştır
+Run a tool from the command palette (Ctrl/⌘ K), or pick a finding in the Evidence panel.	Komut paletinden (Ctrl/⌘ K) bir araç çalıştırın ya da Kanıt panelinden bir bulgu seçin.
+Run and watch a program	Bir programı çalıştır ve izle
+Run to study	İncelemek için çalıştır
+Running	Çalışıyor
+Running processes	Çalışan süreçler
+Running programs	Çalışan programlar
+Running {id}	{id} çalışıyor
+Runs its tools without asking	Araçlarını sormadan çalıştırır
+Runs the first-run steps next time.	İlk çalıştırma adımlarını bir dahaki sefere çalıştırır.
+Rust program details	Rust program ayrıntıları
+SHA-256	SHA-256
+SQLite database contents	SQLite veritabanı içeriği
+Safety	Güvenlik
+Save	Kaydet
+Save a picture	Bir resim kaydet
+Save a report	Bir rapor kaydet
+Save an asset key	Bir varlık anahtarı kaydet
+Save picture	Resmi kaydet
+Save settings	Ayarları kaydet
+Save the key	Anahtarı kaydet
+Save the picture	Resmi kaydet
+Save the report	Raporu kaydet
+Saved	Kaydedildi
+Saved in	Kaydedileceği yer
+Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	Yer kazandırır: programı ve kodu kopyalar, bağımlılıkları ve medyayı projeyle paylaşır. Yerinde yeniden yazılan paylaşılan bir dosya burada da değişir.
+Say what you want	Ne istediğinizi yazın
+Say what you want first.	Önce ne istediğinizi yazın.
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	Ne yapmak istediğinizi yazın ya da içine bakmak için pencereye bir uygulama veya dosya bırakın. Derin'i açmazsanız her şey Temiz oda modunda çalışır.
+Screenshot	Ekran görüntüsü
+Screenshot a page	Bir sayfanın ekran görüntüsünü al
+Screenshots of how it should look. The builder opens each one and matches it.	Nasıl görünmesi gerektiğinin ekran görüntüleri. Oluşturucu her birini açar ve eşleştirir.
+Search for bytes	Bayt ara
+Search functions	Fonksiyon ara
+Search strings	Dize ara
+Sections	Bölümler
+Security research on software I'm allowed to examine.	İncelememe izin verilen yazılımlar üzerinde güvenlik araştırması.
+See how a page is built: its layout, styles, scripts and the requests it makes.	Bir sayfanın nasıl kurulduğunu görün: düzeni, stilleri, betikleri ve yaptığı istekler.
+See how a program works: what it does, what it talks to, what's inside.	Bir programın nasıl çalıştığını görün: ne yapar, neyle konuşur, içinde ne var.
+See what a game packs and save its pictures as PNG files. Only for games you made, or whose owner lets you.	Bir oyunun neleri paketlediğini görün ve resimlerini PNG olarak kaydedin. Yalnızca kendi yaptığınız veya sahibinin izin verdiği oyunlar için.
+See what a game packs, and save its pictures as PNG files.	Bir oyunun neleri paketlediğini görün ve resimlerini PNG olarak kaydedin.
+See what a stand-in was asked	Bir yedeğe ne sorulduğunu gör
+See which servers an app talks to, and what it says.	Bir uygulamanın hangi sunucularla konuştuğunu ve ne söylediğini görün.
+Seen it	Gördük
+Seen it: read directly from the file, page or capture.	Gördük: doğrudan dosyadan, sayfadan veya yakalamadan okundu.
+Selected	Seçili
+Selection	Seçim
+Send	Gönder
+Send (Enter)	Gönder (Enter)
+Send now	Şimdi gönder
+Server address	Sunucu adresi
+Session status	Oturum durumu
+Set a project's asset budget	Bir projenin varlık bütçesini ayarla
+Set an AI's folder	Bir AI'ın klasörünü ayarla
+Set an AI's program	Bir AI'ın programını ayarla
+Set model options	Model seçeneklerini ayarla
+Set one up	Bir tane kur
+Set up a brain…	Bir beyin kur…
+Set up a builder	Bir oluşturucu kur
+Settings	Ayarlar
+Show a build's activity	Bir derlemenin etkinliğini göster
+Show a project	Bir proje göster
+Show folder	Klasörü göster
+Show me everything	Her şeyi göster
+Show me the proof	Kanıtı göster
+Show model options	Model seçeneklerini göster
+Show pinned builds	Sabitlenmiş derlemeleri göster
+Show settings	Ayarları göster
+Show the answer	Yanıtı göster
+Show the console	Konsolu göster
+Show the folder	Klasörü göster
+Show the ones that are met	Karşılananları göster
+Show the sidebar	Kenar çubuğunu göster
+Show the welcome again	Karşılamayı yeniden göster
+Showing	Gösteriliyor
+Sign in and add the Unity Editor	Oturum aç ve Unity Editor'ü ekle
+Sign in and install Unreal Engine	Oturum aç ve Unreal Engine'i kur
+Simple	Basit
+Simple: say what you want and it's handled for you. Advanced: every tool, the evidence and the logs.	Basit: ne istediğinizi yazın, gerisi halledilir. Gelişmiş: tüm araçlar, kanıtlar ve günlükler.
+Since Craft Anything opened.	Craft Anything açıldığından beri.
+Size	Boyut
+Skip setup	Kurulumu atla
+Smart contract interface	Akıllı sözleşme arayüzü
+Software I made, bought, or have permission to examine.	Yaptığım, satın aldığım veya inceleme iznim olan yazılım.
+Solana program (sBPF)	Solana programı (sBPF)
+Some plugins couldn't be read:	Bazı eklentiler okunamadı:
+Something a program borrows from the operating system or a library, like "open a file".	Bir programın işletim sisteminden veya bir kütüphaneden ödünç aldığı şey; "bir dosya aç" gibi.
+Something a program or library offers for other programs to use.	Bir programın veya kütüphanenin diğer programların kullanımına sunduğu şey.
+Source	Kaynak
+Standard	Standart
+Start	Başlat
+Start a Frida session	Bir Frida oturumu başlat
+Start a GDB session	Bir GDB oturumu başlat
+Start a Rizin debug session	Bir Rizin hata ayıklama oturumu başlat
+Start a rebuild	Yeniden derleme başlat
+Start a stand-in backend	Bir yedek arka uç başlat
+Start an activity	Bir etkinlik başlat
+Start building	Derlemeye başla
+Start from them	Onlardan başla
+Start it	Başlat
+Start with Simple mode; you can set up AI later in Settings.	Basit modla başlayın; AI'ı daha sonra Ayarlar'dan kurabilirsiniz.
+Starting…	Başlatılıyor…
+Starting… it opens in its own window.	Başlatılıyor… kendi penceresinde açılır.
+Still working. Bigger jobs can take a few minutes.	Hâlâ çalışıyor. Büyük işler birkaç dakika sürebilir.
+Stop	Durdur
+Stop a pinned build	Sabitlenmiş bir derlemeyi durdur
+Stop a rebuild	Yeniden derlemeyi durdur
+Stop a stand-in backend	Yedek arka ucu durdur
+Stop generated assets	Üretilen varlıkları durdur
+Stop listing {folder}	{folder} listelemesini durdur
+Stopped here	Burada durdu
+Stops the current step and sends your notes straight away.	Geçerli adımı durdurur ve notlarınızı hemen gönderir.
+Strings	Dizeler
+Studio	Studio
+Studio (dark)	Studio (koyu)
+Studio Light	Studio Açık
+Study	İncele
+Study apps by running them	Uygulamaları çalıştırarak incele
+Studying	İnceleniyor
+Studying software to understand it.	Yazılımı anlamak için inceliyorum.
+Summarise what changed	Neyin değiştiğini özetle
+Swift types	Swift türleri
+Switch Beginner / Experienced	Başlangıç / Deneyimli arasında geç
+Switch Clean room / Deep	Temiz oda / Derin arasında geç
+Switch light / dark theme	Açık / koyu tema arasında geç
+Switch target	Hedefi değiştir
+System	Sistem
+System services	Sistem hizmetleri
+Take a texture out of an Unreal game	Bir Unreal oyunundan doku çıkar
+Take an asset out of a Unity game	Bir Unity oyunundan varlık çıkar
+Take back a note	Bir notu geri al
+Take back: puts it in the box again	Geri al: kutuya yeniden koyar
+Take files out of an Unreal pak	Bir Unreal pak dosyasından dosya çıkar
+Take out packed files	Paketlenmiş dosyaları çıkar
+Target	Hedef
+Targets	Hedefler
+That folder already has {names}, where Craft Anything keeps its own files. Pick another folder, or move those out first.	O klasörde zaten {names} var; Craft Anything kendi dosyalarını orada tutar. Başka bir klasör seçin ya da önce onları taşıyın.
+That folder is already a project, so it's open now.	O klasör zaten bir proje, bu yüzden şimdi açık.
+The Rust toolchain (rustup.rs).	Rust araç zinciri (rustup.rs).
+The builder answers its own questions and says what it chose ("I decided: …"), so you can change it.	Oluşturucu kendi sorularını yanıtlar ve neyi seçtiğini söyler ("Şuna karar verdim: …"), böylece değiştirebilirsiniz.
+The builder makes the game's 3D models and textures from descriptions of original designs, paid from your fal.ai account. Models are low-poly so the game runs fast. A textured model costs {model} and a picture {picture}. Each project has a {budget} budget, and you're asked before it goes over. The key is kept in your system keychain.	Oluşturucu, oyunun 3B modellerini ve dokularını özgün tasarım açıklamalarından üretir; ödeme fal.ai hesabınızdan yapılır. Modeller düşük poligonludur, böylece oyun hızlı çalışır. Dokulu bir model {model}, bir resim {picture} tutar. Her projenin {budget} bütçesi vardır ve aşılmadan önce size sorulur. Anahtar sistem anahtarlığınızda saklanır.
+The builder reads them (code, notes, pictures) and builds the app in a new app folder beside them. Your files stay as they are.	Oluşturucu bunları (kod, notlar, resimler) okur ve uygulamayı yanlarında yeni bir uygulama klasöründe derler. Dosyalarınız olduğu gibi kalır.
+The builder will decide its questions and tell you what it chose.	Oluşturucu sorularına karar verip neyi seçtiğini size söyleyecek.
+The builder works on these files directly and keeps what works. Craft Anything adds a few records of its own beside them.	Oluşturucu bu dosyalar üzerinde doğrudan çalışır ve işleyeni korur. Craft Anything yanlarına kendi birkaç kaydını ekler.
+The builder's questions	Oluşturucunun soruları
+The builder's questions come to you as cards, and it waits for your answer.	Oluşturucunun soruları size kart olarak gelir ve yanıtınızı bekler.
+The builder's questions will come to you.	Oluşturucunun soruları size gelecek.
+The built-in engines still show you everything they find.	Yerleşik motorlar buldukları her şeyi yine gösterir.
+The clipboard can't be read:	Pano okunamıyor:
+The code	Kod
+The code format Android apps use.	Android uygulamalarının kullandığı kod biçimi.
+The coding agent's estimate at API prices, not your bill. A subscription isn't charged this.	Kodlama ajanının API fiyatlarıyla tahmini, faturanız değil. Aboneliğe bu yansımaz.
+The download keeps going in the background.	İndirme arka planda devam eder.
+The first instruction a program runs when it starts.	Bir programın başlarken çalıştırdığı ilk komut.
+The full toolset, evidence and logs.	Tüm araç seti, kanıtlar ve günlükler.
+The installer is open. Follow its steps, then come back here.	Kurulum açık. Adımlarını izleyin, sonra buraya dönün.
+The lowest-level human-readable form of machine code: one small instruction per line.	Makine kodunun insanın okuyabildiği en alt biçimi: her satırda küçük bir komut.
+The names were removed from the program before it was shipped, so we have to work them out.	Adlar, program gönderilmeden önce çıkarılmış, bu yüzden onları bizim çıkarmamız gerekiyor.
+The packed contents of an Electron app (a website inside a desktop app)	Bir Electron uygulamasının paketlenmiş içeriği (masaüstü uygulaması içindeki web sitesi)
+The pasted picture wasn't attached: another screen was opened meanwhile.	Yapıştırılan resim eklenmedi: bu sırada başka bir ekran açıldı.
+The picture on the clipboard is too large.	Panodaki resim çok büyük.
+The program's machine code written out as one tiny instruction per line.	Programın makine kodu, her satırda küçük bir komut olarak yazılmış.
+The project's name and round	Projenin adı ve turu
+The raw result	Ham sonuç
+The smallest unit of data in a file: a number from 0 to 255.	Bir dosyadaki en küçük veri birimi: 0 ile 255 arasında bir sayı.
+The smallest units of data in a file: numbers from 0 to 255.	Bir dosyadaki en küçük veri birimleri: 0 ile 255 arasındaki sayılar.
+The {name} view isn't available yet in this build.	{name} görünümü bu derlemede henüz kullanılamıyor.
+The {} view isn't available yet in this build.	{} görünümü bu derlemede henüz kullanılamıyor.
+Theme	Tema
+There's no /{name} command. You can use {commands}.	/{name} diye bir komut yok. {commands} kullanabilirsiniz.
+There's no AI brain set up yet, so here's what the built-in engines found:	Henüz AI beyni ayarlı değil, bu yüzden yerleşik motorların buldukları:
+There's no picture on the clipboard to paste.	Panoda yapıştırılacak resim yok.
+They're my app: edit them in place	Benim uygulamam: yerinde düzenle
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	Bir programın işletim sisteminden veya kütüphanelerden ödünç aldığı şeyler; "bir dosya aç" veya "bir pencere çiz" gibi.
+Things a program or library offers for other programs to use.	Bir programın veya kütüphanenin diğer programlara sunduğu şeyler.
+Things we couldn't establish yet are listed here, with what would settle them.	Henüz ortaya koyamadıklarımız burada listelenir; neyin bunu çözeceğiyle birlikte.
+This answer won't be there after a restart:	Bu yanıt yeniden başlatmadan sonra orada olmayacak:
+This build stopped part-way	Bu derleme yarıda durdu
+This can't be undone.	Bu geri alınamaz.
+This folder already has files	Bu klasörde zaten dosyalar var
+This is a big one. You can leave this open and come back later.	Bu büyük bir iş. Açık bırakıp sonra dönebilirsiniz.
+This is outside what the builder may do on its own. Nothing happens until you say so.	Bu, oluşturucunun kendi başına yapabileceklerinin dışında. Siz söyleyene kadar hiçbir şey olmaz.
+This keeps going in the background, and each download is checked against its publisher's checksum before it's used.	Bu arka planda devam eder ve her indirme kullanılmadan önce yayıncısının sağlama toplamıyla doğrulanır.
+This project is waiting its turn. Send your message once it starts.	Bu proje sırasını bekliyor. Başladığında mesajınızı gönderin.
+This runs code from the target or changes a device. Clicking Run is your OK.	Bu, hedeften kod çalıştırır veya bir cihazı değiştirir. Çalıştır'a basmanız onayınızdır.
+This runs code from the target or changes a device. Nothing runs until you say so.	Bu, hedeften kod çalıştırır veya bir cihazı değiştirir. Siz söyleyene kadar hiçbir şey çalışmaz.
+This tool takes no settings.	Bu aracın ayarı yok.
+This updates by itself when it's done.	Bu, bitince kendini günceller.
+This view arrives with the next engines. The Hex and Result views work today.	Bu görünüm sonraki motorlarla geliyor. Hex ve Sonuç görünümleri bugün çalışıyor.
+Those aren't pictures we can use (PNG, JPEG, WebP or GIF, up to 20 MB).	Bunlar kullanabileceğimiz resimler değil (PNG, JPEG, WebP veya GIF, en fazla 20 MB).
+Time spent	Harcanan süre
+Tip: press Ctrl/⌘ K to run any tool.	İpucu: herhangi bir aracı çalıştırmak için Ctrl/⌘ K'ya basın.
+Tokens	Jetonlar
+Tools may now run code from what you open without asking. Turn this back on unless you're sure.	Araçlar artık açtığınız şeylerden sormadan kod çalıştırabilir. Emin değilseniz bunu yeniden açın.
+Tools that run code from a target or change a phone always ask first, unless you allowed them for a project.	Hedefte kod çalıştıran veya telefonu değiştiren araçlar, bir proje için izin vermediyseniz her zaman önce sorar.
+Trace a UI action	Bir arayüz eylemini izle
+Trace a feature	Bir özelliği izle
+Try again	Yeniden dene
+Try asking	Sormayı dene
+Try it out, then ask below for any changes.	Deneyin, sonra değişiklikler için aşağıda sorun.
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	Bir programın makine kodunu kaynak koda benzeyen bir şeye çevirir. Bu bir yeniden oluşturmadır, özgün değil.
+Turn off	Kapat
+Turn off an AI	Bir AI'ı kapat
+Turn on	Aç
+Turn on Deep mode	Derin modu aç
+Turn on an AI	Bir AI'ı aç
+Turning a plugin on or off takes effect from the next start.	Bir eklentiyi açmak veya kapatmak bir sonraki açılışta etkili olur.
+Type a command or tool…	Bir komut veya araç yazın…
+Type the website's address:	Web sitesinin adresini yazın:
+Type your question after /btw.	Sorunuzu /btw sonrasına yazın.
+Unity assets	Unity varlıkları
+Unity bundle	Unity paketi
+Unity's own installer. It only opens if Unity's signature checks out.	Unity'nin kendi kurulumu. Yalnızca Unity'nin imzası doğrulanırsa açılır.
+Unknown	Bilinmiyor
+Unknown: we couldn't establish this yet.	Bilinmiyor: bunu henüz ortaya koyamadık.
+Unknowns	Bilinmeyenler
+Unload a Frida script	Bir Frida betiğini kaldır
+Unreal IoStore	Unreal IoStore
+Unreal builds games with Apple's Xcode, free in the App Store.	Unreal, oyunları App Store'da ücretsiz olan Apple Xcode ile derler.
+Unreal is here, but it also needs Visual Studio's C++ tools.	Unreal burada, ama Visual Studio'nun C++ araçlarına da ihtiyacı var.
+Unreal pak	Unreal pak
+Update a finding	Bir bulguyu güncelle
+Update a hypothesis	Bir varsayımı güncelle
+Update an open question	Açık bir soruyu güncelle
+Update the checklist	Kontrol listesini güncelle
+Update the plan	Planı güncelle
+Use	Kullan
+Use an API key…	Bir API anahtarı kullan…
+Use as a goal	Hedef olarak kullan
+Use the projects folder	Projeler klasörünü kullan
+Use this	Bunu kullan
+Use {name}	{name} kullan
+Value flow	Değer akışı
+Version	Sürüm
+Waiting	Bekliyor
+Waiting for another build to finish: this one starts next.	Başka bir derlemenin bitmesini bekliyor: bu ondan sonra başlayacak.
+Waiting for other builds to finish: {n} in line.	Diğer derlemelerin bitmesini bekliyor: sırada {n} tane.
+Waiting: the builder reads it at its next step. Up arrow to edit.	Bekliyor: oluşturucu bir sonraki adımında okur. Düzenlemek için Yukarı oku.
+Waiting: the builder reads these at its next step. Up arrow to edit the last.	Bekliyor: oluşturucu bunları bir sonraki adımında okur. Sonuncuyu düzenlemek için Yukarı oku.
+Want answers in plain words?	Yanıtları sade sözcüklerle ister misiniz?
+Watch a Mac app's calls	Bir Mac uygulamasının çağrılarını izle
+Watch a page over time	Bir sayfayı zaman içinde izle
+We didn't find an AI on this computer yet	Bu bilgisayarda henüz AI bulamadık
+We list the web addresses and messages we can see inside it. Watching it live needs your OK first.	İçinde görebildiğimiz web adreslerini ve mesajları listeleriz. Canlı izlemek için önce onayınız gerekir.
+We only read it; nothing runs. Every answer shows how sure we are.	Yalnızca okuruz; hiçbir şey çalışmaz. Her yanıt ne kadar emin olduğumuzu gösterir.
+WebAssembly module	WebAssembly modülü
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly: web tarayıcılarında çalışan hızlı derlenmiş kod.
+Website address	Web sitesi adresi
+Website pages	Web sitesi sayfaları
+Websites	Web siteleri
+Welcome	Hoş geldiniz
+What a new game may spend on generated pictures and 3D models before you're asked. Each project keeps its own.	Yeni bir oyunun, size sorulmadan önce üretilen resimler ve 3B modeller için harcayabileceği tutar. Her proje kendi bütçesini tutar.
+What a program exports	Bir programın dışa aktardıkları
+What a program imports	Bir programın içe aktardıkları
+What are its main parts?	Ana parçaları neler?
+What brings you here?	Sizi buraya ne getirdi?
+What can Craft Anything do?	Craft Anything neler yapabilir?
+What data was sent?	Hangi veriler gönderildi?
+What do you want to look inside?	Neyin içine bakmak istiyorsunuz?
+What do you want to make?	Ne yapmak istiyorsunuz?
+What do you want to recreate?	Neyi yeniden oluşturmak istiyorsunuz?
+What does it need from the page?	Sayfadan neye ihtiyaç duyuyor?
+What does it send over the internet?	İnternete ne gönderiyor?
+What does this app do?	Bu uygulama ne yapıyor?
+What does this app store?	Bu uygulama ne saklıyor?
+What does this contract do?	Bu sözleşme ne yapıyor?
+What does this module do?	Bu modül ne yapıyor?
+What does this program do?	Bu program ne yapıyor?
+What does {what} do?	{what} ne yapıyor?
+What happened in this build	Bu derlemede ne oldu
+What is it	Bu nedir
+What is this?	Bu nedir?
+What it calls	Neleri çağırıyor
+What kind of file is this?	Bu ne tür bir dosya?
+What permissions does it ask for?	Hangi izinleri istiyor?
+What pictures and textures are made with.	Resimlerin ve dokuların neyle yapıldığı.
+What settings are in here?	Burada hangi ayarlar var?
+What tables are in here?	Burada hangi tablolar var?
+What we couldn't check	Denetleyemediklerimiz
+What would you like to find out?	Neyi öğrenmek istersiniz?
+What would you like to know about {name}?	{name} hakkında ne bilmek istersiniz?
+What's at this address	Bu adreste ne var
+What's in this folder?	Bu klasörde ne var?
+What's inside this archive?	Bu arşivin içinde ne var?
+Whatever Settings → AI builds with.	Ayarlar → AI neyle derliyorsa onunla.
+When a folder you pick has files	Seçtiğiniz klasörde dosyalar olduğunda
+When the builder needs a choice made: show it to you and wait, or let it decide and say what it chose. Each project can choose for itself under its prompt box.	Oluşturucu bir seçim gerektirdiğinde: size gösterip beklesin mi, yoksa kendi karar verip neyi seçtiğini söylesin mi? Her proje kendi istem kutusunun altından seçim yapabilir.
+When you rebuild an app or game, start it once to picture its window and compare the rebuild with it. It runs that program.	Bir uygulamayı veya oyunu yeniden derlerken, penceresini görüntülemek ve yeniden derlemeyi onunla karşılaştırmak için bir kez başlatın. O programı çalıştırır.
+Where am I	Neredeyim
+Where is Ghidra installed?	Ghidra nereye kurulu?
+Where is the program?	Program nerede?
+Where should new projects go?	Yeni projeler nereye gitsin?
+Where we found it	Nerede bulduk
+Whether they're the app to edit in place, or material the app starts from beside them.	Yerinde düzenlenecek uygulama mı, yoksa uygulamanın yanlarında başladığı malzeme mi.
+Which AI answers your questions	Sorularınızı hangi AI yanıtlıyor
+Which file is the main program?	Hangi dosya ana program?
+Which files does it read or write?	Hangi dosyaları okuyor veya yazıyor?
+Which function is this in	Bu hangi fonksiyonun içinde
+Which servers does it talk to?	Hangi sunucularla konuşuyor?
+Which servers were contacted?	Hangi sunucularla iletişime geçildi?
+Which websites does it load?	Hangi web sitelerini yüklüyor?
+Who builds what you make	Yaptıklarınızı kim derliyor
+Who calls it	Onu kim çağırıyor
+Who can move funds?	Fonları kim taşıyabilir?
+Who signed this Windows program	Bu Windows programını kim imzaladı
+Who uses this Android class?	Bu Android sınıfını kim kullanıyor?
+Who uses this Java class?	Bu Java sınıfını kim kullanıyor?
+Why we ask	Neden soruyoruz
+Window / focus info	Pencere / odak bilgisi
+Windows resources	Windows kaynakları
+Wireshark tools check	Wireshark araç denetimi
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	O olmadan Derin mod, Craft Anything'in daha kaba olan kendi ters derleyicisini kullanır.
+Work out a copy's size	Bir kopyanın boyutunu hesapla
+Work out what an installed app is built on	Kurulu bir uygulamanın ne üzerine kurulu olduğunu çıkar
+Workbench	Çalışma tezgâhı
+Worked it out	Çıkardık
+Worked it out: computed step by step from things we saw.	Çıkardık: gördüklerimizden adım adım hesaplandı.
+Worked through {n} steps	{n} adım tamamlandı
+Working on it	Üzerinde çalışılıyor
+Working on your answer	Yanıtınız üzerinde çalışılıyor
+Working out how much space a copy takes…	Bir kopyanın ne kadar yer tuttuğu hesaplanıyor…
+Working…	Çalışıyor…
+Working… ({n} steps so far)	Çalışıyor… (şimdiye kadar {n} adım)
+Write a project file	Bir proje dosyası yaz
+Write a readable report	Okunabilir bir rapor yaz
+Write comment	Yorum yaz
+Write inline comment	Satır içi yorum yaz
+Write pseudo-C to a folder	Bir klasöre sözde C yaz
+Write the brief	Özeti yaz
+Write the handoff	Devir notunu yaz
+Wrote {what} to {}	{what}, {} konumuna yazıldı
+You answered: {a}	Yanıtladınız: {a}
+You can add a Claude, ChatGPT or OpenRouter key, a local model (Ollama, LM Studio) or an agent you already use, later in Settings → AI.	Daha sonra Ayarlar → AI bölümünden Claude, ChatGPT veya OpenRouter anahtarı, yerel bir model (Ollama, LM Studio) ya da kullandığınız bir ajan ekleyebilirsiniz.
+You chose:	Seçtiniz:
+You're all set	Her şey hazır
+Your app is ready	Uygulamanız hazır
+Your brains	Beyinleriniz
+Your fal.ai key	fal.ai anahtarınız
+Your game is ready	Oyununuz hazır
+Your message wasn't sent: another project was opened while its pictures were copied.	Mesajınız gönderilmedi: resimleri kopyalanırken başka bir proje açıldı.
+Your own tool installs (optional)	Kendi araç kurulumlarınız (isteğe bağlı)
+Your project starts as soon as it's done.	Projeniz biter bitmez başlar.
+Your version	Sizin sürümünüz
+Your website is ready	Web siteniz hazır
+a new folder in {dir}	{dir} içinde yeni bir klasör
+a picture	bir resim
+about ${n}	yaklaşık ${n}
+address, e.g. http://192.168.1.20:11434/v1	adres, ör. http://192.168.1.20:11434/v1
+and {n} more	ve {n} tane daha
+arguments (optional)	argümanlar (isteğe bağlı)
+call graph	çağrı grafiği
+clean room	temiz oda
+command, https:// address or .wasm file	komut, https:// adresi veya .wasm dosyası
+deep mode	derin mod
+entry point	giriş noktası
+files	dosyalar
+findings	bulgular
+first run	ilk çalıştırma
+found on this computer; set up when you start	bu bilgisayarda bulundu; başladığınızda kurulur
+from the builder's own memory of the build	oluşturucunun derlemeye dair kendi belleğinden
+from the project's files	projenin dosyalarından
+id, e.g. docs	kimlik, ör. docs
+is required	gerekli
+isn't available yet	henüz kullanılamıyor
+job result	iş sonucu
+job {title} panicked: {what}	{title} işi çöktü: {what}
+just now	az önce
+managed	yönetilen
+model (optional)	model (isteğe bağlı)
+must be a number	bir sayı olmalı
+must be a whole number	bir tam sayı olmalı
+name, e.g. Studio box	ad, ör. Studio kutusu
+number	sayı
+objdump output	objdump çıktısı
+or start with /btw to just ask	ya da /btw ile sor
+pinned builds couldn't be read: {}	sabitlenmiş derlemeler okunamadı: {}
+say how to use the files there	oradaki dosyaların nasıl kullanılacağını söyle
+scene	sahne
+scenes	sahneler
+source map	kaynak haritası
+start page	başlangıç sayfası
+the app is built beside your files, starting from them	uygulama dosyalarınızın yanında, onlardan başlanarak derlenir
+the built-in engines	yerleşik motorlar
+the prompt box changed height	istem kutusunun yüksekliği değişti
+title bar	başlık çubuğu
+under $0.01	0,01 $ altında
+yesterday	dün
+your files there are the app, edited in place	oradaki dosyalarınız uygulamanın kendisi, yerinde düzenlenir
+{:.1} GB	{:.1} GB
+{:.1}M	{:.1}M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend}: giriş {input_tokens} / çıkış {output_tokens}{cost}
+{cost} (estimate)	{cost} (tahmini)
+{c} · {size}	{c} · {size}
+{done} of {all} done	{all} işten {done} tanesi bitti
+{gb} GB for bigger ones	daha büyükleri için {gb} GB
+{gb} GB for programs up to {size}	{size} boyutuna kadar programlar için {gb} GB
+{gb} GB up to {size}	{size} boyutuna kadar {gb} GB
+{held} of {n} requirements met	{n} gereksinimden {held} tanesi karşılandı
+{id} · {summary}	{id} · {summary}
+{in} in, {out} out.	giriş {in}, çıkış {out}.
+{k}: {s}	{k}: {s}
+{lbl}  {}	{lbl}  {}
+{line}, and {n} more	{line}, ve {n} tane daha
+{mb} MB	{mb} MB
+{name} builds what you make.	Yaptıklarınızı {name} derler.
+{name} builds what you make; answers come from {brain}.	Yaptıklarınızı {name} derler; yanıtlar {brain} kaynağından gelir.
+{name} can't be attached: a message takes pictures up to 20 MB.	{name} eklenemiyor: bir mesaj en fazla 20 MB resim alır.
+{name} can't be attached: it isn't a PNG, JPEG, GIF or WebP picture.	{name} eklenemiyor: PNG, JPEG, GIF veya WebP resmi değil.
+{name} is ready	{name} hazır
+{name} is ready.	{name} hazır.
+{name} isn't available yet in this build.	{name} bu derlemede henüz kullanılamıyor.
+{name} isn't on this computer yet.	{name} bu bilgisayarda henüz yok.
+{name} key	{name} anahtarı
+{n} actions done so far	şimdiye kadar {n} eylem yapıldı
+{n} days ago	{n} gün önce
+{n} h ago	{n} sa önce
+{n} item(s)	{n} öğe
+{n} job(s) running	{n} iş çalışıyor
+{n} min ago	{n} dk önce
+{n} picture(s) to match.	eşleştirilecek {n} resim.
+{n} step(s) didn't work and were retried or skipped.	{n} adım işe yaramadı; yeniden denendi veya atlandı.
+{n} tokens	{n} jeton
+{n} · ${spent:.2} of ${budget:.2}	{n} · {budget:.2} $ içinden {spent:.2} $
+{n} · ${spent} of ${budget}	{n} · {budget} $ içinden {spent} $
+{scenes} {}	{scenes} {}
+{text}, {}	{text}, {}
+{title} hit a bug and stopped safely. ({what})	{title} bir hataya takıldı ve güvenle durdu. ({what})
+{title} {id}	{title} {id}
+{title} · {:.0}%	{title} · %{:.0}
+{tool} finished	{tool} bitti
+{tool}: {}	{tool}: {}
+{what} panicked: {msg}	{what} çöktü: {msg}
+{} GB	{} GB
+{} isn't available yet in this build.	{} bu derlemede henüz kullanılamıyor.
+{} item(s)	{} öğe
+{} key	{} anahtarı
+{} report.md	{} raporu.md
+{} {name}	{} {name}
+{} {said}	{} {said}
+{} {then}	{} {then}
+{} {v}	{} {v}
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+{}: {e}	{}: {e}
+{}: {some}{more}.	{}: {some}{more}.
+{}: {state}	{}: {state}
+{}h {:02}m	{}s {:02}dk
+{}m {:02}s	{}dk {:02}sn
+— use the filter to find the rest.	— kalanı bulmak için filtreyi kullanın.
+… {n} more	… {n} tane daha
+… {n} older	… {n} tane daha eski
+… {} more	… {} tane daha
+… {} older	… {} tane daha eski
+← Back	← Geri
+↑↓ to move · Enter to run · Esc to close	↑↓ gezinmek · Enter çalıştırmak · Esc kapatmak için
+Providers	Sağlayıcılar
+Harnesses	Ajan ortamları
+Nothing of this kind was found.	Bu türden hiçbir şey bulunamadı.
+Another model	Başka bir model
+Fold a project's plan	Bir projenin planını katla
+Fold the plan	Planı katla
+The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.	Claude masaüstü uygulaması kurulu, ama derlemek için ayrı komut satırı aracı olan Claude Code gerekir. Claude Code'u kurun, bir terminalde bir kez oturum açın, sonra yeniden arayın.
+Unreal is here, but its bundled Clang C++ toolchain wasn't found.	Unreal burada, ama paketindeki Clang C++ araç zinciri bulunamadı.
+Add Unreal's Linux C++ toolchain	Unreal'ın Linux C++ araç zincirini ekle
+Run Engine/Build/BatchFiles/Linux/SetupToolchain.sh in the engine folder to install its bundled Clang toolchain. If you built Unreal from source, Setup.sh downloads the native toolchain instead. A system Clang may not match the engine's version.	Paketindeki Clang araç zincirini kurmak için motor klasöründe Engine/Build/BatchFiles/Linux/SetupToolchain.sh dosyasını çalıştırın. Unreal'ı kaynaktan derlediyseniz yerine Setup.sh yerel araç zincirini indirir. Sistemdeki Clang, motorun sürümüyle eşleşmeyebilir.
+Unreal is here, but it also needs Xcode.	Unreal burada, ama Xcode'a da ihtiyacı var.
+About 60 GB, an Epic Games account, and Xcode.	Yaklaşık 60 GB, bir Epic Games hesabı ve Xcode.
+File	Dosya
+View	Görünüm
+Window	Pencere
+Help	Yardım
+Command palette	Komut paleti
+Craft Anything on GitHub	GitHub'da Craft Anything
+Report a problem…	Bir sorun bildir…
+Quit Craft Anything	Craft Anything'den çık
+About Craft Anything	Craft Anything hakkında
+Services	Hizmetler
+Hide Craft Anything	Craft Anything'i gizle
+Hide others	Diğerlerini gizle
+Show all	Tümünü göster
+Close window	Pencereyi kapat
+Full screen	Tam ekran
+Zoom	Yakınlaştır
+Bring all to front	Tümünü öne getir
+Drag to give the plan more or less room; double-click to reset	Plana daha fazla veya daha az yer vermek için sürükleyin; sıfırlamak için çift tıklayın
+Copy the message	Mesajı kopyala
+Choose what the builder's approvals get	Oluşturucunun onaylarına ne olacağını seç
+Reading the web	Web'i okuma
+Other commands	Diğer komutlar
+Files outside the project	Proje dışındaki dosyalar
+Pushing and publishing	Push ve yayınlama
+Deleting outside the project	Proje dışında silme
+System changes	Sistem değişiklikleri
+Other tools	Diğer araçlar
+Allow	İzin ver
+Ask	Sor
+Refuse	Reddet
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	/approvals sonrasına bir tür ve allow, ask, refuse ya da default yazın, örneğin /approvals publish ask. Türler: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	{name} adında bir tür yok. Türler: {kinds}.
+Approvals	Onaylar
+In this project, {kind}: {choice}.	Bu projede {kind}: {choice}.
+Couldn't change the approvals:	Onaylar değiştirilemedi:
+What the builder may do without asking you, in this project.	Oluşturucunun bu projede size sormadan yapabilecekleri.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	Varsayılan, otomatik modu izler: açıkken geri alınabilenler yapılır, gerisi reddedilir; kapalıyken oluşturucu sorar.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room orijinalin kodunu, dosyalarını veya sayfa kaynağını asla okumaz: yalnızca gördüklerinizi kullanır. Deep bunları her araçla ve kurulu olan IDA veya Ghidra ile okur. Her bulgu hangisinin kullanıldığını kaydeder.
+Deep decompiler	Deep derleyici çözücü
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Otomatik önce IDA'yı, sonra Ghidra'yı tercih eder. Birini doğrudan da seçebilirsiniz.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: kodunu, dosyalarını ve sayfa kaynağını elimizdeki her araçla ve kurulu bir harici derleyici çözücüyle okuruz. Değiştirmek için tıklayın.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} kurulu değil, bu yüzden yerleşik derleyici çözücü devreye girer. Ayarlar → Motorlar'dan bir motor seçin.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} henüz bu bilgisayarda değil, bu yüzden yerleşik derleyici çözücü devreye girer.

@@ -124,6 +124,7 @@ pub fn header(data: &[u8]) -> Result<Header, FormatError> {
     let hash_seeds = c.u32("perfect hash seeds")?;
     let partition_size = c.u64("partition size")?;
     let without_hash = c.u32("chunks without perfect hash")?;
+    c.take(44, "reserved header fields")?;
     let flags = Flags { compressed: bits & 1 != 0, encrypted: bits & 2 != 0, signed: bits & 4 != 0, indexed: bits & 8 != 0 };
     Ok(Header {
         version,
@@ -204,9 +205,10 @@ impl Toc {
     fn stored(&self, chunk: usize) -> (u64, String) {
         let Some(&(offset, length)) = self.chunks.get(chunk) else { return (0, "none".into()) };
         let size = u64::from(self.header.block_size.max(1));
-        let first = (offset / size) as usize;
-        let count = length.div_ceil(size) as usize;
-        let blocks = self.blocks.get(first..first.saturating_add(count).min(self.blocks.len())).unwrap_or_default();
+        let Some(end) = offset.checked_add(length).filter(|_| length != 0) else { return (0, "none".into()) };
+        let Ok(first) = usize::try_from(offset / size) else { return (0, "none".into()) };
+        let end = end.div_ceil(size).min(self.blocks.len() as u64) as usize;
+        let blocks = self.blocks.get(first..end).unwrap_or_default();
         (blocks.iter().map(|b| u64::from(b.compressed_size)).sum(), blocks.first().map_or_else(|| "none".into(), |b| self.method(b.method)))
     }
 }

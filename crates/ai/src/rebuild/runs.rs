@@ -1,7 +1,9 @@
 //! Several rebuilds at once. A [`RunSet`] keeps every project's run by folder: up to its limit
 //! work at the same time, the rest wait in order and start as others finish. The app and the
 //! rebuild tools both hold one; each run keeps its own project's feed, so nothing here depends on
-//! which project is on screen.
+//! which project is on screen. A run whose AI uses our own agent loop works alone: its tools run in
+//! the app's session, which points at one project at a time, so a run starting beside it would send
+//! its files and asset spending to the other project.
 
 use super::*;
 use std::collections::{HashMap, VecDeque};
@@ -33,10 +35,26 @@ pub struct RunSet {
     limit: usize,
     /// Running and finished runs (a finished one keeps its preview and unsent notes).
     runs: HashMap<PathBuf, RebuildRun>,
-    queue: VecDeque<(Workspace, RunOptions)>,
+    /// Waiting runs, and whether each last looked like it must work alone: `poll` runs every frame
+    /// and looking it up can read the settings file, so it's looked up again only when a run may
+    /// be about to start.
+    queue: VecDeque<(Workspace, RunOptions, bool)>,
+    /// The latest run to start, if it had to work alone; nothing else starts while it's working.
+    alone: Option<PathBuf>,
     starter: Starter,
     /// A [`keep_queue_moving`] thread is looking after the queue.
     watched: bool,
+}
+
+/// Whether this run's tools would run in the app's session: its Builder is an API backend, or the
+/// Extractor that only works on a fresh study is (the same test as [`RebuildRun::start`]). Agent
+/// apps have a tool server of their own.
+fn must_work_alone(hub: &AiHub, ws: &Workspace, opts: &RunOptions) -> bool {
+    let cfg = hub.config();
+    let in_session = |e: &crate::BackendEntry| e.config.kind != BackendKind::AgentCli;
+    let fresh = opts.message.is_none() || !ws.capture_dir().exists();
+    builder_backend(&cfg, opts.backend.as_deref().or_else(|| super::project_builder(&cfg, ws))).is_ok_and(|e| in_session(&e))
+        || (fresh && hub.chosen(Role::Extractor).and_then(|n| cfg.get(&n).cloned()).is_some_and(|e| in_session(&e)))
 }
 
 impl std::fmt::Debug for RunSet {
@@ -48,7 +66,13 @@ impl std::fmt::Debug for RunSet {
 impl RunSet {
     /// At most `limit` runs work at once (at least one).
     pub fn new(limit: usize) -> RunSet {
-        RunSet { limit: limit.max(1), runs: HashMap::new(), queue: VecDeque::new(), starter: Box::new(RebuildRun::start), watched: false }
+        RunSet { limit: limit.max(1), runs: HashMap::new(), queue: VecDeque::new(), alone: None, starter: Box::new(RebuildRun::start), watched: false }
+    }
+
+    /// A run may start now: there's a place, and neither it nor anyone working needs to be alone.
+    fn has_room(&self, alone: bool) -> bool {
+        let active = self.active();
+        active < self.limit && (!alone || active == 0) && !self.alone.as_ref().is_some_and(|root| self.is_running(root))
     }
 
     /// Start runs another way (a fork's runner, or a test's).
@@ -66,24 +90,27 @@ impl RunSet {
         self.limit
     }
 
-    /// Start a run on `ws`, or queue it when `limit` are already working. A project that is
-    /// working or queued is refused.
+    /// Start a run on `ws`, or queue it when `limit` are already working or it has to wait to work
+    /// alone. Nothing overtakes the queue, so one waiting to be alone gets its turn. A project that
+    /// is working or queued is refused.
     pub fn start(&mut self, hub: &AiHub, ws: Workspace, opts: RunOptions) -> Result<Started, ToolError> {
         if self.is_running(&ws.root) || self.position(&ws.root).is_some() {
             return Err(
                 ToolError::new(ErrorCode::BadInput, "This project is already building.").with_remediation("Add to it while it works, or stop it first.")
             );
         }
-        if self.active() < self.limit {
+        let alone = must_work_alone(hub, &ws, &opts);
+        if self.queue.is_empty() && self.has_room(alone) {
             let root = ws.root.clone();
             let run = (self.starter)(hub, ws, opts)?;
+            self.alone = alone.then(|| root.clone());
             self.runs.insert(root, run);
             return Ok(Started::Running);
         }
         // Fail now, not when its turn comes, when no coding agent is set up.
         let cfg = hub.config();
         builder_backend(&cfg, opts.backend.as_deref().or_else(|| super::project_builder(&cfg, &ws)))?;
-        self.queue.push_back((ws, opts));
+        self.queue.push_back((ws, opts, alone));
         Ok(Started::Queued { position: self.queue.len() })
     }
 
@@ -94,12 +121,19 @@ impl RunSet {
         for (root, run) in &mut self.runs {
             out.extend(run.poll().into_iter().map(|e| (root.clone(), e)));
         }
-        while self.active() < self.limit {
-            let Some((ws, opts)) = self.queue.pop_front() else { break };
+        while self.queue.front().is_some_and(|(_, _, alone)| self.has_room(*alone)) {
+            let Some((ws, opts, _)) = self.queue.pop_front() else { break };
+            // The Builder may have been changed while it waited.
+            let alone = must_work_alone(hub, &ws, &opts);
+            if !self.has_room(alone) {
+                self.queue.push_front((ws, opts, alone));
+                break;
+            }
             let root = ws.root.clone();
             let mut keep = ws.clone();
             match (self.starter)(hub, ws, opts) {
                 Ok(run) => {
+                    self.alone = alone.then(|| root.clone());
                     self.runs.insert(root, run);
                 }
                 Err(e) => {
@@ -128,7 +162,7 @@ impl RunSet {
 
     /// Its place in the queue (1 starts next).
     pub fn position(&self, root: &Path) -> Option<usize> {
-        self.queue.iter().position(|(ws, _)| ws.root == root).map(|i| i + 1)
+        self.queue.iter().position(|(ws, _, _)| ws.root == root).map(|i| i + 1)
     }
 
     /// How many are waiting.
@@ -154,13 +188,13 @@ impl RunSet {
     /// The projects working or waiting.
     pub fn busy(&self) -> Vec<PathBuf> {
         let mut v: Vec<PathBuf> = self.runs.iter().filter(|(_, r)| r.is_running()).map(|(p, _)| p.clone()).collect();
-        v.extend(self.queue.iter().map(|(ws, _)| ws.root.clone()));
+        v.extend(self.queue.iter().map(|(ws, _, _)| ws.root.clone()));
         v
     }
 
     /// Stop the project's run, or take it out of the queue.
     pub fn stop(&mut self, root: &Path) -> Stopped {
-        if let Some(i) = self.queue.iter().position(|(ws, _)| ws.root == root) {
+        if let Some(i) = self.queue.iter().position(|(ws, _, _)| ws.root == root) {
             self.queue.remove(i);
             return Stopped::Unqueued;
         }
@@ -184,9 +218,10 @@ impl RunSet {
 
 /// Poll `set` every `every` on a background thread while runs wait, so queued runs start as
 /// soon as a place comes free: for holders that poll only when called (the rebuild tools, which
-/// an MCP client may not call again for a while). One thread per set at a time; it ends when the
-/// queue is empty or the engine is gone, and never waits on a busy session.
-pub fn keep_queue_moving(set: &Arc<Mutex<RunSet>>, engine: &Arc<Engine>, every: Duration) {
+/// an MCP client may not call again for a while). `settings_path` is the session's config file,
+/// read when the session is busy. One thread per set at a time; it ends when the queue is empty
+/// or the engine is gone, and never waits on a busy session.
+pub fn keep_queue_moving(set: &Arc<Mutex<RunSet>>, engine: &Arc<Engine>, settings_path: PathBuf, every: Duration) {
     {
         let mut s = set.lock().unwrap_or_else(PoisonError::into_inner);
         if s.watched || s.queue.is_empty() {
@@ -208,7 +243,8 @@ pub fn keep_queue_moving(set: &Arc<Mutex<RunSet>>, engine: &Arc<Engine>, every: 
                 s.set_limit(session.settings.build.parallel);
             }
             // Each run keeps its own project's feed, so the events aren't needed here.
-            let _ = s.poll(&AiHub::new(engine));
+            let hub = AiHub::with_stores(engine, settings_path.clone(), crate::KeyStore::system());
+            let _ = s.poll(&hub);
             if s.queue.is_empty() {
                 s.watched = false;
                 return;
@@ -263,6 +299,104 @@ mod tests {
         assert!(set.position(&a.root).is_none());
     }
 
+    /// An agent app, which has a tool server of its own, and an API backend, which uses the session.
+    fn two_backends() -> AiHub {
+        let mut s = craft_anything_engine::testing::session();
+        s.settings.ai = toml::from_str(
+            "[[backends]]\nname = \"Agent\"\nkind = \"agent_cli\"\nmodel = \"claude-code\"\n[[backends]]\nname = \"Key\"\nkind = \"openrouter\"\nmodel = \"m\"\n",
+        )
+        .unwrap();
+        AiHub::new(Arc::new(Engine::new(s)))
+    }
+
+    /// #923: two builds in one session wrote into one project, and spent its asset budget.
+    #[test]
+    fn a_run_in_the_apps_session_works_alone_and_nothing_overtakes_it() {
+        let d = tempfile::tempdir().unwrap();
+        let ws = |n: &str| Workspace::create(d.path(), n, "A game", TargetRef::None).unwrap();
+        let (agent, key, later) = (ws("Agent"), ws("Key"), ws("Later"));
+        let hub = two_backends();
+        let by = |name: &str| RunOptions { backend: Some(name.into()), ..RunOptions::default() };
+        let fake = StandIns::new();
+        let mut set = RunSet::new(4).with_starter(fake.starter());
+
+        assert_eq!(set.start(&hub, agent.clone(), by("Agent")).unwrap(), Started::Running);
+        assert_eq!(set.start(&hub, key.clone(), by("Key")).unwrap(), Started::Queued { position: 1 }, "it waits for the session");
+        assert_eq!(set.start(&hub, later.clone(), by("Agent")).unwrap(), Started::Queued { position: 2 }, "nothing overtakes it");
+        assert!(set.poll(&hub).is_empty() && set.active() == 1);
+
+        fake.finish(&agent.root);
+        set.poll(&hub);
+        assert!(set.is_running(&key.root) && !set.is_running(&later.root), "it has the session to itself, with places free");
+
+        fake.finish(&key.root);
+        set.poll(&hub);
+        assert!(set.is_running(&later.root));
+        assert_eq!(set.start(&hub, agent.clone(), by("Agent")).unwrap(), Started::Running, "agent apps still work side by side");
+        set.stop_all();
+    }
+
+    /// The marker follows the run, not the project: the same folder rebuilt with an agent app
+    /// doesn't keep others waiting.
+    #[test]
+    fn a_project_that_worked_alone_can_build_beside_others_with_an_agent_app() {
+        let d = tempfile::tempdir().unwrap();
+        let ws = |n: &str| Workspace::create(d.path(), n, "A game", TargetRef::None).unwrap();
+        let (a, b) = (ws("A"), ws("B"));
+        let hub = two_backends();
+        let by = |name: &str| RunOptions { backend: Some(name.into()), ..RunOptions::default() };
+        let fake = StandIns::new();
+        let mut set = RunSet::new(2).with_starter(fake.starter());
+        assert_eq!(set.start(&hub, a.clone(), by("Key")).unwrap(), Started::Running);
+        fake.finish(&a.root);
+        set.poll(&hub);
+        assert_eq!(set.start(&hub, a.clone(), by("Agent")).unwrap(), Started::Running);
+        assert_eq!(set.start(&hub, b.clone(), by("Agent")).unwrap(), Started::Running);
+        set.stop_all();
+    }
+
+    /// Queued for an agent app, then the only AI left is an API backend: it mustn't start beside
+    /// the run still working.
+    #[test]
+    fn a_queued_run_is_checked_again_when_its_turn_comes() {
+        let d = tempfile::tempdir().unwrap();
+        let ws = |n: &str| Workspace::create(d.path(), n, "A game", TargetRef::None).unwrap();
+        let (a, b, c) = (ws("A"), ws("B"), ws("C"));
+        let hub = two_backends();
+        let by = |name: &str| RunOptions { backend: Some(name.into()), ..RunOptions::default() };
+        let fake = StandIns::new();
+        let mut set = RunSet::new(2).with_starter(fake.starter());
+        set.start(&hub, a.clone(), by("Agent")).unwrap();
+        set.start(&hub, b.clone(), by("Agent")).unwrap();
+        assert_eq!(set.start(&hub, c.clone(), RunOptions::default()).unwrap(), Started::Queued { position: 1 });
+        hub.engine.session().settings.ai = toml::from_str("[[backends]]\nname = \"Key\"\nkind = \"openrouter\"\nmodel = \"m\"\n").unwrap();
+
+        fake.finish(&a.root);
+        set.poll(&hub);
+        assert!(!set.is_running(&c.root), "B is still working");
+        fake.finish(&b.root);
+        set.poll(&hub);
+        assert!(set.is_running(&c.root));
+        set.stop_all();
+    }
+
+    #[test]
+    fn a_follow_up_with_an_api_extractor_can_build_beside_others() {
+        let d = tempfile::tempdir().unwrap();
+        let ws = Workspace::create(d.path(), "A", "A game", TargetRef::None).unwrap();
+        let mut s = craft_anything_engine::testing::session();
+        s.settings.ai = toml::from_str(
+            "[roles]\nextractor = \"Key\"\n[[backends]]\nname = \"Agent\"\nkind = \"agent_cli\"\nmodel = \"claude-code\"\n[[backends]]\nname = \"Key\"\nkind = \"openrouter\"\nmodel = \"m\"\n",
+        )
+        .unwrap();
+        let hub = AiHub::new(Arc::new(Engine::new(s)));
+        let by_agent = |message: Option<&str>| RunOptions { backend: Some("Agent".into()), message: message.map(str::to_string), ..RunOptions::default() };
+        assert!(must_work_alone(&hub, &ws, &by_agent(None)), "a fresh study may use the Extractor");
+        assert!(must_work_alone(&hub, &ws, &by_agent(Some("make it blue"))), "with nothing studied yet, so may this");
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        assert!(!must_work_alone(&hub, &ws, &by_agent(Some("make it blue"))), "a follow-up doesn't");
+    }
+
     #[test]
     fn a_queued_run_that_cannot_start_says_why() {
         let d = tempfile::tempdir().unwrap();
@@ -287,14 +421,15 @@ mod tests {
         let b = Workspace::create(d.path(), "B", "A game", TargetRef::None).unwrap();
         let fake = StandIns::new();
         let hub = hub();
+        let settings_path = hub.engine.session().config_dir().join("config.toml");
         let set = Arc::new(Mutex::new(RunSet::new(1).with_starter(fake.starter())));
         set.lock().unwrap().start(&hub, a.clone(), RunOptions::default()).unwrap();
         // Nothing waits yet, so no thread is started.
-        keep_queue_moving(&set, &hub.engine, Duration::from_millis(5));
+        keep_queue_moving(&set, &hub.engine, settings_path.clone(), Duration::from_millis(5));
         assert!(!set.lock().unwrap().watched);
         set.lock().unwrap().start(&hub, b.clone(), RunOptions::default()).unwrap();
-        keep_queue_moving(&set, &hub.engine, Duration::from_millis(5));
-        keep_queue_moving(&set, &hub.engine, Duration::from_millis(5));
+        keep_queue_moving(&set, &hub.engine, settings_path.clone(), Duration::from_millis(5));
+        keep_queue_moving(&set, &hub.engine, settings_path, Duration::from_millis(5));
         assert!(set.lock().unwrap().watched);
         fake.finish(&a.root);
         let deadline = std::time::Instant::now() + Duration::from_secs(10);

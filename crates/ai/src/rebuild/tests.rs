@@ -63,6 +63,66 @@ fn stack_choice() {
 }
 
 #[test]
+fn the_word_player_alone_is_not_a_game() {
+    for request in [
+        "A video player for my films",
+        "a music player",
+        "Um player de vídeo com canais, filmes e séries",
+        "An MPEG-2 player",
+        "an mpeg-2-player",
+        "an mp2 player",
+        "an mp4 player",
+        "a 12 player scoreboard",
+        "a music app with two playerctl shortcuts",
+        "a low-level disk tool",
+        "a low level disk tool",
+        "a high level system monitor",
+        "An MPEG 2 player",
+        "An MPEG  2-player",
+        "a single player app for movies",
+        "a single-player application for music",
+        "a single playerctl shortcut",
+        "a multilevel menu",
+    ] {
+        assert_eq!(choose(request, &TargetRef::None).0, "app", "{request}");
+    }
+    assert_eq!(choose("Um player de vídeo desktop, use Electron", &TargetRef::None), ("app", "Electron"));
+    for request in [
+        "A multiplayer shooter",
+        "A single-player adventure",
+        "A single player adventure",
+        "a 2-player chess board",
+        "a two player chess board",
+        "Build a (2-player) chess board",
+        "a 2  player chess board",
+        "chess for 2 players",
+        "party fun for four players.",
+        "a two\nplayer chess board",
+        "a four-player party",
+        "4 player dungeon crawl",
+        "A game with one player",
+        "A level editor",
+        "Build a (level editor)",
+        "a low level tool with a level editor",
+        "a game with an MPEG 2 player",
+        "a single player app for chess",
+        "Make this:\nlevel editor",
+    ] {
+        assert_eq!(choose(request, &TargetRef::None).0, "game", "{request}");
+    }
+}
+
+#[test]
+fn italian_requests_keep_their_project_kind() {
+    for request in ["Un semplice gioco del serpente", "Per esempio: lo stesso gioco, con una classifica", "Fai un gioco che si gioca così"] {
+        assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
+    }
+    for request in ["Un sito per la mia panetteria", "Ricostruisci questo sito", "Per esempio: ricostruisci questo sito"] {
+        assert_eq!(choose(request, &TargetRef::None), ("website", stacks::BUILDERS_CHOICE), "{request}");
+    }
+}
+
+#[test]
 fn german_requests_keep_their_project_kind() {
     for request in ["Ein einfaches Snake-Spiel", "Dasselbe Spiel mit einer Bestenliste"] {
         assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
@@ -70,6 +130,58 @@ fn german_requests_keep_their_project_kind() {
     for request in ["Eine Website für meine Bäckerei", "Diese Webseite nachbauen"] {
         assert_eq!(choose(request, &TargetRef::None), ("website", stacks::BUILDERS_CHOICE), "{request}");
     }
+}
+
+#[test]
+/// A request written in Spanish keeps the project kind its English equivalent would get, which is
+/// what the German and Chinese cases assert for their own words.
+fn spanish_requests_keep_their_project_kind() {
+    for request in ["Un juego de serpiente sencillo", "El mismo juego, con una tabla de récords"] {
+        assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
+    }
+    for request in ["Un sitio web para mi panadería", "Recrea este sitio web", "Una página web de mi taller"] {
+        assert_eq!(choose(request, &TargetRef::None), ("website", stacks::BUILDERS_CHOICE), "{request}");
+    }
+    assert_eq!(choose("La misma app, pero más simple", &TargetRef::None).0, "app");
+    // "juego" also names a set: a tool set is not a game.
+    assert_eq!(choose("Una app para llevar el inventario de mi juego de herramientas", &TargetRef::None).0, "app");
+    // "web" alone says nothing: a web app is built as an app, not as a website.
+    for request in ["Una aplicación web de notas", "A web app in Rust"] {
+        assert_eq!(choose(request, &TargetRef::None).0, "app", "{request}");
+    }
+}
+
+#[test]
+fn portuguese_and_turkish_requests_keep_their_project_kind() {
+    for request in ["Um jogo simples da cobrinha", "Basit bir yılan oyunu", "Bir oyun yap"] {
+        assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
+    }
+    assert_eq!(choose("Bir web sitesi yap", &TargetRef::None), ("website", stacks::BUILDERS_CHOICE));
+    assert_eq!(choose("Um site para a minha padaria", &TargetRef::None), ("website", stacks::BUILDERS_CHOICE));
+    assert_eq!(choose("Bir oyuncak mağazası uygulaması", &TargetRef::None).0, "app", "oyuncak is a toy");
+}
+
+#[test]
+fn vietnamese_requests_keep_their_project_kind() {
+    for request in ["Một trò chơi rắn săn mồi đơn giản", "Trò chơi đó, thêm bảng xếp hạng"] {
+        assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
+    }
+    for request in ["Một trang web cho tiệm bánh của tôi", "Dựng lại Trang web này"] {
+        assert_eq!(choose(request, &TargetRef::None), ("website", stacks::BUILDERS_CHOICE), "{request}");
+    }
+}
+
+#[test]
+fn thai_requests_keep_their_project_kind() {
+    for request in ["เกมงูกินหางง่าย ๆ", "เกมเดิม แต่มีตารางคะแนนสูงสุด"]
+    {
+        assert_eq!(choose(request, &TargetRef::None), ("game", "Unity"), "{request}");
+    }
+    for request in ["เว็บไซต์ร้านเบเกอรีของฉัน", "สร้างเว็บไซต์นี้ใหม่"]
+    {
+        assert_eq!(choose(request, &TargetRef::None), ("website", stacks::BUILDERS_CHOICE), "{request}");
+    }
+    assert_eq!(choose("แอปเครื่องคิดเลข", &TargetRef::None).0, "app", "แอปเครื่องคิดเลข");
 }
 
 #[test]
@@ -312,17 +424,93 @@ fn notes_added_while_it_works_reach_the_agent_at_its_next_step() {
         self_check: None,
         reset_progress_after_notes: false,
     };
-    assert!(w.added(&mut ws).is_none(), "nothing added, nothing to say");
-    let note = |id, text: &str| Note { id, text: format!("{text} (pictures: a.png)"), shown: text.into(), pictures: Vec::new() };
-    notes.lock().unwrap().extend([note(1, "Make it faster"), note(2, "A blue sky")]);
-    let p = w.added(&mut ws).unwrap();
-    assert!(p.contains("- Make it faster (pictures: a.png)\n- A blue sky"), "{p}");
+    assert!(w.added(&mut ws, true).is_none(), "nothing added, nothing to say");
+    use craft_anything_engine::questions::{self, AskedQuestion};
+    let asked = AskedQuestion { deep: false, ..AskedQuestion::new("where is the score kept".into(), "In src.".into(), true, "Stand-in".into(), None, 0) };
+    questions::add(&ws, asked.clone()).unwrap();
+    let note = |id, text: &str| Note { id, text: format!("{text} (pictures: a.png)"), shown: text.into(), pictures: Vec::new(), questions: Vec::new() };
+    let mut first = note(1, "Make it faster");
+    first.questions = vec![asked];
+    notes.lock().unwrap().extend([first, note(2, "A blue sky")]);
+    let (p, more) = w.added(&mut ws, true).unwrap();
+    assert!(p.contains("where is the score kept") && p.contains("- Make it faster (pictures: a.png)\n- A blue sky"), "{p}");
+    assert_eq!(more.len(), 1, "the question is marked told after the turn");
     assert!(notes.lock().unwrap().is_empty(), "each note goes in once");
     // The notes join the feed as they're read, before the step that reads them.
     let events: Vec<RunEvent> = rx.try_iter().collect();
     let shown: Vec<_> = events.iter().filter_map(|e| if let RunEvent::Note { shown, .. } = e { Some(shown.as_str()) } else { None }).collect();
     assert_eq!(shown, ["Make it faster", "A blue sky"]);
     assert!(matches!(events.last(), Some(RunEvent::Step { text, .. }) if text == "Reading what you added…"));
+}
+
+/// #857: a note handed over by a coding agent's tool hook never sees the after-turn message, so
+/// the Just-ask answers are put in the note itself (only the ones this mode may show).
+#[test]
+fn a_note_carries_the_just_ask_answers_once_and_only_in_their_mode() {
+    use craft_anything_engine::questions::{self, AskedQuestion};
+    let d = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "x", "A thing", TargetRef::None).unwrap();
+    let clean =
+        AskedQuestion { deep: false, ..AskedQuestion::new("where is the score kept".into(), "In src/score.rs.".into(), true, "Stand-in".into(), None, 0) };
+    questions::add(&ws, clean.clone()).unwrap();
+    let (text, carried) = note_with_just_asked("make it blue".into(), &ws, false, &[]);
+    assert!(text.contains("where is the score kept") && text.contains("make it blue"), "{text}");
+    assert_eq!(carried.len(), 1);
+
+    // A note already waiting carries it; the next one doesn't repeat it.
+    let (again, none) = note_with_just_asked("make it green".into(), &ws, false, &carried);
+    assert!(!again.contains("where is the score kept") && none.is_empty(), "{again}");
+
+    // A Deep question stays out of a Clean room note.
+    questions::add(
+        &ws,
+        AskedQuestion { deep: true, ..AskedQuestion::new("what does the original do".into(), "It reads a file.".into(), true, "Stand-in".into(), None, 0) },
+    )
+    .unwrap();
+    let (clean_note, carried) = note_with_just_asked("make it blue".into(), &ws, true, &[]);
+    assert!(clean_note.contains("where is the score kept") && !clean_note.contains("what does the original do"), "{clean_note}");
+    assert_eq!(carried.len(), 1, "only the Clean room question");
+}
+
+/// The app writes the enriched note for both hand-over paths, so the hook prints the answers.
+#[test]
+fn a_note_written_for_the_hook_carries_its_answers() {
+    use craft_anything_engine::questions::{self, AskedQuestion};
+    let d = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "x", "A thing", TargetRef::None).unwrap();
+    let asked =
+        AskedQuestion { deep: false, ..AskedQuestion::new("where is the score kept".into(), "In src/score.rs.".into(), true, "Stand-in".into(), None, 0) };
+    questions::add(&ws, asked.clone()).unwrap();
+    let (_tx, rx) = std::sync::mpsc::channel();
+    let feed = Arc::new(Mutex::new(feed::FeedLog::open(&ws)));
+    let activity = feed.lock().unwrap_or_else(PoisonError::into_inner).activity();
+    let run = RebuildRun {
+        rx,
+        stop: CancelToken::default(),
+        inbox: Inbox::new(ws.inbox_dir()),
+        running: Arc::new(AtomicBool::new(true)),
+        preview: Arc::default(),
+        notes: Arc::default(),
+        clean_room: false,
+        feed,
+        root: ws.root.clone(),
+        started: Instant::now(),
+        activity,
+    };
+    let id = run.add_note("make it blue".into(), "make it blue".into(), Vec::new());
+    let note = run.waiting().pop().unwrap();
+    assert_eq!(note.text, "make it blue", "the in-memory text stays raw for a later run's mode");
+    assert_eq!(note.questions.len(), 1);
+
+    let dir = notes::notes_dir(&ws.inbox_dir());
+    let claimed = notes::claim(&dir);
+    assert_eq!(claimed.len(), 1);
+    assert!(claimed[0].contains("where is the score kept"), "{}", claimed[0]);
+    assert!(notes::was_read(&dir, id));
+    // The run ended before relaying it: its raw text goes next, and the next run's mode decides
+    // whether the answers are included, so they stay untold here.
+    assert_eq!(run.take_notes().len(), 1);
+    assert_eq!(questions::untold(&ws, false).len(), 1, "the next run decides whether to tell it");
 }
 
 #[test]
@@ -1227,6 +1415,33 @@ fn clean_room_studies_nothing_inside_and_deep_mode_looks() {
     }
 }
 
+#[test]
+fn an_electron_programs_runtime_is_not_analysed() {
+    let d = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(d.path().join("resources")).unwrap();
+    let program = d.path().join("App.exe");
+    std::fs::write(&program, b"MZ").unwrap();
+    assert!(!super::study::is_electron_runtime(&program), "a program with no asar beside it is analysed");
+    std::fs::write(d.path().join("resources/app.asar"), b"asar").unwrap();
+    assert!(super::study::is_electron_runtime(&program));
+}
+
+#[test]
+fn deep_mode_maps_the_javascript_beside_an_exe_target() {
+    let d = tempfile::tempdir().unwrap();
+    let app = d.path().join("App");
+    std::fs::create_dir_all(app.join("resources")).unwrap();
+    std::fs::write(app.join("App.exe"), b"MZ").unwrap();
+    std::fs::write(app.join("resources/app.asar"), craft_anything_testkit::electron::notes_app_asar()).unwrap();
+    for (name, target) in [("folder", app.clone()), ("exe", app.join("App.exe"))] {
+        let mut ws = Workspace::create(&d.path().join("projects"), name, "Recreate this app", TargetRef::Local { path: target }).unwrap();
+        let mut w = check_worker(&ws, true);
+        w.study(&mut ws, kind("game").as_ref()).unwrap();
+        let notes = std::fs::read_to_string(ws.capture_dir().join("README.md")).unwrap();
+        assert!(notes.contains("## JavaScript application"), "{name}: {notes}");
+    }
+}
+
 #[cfg(unix)]
 mod picking_up_a_build {
     use super::*;
@@ -1308,6 +1523,17 @@ mod picking_up_a_build {
         let projects = dir.path().join("projects");
         std::fs::create_dir_all(&projects).unwrap();
         Bench { _dir: dir, hub, projects, prompts }
+    }
+
+    /// #923: starting a run is what loads the keys, for builders that use this session's tools.
+    #[test]
+    fn a_run_loads_the_saved_asset_keys_into_its_session() {
+        let b = bench();
+        b.hub.set_asset_key("fal", "k-1").unwrap();
+        let ws = Workspace::create(&b.projects, "x", "Build a notes app", TargetRef::None).unwrap();
+        let _ = try_it(&b, &ws);
+        let keys = b.hub.engine.session().ext.get::<craft_anything_engine::tools::asset_tools::AssetKeys>().unwrap_or_default();
+        assert_eq!(keys.get("fal"), Some("k-1"));
     }
 
     fn try_it(b: &Bench, ws: &Workspace) -> (bool, Vec<feed::FeedItem>) {
@@ -1404,6 +1630,67 @@ mod picking_up_a_build {
         let ws = Workspace::open(&ws.root).unwrap();
         assert!(!ws.manifest.awaiting_check);
         assert_eq!(ws.manifest.checks.len(), 1);
+    }
+
+    #[test]
+    fn a_message_after_just_ask_tells_the_builder_what_was_asked_once() {
+        use craft_anything_engine::questions::{self, AskedQuestion};
+        let b = bench();
+        let ws = worked_on(&b);
+        let ask = |q: &str| {
+            questions::add(&ws, AskedQuestion { deep: false, ..AskedQuestion::new(q.into(), "It's in src.".into(), true, "Stand-in".into(), None, 0) }).unwrap()
+        };
+        let say = |m: &str| {
+            try_with(&b, &ws, RunOptions { message: Some(m.into()), ..RunOptions::default() });
+            std::fs::read_to_string(&b.prompts).unwrap_or_default()
+        };
+        ask("where is the score kept");
+        let told = say("make it bigger");
+        assert!(told.contains("Q: where is the score kept\nA: It's in src.") && told.contains("make it bigger"), "{told}");
+        let again = say("and blue");
+        let later = again.strip_prefix(told.as_str()).unwrap_or_default();
+        assert!(later.contains("and blue") && !later.contains("where is the score kept"), "told once: {later}");
+        // Try again has no new message for it to go with, so it isn't used up.
+        ask("how does saving work");
+        let _ = try_it(&b, &ws);
+        let before = std::fs::read_to_string(&b.prompts).unwrap_or_default();
+        assert!(!before.contains("how does saving work"), "{before}");
+        let told = say("now add saving");
+        let later = told.strip_prefix(before.as_str()).unwrap_or_default();
+        assert!(later.contains("how does saving work") && later.contains("now add saving"), "{later}");
+    }
+
+    /// A turn that failed may never have reached the builder, so its questions are still to tell.
+    #[test]
+    fn a_failed_turn_leaves_just_ask_questions_to_tell_with_the_next_message() {
+        use craft_anything_engine::questions::{self, AskedQuestion};
+        let b = bench();
+        let ws = worked_on(&b);
+        questions::add(
+            &ws,
+            AskedQuestion { deep: false, ..AskedQuestion::new("where is the score kept".into(), "In src.".into(), true, "Stand-in".into(), None, 0) },
+        )
+        .unwrap();
+        // As in the test above: a typed failure, which isn't retried after a wait.
+        let mut config = b.hub.config();
+        let mut entry = config.get("Stand-in").unwrap().clone();
+        entry.config.model = "opencode".into();
+        config.upsert(entry);
+        b.hub.engine.session().settings.ai = config.to_table().unwrap();
+        let agent = b._dir.path().join("agent.sh");
+        let works = std::fs::read_to_string(&agent).unwrap().replacen(
+            "#!/bin/sh\n",
+            "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format'; exit 0; fi\n",
+            1,
+        );
+        let error = json!({"type":"error","error":{"name":"APIError","data":{"message":"fixture sign in needed","statusCode":401,"isRetryable":false}}});
+        std::fs::write(&agent, works.replace("echo Done.", &format!("printf '%s\\n' '{error}'\nexit 1"))).unwrap();
+        let say = |m: &str| try_with(&b, &ws, RunOptions { message: Some(m.into()), ..RunOptions::default() }).0;
+        assert!(!say("make it bigger"));
+        assert_eq!(questions::untold(&ws, false).len(), 1, "the turn failed");
+        std::fs::write(&agent, works).unwrap();
+        say("make it bigger");
+        assert!(questions::untold(&ws, false).is_empty(), "the turn finished");
     }
 
     #[test]
@@ -1561,12 +1848,12 @@ mod picking_up_a_build {
         b.hub.engine.session().settings.ai = config.to_table().unwrap();
         let agent = b._dir.path().join("agent.sh");
         let script = std::fs::read_to_string(&agent).unwrap();
-        let script = script.replacen("#!/bin/sh\n", "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format'; exit 0; fi\n", 1);
+        let script = script.replacen("#!/bin/sh\n", "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi\n", 1);
         let error = json!({"type":"error","error":{"name":"APIError","data":{"message":"fixture sign in needed","statusCode":401,"isRetryable":false}}});
         std::fs::write(&agent, script.replace("echo Done.", &format!("printf '%s\\n' '{error}'\nexit 1"))).unwrap();
         let (ok, feed) = try_it(&b, &ws);
         assert!(!ok);
-        assert_eq!(prompts_given(&b), 1, "the unavailable scan does not block or repeat the builder");
+        assert_eq!(prompts_given(&b), 1, "the unavailable scan does not block or repeat the builder: {feed:?}");
         assert!(feed.iter().any(|i| matches!(i, feed::FeedItem::Error { message, .. } if message.contains("fixture sign in needed"))), "{feed:?}");
         let saved = Workspace::open(&ws.root).unwrap();
         assert!(!saved.manifest.awaiting_check, "a failed turn has not finished its build");
@@ -1673,7 +1960,7 @@ mod picking_up_a_build {
         use crate::model::{Block, ChatModel, Delta, Stop, StopReason, TurnRequest, TurnResult};
         type Notes = Arc<Mutex<Vec<Note>>>;
         fn note(text: &str) -> Note {
-            Note { id: 42, text: text.into(), shown: text.into(), pictures: Vec::new() }
+            Note { id: 42, text: text.into(), shown: text.into(), pictures: Vec::new(), questions: Vec::new() }
         }
         struct NoteModel {
             script: Scripted,
@@ -1908,6 +2195,41 @@ mod picking_up_a_build {
     }
 }
 
+#[test]
+fn just_ask_is_told_to_the_builder_shortly_and_cut_on_a_character() {
+    use craft_anything_engine::questions::AskedQuestion;
+    assert_eq!(super::just_asked(&[]), "", "nothing asked, nothing added");
+    let q = |n: usize, answer: String| AskedQuestion::new(format!("question {n}"), answer, true, "Claude".into(), None, 0);
+    let mut asked: Vec<_> = (0..7).map(|n| q(n, "short".into())).collect();
+    asked.push(q(7, "é".repeat(3000)));
+    let told = super::just_asked(&asked);
+    assert!(!told.contains("question 2") && told.contains("question 3") && told.contains("question 7"), "the latest five: {told}");
+    assert!(told.contains(&format!("{}…", "é".repeat(1500))) && !told.contains(&"é".repeat(1501)), "a long answer is cut");
+    assert!(told.contains("A: short\n"), "a short one isn't marked as cut");
+    // The most a person can ask, five times over, still leaves room on a Windows command line, which
+    // counts UTF-16 units: an emoji is two.
+    let longest: Vec<_> = (0..5).map(|_| AskedQuestion::new("😀".repeat(4000), "😀".repeat(100_000), true, "Claude".into(), None, 0)).collect();
+    assert!(super::just_asked(&longest).encode_utf16().count() < 20_000);
+}
+
+/// #923: with OpenRouter as the builder, every asset call said "No fal.ai key" with one saved. The
+/// project hasn't turned on generated assets, so nothing is sent or spent.
+#[test]
+fn a_saved_asset_key_gets_an_api_builders_tool_past_the_key_check() {
+    let dir = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(dir.path(), "x", "Make a game", TargetRef::None).unwrap();
+    let mut worker = check_worker(&ws, false);
+    worker.attach(&ws).unwrap();
+    let call =
+        |w: &Worker| w.engine.call("assets_image_generate", json!({"prompt": "a crate", "save_as": "crate.png"}), CallOptions::new(Caller::Ui)).err().unwrap();
+    assert_eq!(call(&worker).code, ErrorCode::BadSettings, "no key loaded yet");
+    let store = crate::KeyStore::file_only(dir.path().join("keys.toml"));
+    store.set(crate::keys::FAL_KEY, "k-1").unwrap();
+    worker.load_asset_keys(&store);
+    assert_eq!(call(&worker).code, ErrorCode::NoPermission);
+    assert!(worker.assets, "the brief and the tools go by the same read");
+}
+
 fn check_worker(ws: &Workspace, deep: bool) -> Worker {
     let mut s = craft_anything_engine::testing::session();
     s.settings.deep_mode = deep;
@@ -1929,6 +2251,91 @@ fn check_worker(ws: &Workspace, deep: bool) -> Worker {
         self_check: None,
         reset_progress_after_notes: false,
     }
+}
+
+/// A new Python project reaches the same build/screenshot path as a packaged app. The local
+/// interpreter is a stand-in: no installed Python, packages, window, network or user settings.
+#[cfg(unix)]
+#[test]
+fn new_python_projects_build_and_save_screenshots_through_their_toolchain() {
+    use craft_anything_engine::tools::web_common::{Image, encode_png};
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(dir.path(), "Python sample", "Make an app in Python", TargetRef::None).unwrap();
+    let app = ws.app_dir();
+    std::fs::create_dir_all(app.join(".venv/bin")).unwrap();
+    std::fs::write(app.join("main.py"), "# Owned interpreter fixture\n").unwrap();
+    std::fs::write(app.join("pyproject.toml"), "[project]\nname = 'sample'\nversion = '0.1.0'\n").unwrap();
+    // An HTML asset beside Python code must not bypass the Python build as a static site.
+    std::fs::write(app.join("index.html"), "<h1>asset</h1>").unwrap();
+    let program = app.join(".venv/bin/python");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\n\
+        if [ \"$1\" = '-m' ]; then\n\
+          printf '%s\\n' \"$@\" > build-args.txt\n\
+          if [ -f fail-build ]; then echo 'error: fixture compilation failed'; exit 1; fi\n\
+          exit 0\n\
+        fi\n\
+        [ \"$1\" = 'main.py' ] || exit 8\n\
+        [ \"$2\" = '--screenshot' ] || exit 8\n\
+        [ ! -f fail-shot ] || exit 9\n\
+        cp fixture.png \"$3\"\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let rgba = (0..64 * 36).flat_map(|i| if i % 2 == 0 { [255, 0, 0, 255] } else { [0, 0, 255, 255] }).collect();
+    std::fs::write(app.join("fixture.png"), encode_png(&Image { width: 64, height: 36, rgba }).unwrap()).unwrap();
+    let worker = check_worker(&ws, false);
+    let checks = worker.run_checks(&ws, &AppKind, 1).unwrap();
+    assert_eq!(checks.iter().map(|c| (c.check.as_str(), c.passed)).collect::<Vec<_>>(), [("build", true), ("app-screenshot", true)], "{checks:?}");
+    let args = std::fs::read_to_string(app.join("build-args.txt")).unwrap();
+    assert!(args.starts_with("-m\ncompileall\n-q\n") && args.ends_with(".\n"), "{args}");
+    assert_eq!(args.lines().nth(3), Some("-f"), "{args}");
+    assert_eq!(launch(&app, None).unwrap(), (program, vec!["main.py".into()]), "Play uses the same interpreter/entrypoint");
+    let shot = ws.checks_dir().join("round-1/screenshot.png");
+    assert!(shot.is_file());
+
+    std::fs::write(app.join("fail-shot"), "").unwrap();
+    let checks = worker.run_checks(&ws, &AppKind, 1).unwrap();
+    assert!(checks[0].passed && !checks[1].passed && checks[1].note.contains("code 9"), "{checks:?}");
+    assert!(!shot.exists(), "the old screenshot cannot make a failed run pass");
+    std::fs::write(app.join("fail-build"), "").unwrap();
+    let checks = worker.run_checks(&ws, &AppKind, 2).unwrap();
+    assert_eq!(checks.len(), 1);
+    assert!(!checks[0].passed && checks[0].note.contains("fixture compilation failed"), "{checks:?}");
+}
+
+/// Opt-in smoke test with a real local Python; all files and bytecode stay in the temp project.
+/// The fixture writes a known nonblank PNG without opening a GUI or importing external packages.
+#[cfg(unix)]
+#[test]
+#[ignore = "requires Python 3 on PATH; runs an owned headless fixture"]
+fn real_python_new_project_build_and_screenshot() {
+    use craft_anything_engine::tools::web_common::{Image, encode_png};
+    let dir = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(dir.path(), "Python smoke", "An app in Python", TargetRef::None).unwrap();
+    let app = ws.app_dir();
+    std::fs::create_dir_all(app.join(".venv/bin")).unwrap();
+    let python = craft_anything_platform::which("python3").expect("install Python 3 to run this ignored test");
+    std::os::unix::fs::symlink(python, app.join(".venv/bin/python")).unwrap();
+    let rgba = (0..64 * 36).flat_map(|i| if i % 2 == 0 { [255, 0, 0, 255] } else { [0, 0, 255, 255] }).collect();
+    let png = encode_png(&Image { width: 64, height: 36, rgba }).unwrap();
+    let source = format!("import pathlib, sys\nif sys.argv[1] == '--screenshot':\n    pathlib.Path(sys.argv[2]).write_bytes(bytes({png:?}))\n");
+    std::fs::write(app.join("main.py"), source).unwrap();
+    // compileall's cache check uses whole-second mtimes. Keep both revisions at the same
+    // timestamp so a stale bytecode cache cannot make a syntax error look like a good build.
+    let same_time = std::time::UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    std::fs::File::open(app.join("main.py")).unwrap().set_modified(same_time).unwrap();
+    std::fs::write(app.join(".venv/ignored.py"), "def broken(\n").unwrap();
+    let worker = check_worker(&ws, false);
+    let checks = worker.run_checks(&ws, &AppKind, 1).unwrap();
+    assert_eq!(checks.iter().map(|c| (c.check.as_str(), c.passed)).collect::<Vec<_>>(), [("build", true), ("app-screenshot", true)], "{checks:?}");
+    std::fs::write(app.join("main.py"), "def broken(\n").unwrap();
+    std::fs::File::open(app.join("main.py")).unwrap().set_modified(same_time).unwrap();
+    let checks = worker.run_checks(&ws, &AppKind, 2).unwrap();
+    assert_eq!(checks.len(), 1, "{checks:?}");
+    assert!(!checks[0].passed && checks[0].note.contains("SyntaxError"), "{checks:?}");
 }
 
 /// A kind with its checks after the first `.1`, so a test needn't build or start anything.
@@ -2529,8 +2936,11 @@ fn a_console_original_is_rebuilt_as_a_console_program() {
 
 #[test]
 fn a_note_the_builder_took_at_a_step_joins_the_feed_and_isnt_sent_again() {
+    use craft_anything_engine::questions::{self, AskedQuestion};
     let d = tempfile::tempdir().unwrap();
     let mut ws = Workspace::create(d.path(), "Site", "Clone it", TargetRef::None).unwrap();
+    let asked = AskedQuestion { deep: false, ..AskedQuestion::new("where is the score kept".into(), "In src.".into(), true, "Stand-in".into(), None, 0) };
+    questions::add(&ws, asked.clone()).unwrap();
     let (tx, rx) = std::sync::mpsc::channel();
     let mut w = Worker {
         wake: Default::default(),
@@ -2542,8 +2952,8 @@ fn a_note_the_builder_took_at_a_step_joins_the_feed_and_isnt_sent_again() {
         inbox: Inbox::new(ws.inbox_dir()),
         editor: None,
         notes: Arc::new(Mutex::new(vec![
-            Note { id: 1, text: "make the header blue".into(), shown: "make the header blue".into(), pictures: Vec::new() },
-            Note { id: 2, text: "add a footer".into(), shown: "add a footer".into(), pictures: Vec::new() },
+            Note { id: 1, text: "make the header blue".into(), shown: "make the header blue".into(), pictures: Vec::new(), questions: vec![asked] },
+            Note { id: 2, text: "add a footer".into(), shown: "add a footer".into(), pictures: Vec::new(), questions: Vec::new() },
         ])),
         feed: Arc::new(Mutex::new(feed::FeedLog::open(&ws))),
         assets: false,
@@ -2560,11 +2970,12 @@ fn a_note_the_builder_took_at_a_step_joins_the_feed_and_isnt_sent_again() {
     assert_eq!(notes::claim(&dir), ["make the header blue"]);
     std::fs::rename(dir.join("2.wait"), dir.join("2.json")).unwrap();
     w.relay_read_notes(&ws);
+    assert!(questions::untold(&ws, false).is_empty(), "the answers in a read note are told");
     let shown: Vec<String> = rx.try_iter().filter_map(|e| if let RunEvent::Note { shown, .. } = e { Some(shown) } else { None }).collect();
     assert_eq!(shown, ["make the header blue"], "it joins the feed as soon as the builder took it");
     assert!(!notes::was_read(&dir, 1), "its files are gone");
     // After the turn, only the note nobody took is sent, and no hook can hand it over again.
-    let follow = w.added(&mut ws).unwrap();
+    let (follow, _) = w.added(&mut ws, true).unwrap();
     assert!(follow.contains("add a footer") && !follow.contains("make the header blue"), "{follow}");
     assert!(notes::claim(&dir).is_empty());
 }
@@ -2625,6 +3036,19 @@ fn a_project_started_in_a_picked_folder_stays_in_the_list() {
     assert_eq!(saved.project_folders, std::slice::from_ref(&ws.root), "saved in the session's own settings");
     let listed = Workspace::list_in(&session.settings.project_locations());
     assert!(listed.iter().any(|w| w.root == ws.root));
+}
+
+#[test]
+fn starting_a_project_at_existing_project_folder_attaches_to_it() {
+    let session = craft_anything_engine::testing::session();
+    let d = tempfile::tempdir().unwrap();
+    let folder = d.path().join("mine");
+    let ws = project::new_project(&session.settings, "-", "Initial app", project::Place::At(&folder, None), None, false, None).unwrap();
+    assert_eq!(ws.root, folder);
+    // Starting again at the same folder attaches to the existing project rather than failing or duplicating
+    let reattached = project::new_project(&session.settings, "-", "Follow up", project::Place::At(&folder, None), None, false, None).unwrap();
+    assert_eq!(reattached.root, folder);
+    assert_eq!(reattached.manifest.name, ws.manifest.name);
 }
 
 #[test]
@@ -2714,6 +3138,83 @@ fn a_project_is_built_by_the_ai_it_was_started_with_while_that_one_is_on() {
     cfg.backends.iter_mut().for_each(|b| b.config.enabled = b.config.name != "Codex");
     assert_eq!(super::project_builder(&cfg, &ws), None);
     assert_eq!(builder_backend(&cfg, super::project_builder(&cfg, &ws)).unwrap().config.name, "Claude Code");
+}
+
+/// The headless surfaces (CLI, MCP, a question) use the same replacement report as the app.
+#[test]
+fn a_saved_builder_that_is_off_or_gone_is_named_for_headless_starts() {
+    use crate::{AiConfig, BackendConfig, BackendEntry, BackendKind};
+    let d = tempfile::tempdir().unwrap();
+    let mut ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+    ws.manifest.builder = Some("Codex".into());
+    let mut cfg = AiConfig::default();
+    for (name, enabled) in [("Claude Code", true), ("Codex", true)] {
+        let c = BackendConfig { name: name.into(), kind: BackendKind::AgentCli, model: String::new(), base_url: None, ssh_host: None, enabled };
+        cfg.upsert(BackendEntry { config: c, options: Default::default() });
+    }
+    assert_eq!(super::builder_replacement(&cfg, &ws, None), None, "an enabled saved builder is not a replacement");
+    assert_eq!(super::builder_replacement(&cfg, &ws, Some("Codex")), None, "an explicit name is never a replacement");
+
+    cfg.backends.iter_mut().for_each(|b| b.config.enabled = b.config.name != "Codex");
+    let r = super::builder_replacement(&cfg, &ws, None).expect("a turned-off saved builder is replaced");
+    assert_eq!((r.saved.as_str(), r.used.as_str()), ("Codex", "Claude Code"));
+    let notice = super::replaced_builder_notice(&r.saved, &r.used);
+    assert!(notice.contains("Codex") && notice.contains("Claude Code") && notice.contains("instead"), "{notice}");
+
+    ws.manifest.builder = Some("Gone".into());
+    let r = super::builder_replacement(&cfg, &ws, None).expect("a removed saved builder is replaced");
+    assert_eq!((r.saved.as_str(), r.used.as_str()), ("Gone", "Claude Code"));
+}
+
+/// A question answered by the default AI still says which saved builder it replaced.
+#[cfg(unix)]
+#[test]
+fn a_question_names_a_replaced_saved_builder() {
+    use std::os::unix::fs::PermissionsExt;
+    let d = tempfile::tempdir().unwrap();
+    let script = d.path().join("claude");
+    std::fs::write(
+        &script,
+        "#!/bin/sh\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"In app/src.\"}]}}'\nprintf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"num_turns\":1}'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let engine = std::sync::Arc::new(Engine::new(craft_anything_engine::testing::session()));
+    let hub = crate::AiHub::with_stores(engine, d.path().join("config.toml"), crate::KeyStore::file_only(d.path().join("keys.toml")));
+    let mut settings = craft_anything_engine::testing::session().settings;
+    settings.ai = toml::from_str(&format!(
+        "[[backends]]\nname = \"Off\"\nkind = \"anthropic\"\nmodel = \"claude-test\"\nenabled = false\n\n[[backends]]\nname = \"Claude\"\nkind = \"agent_cli\"\nmodel = \"claude-code\"\ncommand = \"{}\"\nenabled = true\n",
+        script.display()
+    ))
+    .unwrap();
+    let mut ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+    ws.set_person(|m| m.builder = Some("Off".into())).unwrap();
+    let answered = super::question::ask(&hub, &settings, None, &ws, "where is it?", &CancelToken::default()).unwrap();
+    assert_eq!(answered.backend, "Claude");
+    let notice = answered.builder_notice.as_deref().unwrap_or_default();
+    assert!(notice.contains("Off") && notice.contains("Claude"), "{notice}");
+}
+
+/// A name given on purpose is never ignored: a backend that is off is refused in words that say
+/// how to fix it, and a name that matches nothing names the name instead of blaming the setup.
+#[test]
+fn a_named_backend_that_is_off_or_unknown_is_refused() {
+    use crate::{AiConfig, BackendConfig, BackendEntry, BackendKind};
+    let mut cfg = AiConfig::default();
+    for (name, enabled) in [("Claude Code", true), ("Codex", false)] {
+        let c = BackendConfig { name: name.into(), kind: BackendKind::AgentCli, model: String::new(), base_url: None, ssh_host: None, enabled };
+        cfg.upsert(BackendEntry { config: c, options: Default::default() });
+    }
+    assert_eq!(builder_backend(&cfg, Some("Claude Code")).unwrap().config.name, "Claude Code");
+
+    let off = builder_backend(&cfg, Some("Codex")).unwrap_err();
+    assert_eq!(off.code, ErrorCode::BadSettings);
+    assert!(off.message.contains("Codex") && off.message.contains("turned off"), "{off:?}");
+    assert!(off.remediation.as_deref().is_some_and(|r| r.contains("Turn it on")), "{off:?}");
+
+    let unknown = builder_backend(&cfg, Some("No Such AI")).unwrap_err();
+    assert!(unknown.message.contains("No AI backend named"), "{unknown:?}");
+    assert!(unknown.remediation.as_deref().is_some_and(|r| r.contains("ai list")), "{unknown:?}");
 }
 
 /// #446: a project copied from another computer keeps the id of a Claude Code session that lives
@@ -2926,4 +3427,57 @@ fn the_builders_conversation_travels_with_the_project() {
 fn a_sign_in_that_stopped_working_is_called_that() {
     assert_eq!(not_signed_in("claude-code", false), "Claude Code isn't signed in on this computer.");
     assert_eq!(not_signed_in("claude-code", true), "Claude Code's sign-in on this computer has expired or was signed out.");
+}
+
+#[test]
+fn a_build_says_when_it_waits_for_an_analysis_started_earlier() {
+    let d = tempfile::Builder::new().prefix("ca").tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "Game", "Copy this game", TargetRef::None).unwrap();
+    let launcher = d.path().join("analyzeHeadless");
+    std::fs::write(&launcher, "").unwrap();
+    let program = d.path().join("game.bin");
+    std::fs::write(&program, b"not really a program").unwrap();
+    let store = d.path().join("store");
+
+    let mut s = craft_anything_engine::testing::session();
+    s.settings.deep_mode = true;
+    s.settings.engines.store_dir = Some(store.clone());
+    s.settings.engines.ghidra.install_dir = Some(launcher);
+    s.settings.engines.ghidra.startup_timeout_secs = Some(3);
+    let (tx, rx) = std::sync::mpsc::channel();
+    let w = Worker {
+        wake: Default::default(),
+        engine: Arc::new(Engine::new(s)),
+        tx,
+        stop: CancelToken::default(),
+        preview: Arc::default(),
+        seen: HashSet::new(),
+        inbox: Inbox::new(ws.inbox_dir()),
+        editor: None,
+        notes: Arc::default(),
+        feed: Arc::new(Mutex::new(feed::FeedLog::open(&ws))),
+        assets: false,
+        decompiled: false,
+        usage: None,
+        self_check: None,
+        reset_progress_after_notes: false,
+    };
+
+    // Another process is already analysing this program: a fresh lock beside its project.
+    let sha = craft_anything_evidence::sha256_hex(&std::fs::read(&program).unwrap());
+    let digest = craft_anything_evidence::sha256_hex(b"craft-anything-ghidra-fast-profile-v2|lang=");
+    let project = craft_anything_engines::ghidra::project_cache_dir(&store, &sha, &digest);
+    std::fs::create_dir_all(project.parent().unwrap()).unwrap();
+    std::fs::write(project.with_extension("analysing"), "").unwrap();
+
+    let done = w.prepare_deep(&program).expect("deep mode with Ghidra prepares the analysis");
+    let _ = done.recv_timeout(Duration::from_secs(30));
+    let said: Vec<String> = rx
+        .try_iter()
+        .filter_map(|e| match e {
+            RunEvent::Step { text, .. } => Some(text),
+            _ => None,
+        })
+        .collect();
+    assert!(said.iter().any(|t| t.contains("waiting for Ghidra's analysis of this program, started earlier")), "{said:?}");
 }

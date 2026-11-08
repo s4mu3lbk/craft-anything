@@ -80,9 +80,10 @@ pub fn parse_mz(data: &[u8]) -> Result<MzImage, FormatError> {
         problems.push(format!("entry {cs:04x}:{ip:04x} is outside the {load_module_size}-byte load module"));
     }
     let mut relocations = Vec::new();
+    let header = Reader::new(r.slice(0, (header_bytes as usize).min(data.len())).unwrap_or(&[]));
     for i in 0..usize::from(nrelocs) {
         let o = usize::from(lfarlc) + i * 4;
-        let (Some(off), Some(seg)) = (r.u16_le(o), r.u16_le(o + 2)) else {
+        let (Some(off), Some(seg)) = (header.u16_le(o), header.u16_le(o + 2)) else {
             problems.push(format!("relocation table cut short after {i} of {nrelocs} entries"));
             break;
         };

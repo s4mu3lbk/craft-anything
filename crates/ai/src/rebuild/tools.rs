@@ -4,9 +4,9 @@
 //! are the project tools' (`project_show`, `project_inbox_answer`, `project_play`…).
 
 use super::*;
+use craft_anything_engine::EngineRef;
 use craft_anything_engine::questions::{self, AskedQuestion};
 use craft_anything_engine::tool::{Ctx, Effects, Requires, ToolOutput, ToolSpec, Toolset, parse_params, schema_of};
-use craft_anything_engine::{EngineRef, Settings};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -149,8 +149,8 @@ pub struct StartParams {
     /// project_assets_allow.
     #[serde(default)]
     pub generate_assets: bool,
-    /// The coding agent to use (a backend name), kept with a new project for its later changes;
-    /// default: the one set up for building.
+    /// The coding agent to use (an enabled backend name), kept with a new project for its later
+    /// changes; default: the one set up for building.
     #[serde(default)]
     pub backend: Option<String>,
     /// Refinement rounds after the first build (default 2).
@@ -243,7 +243,8 @@ fn engine(ctx: &Ctx<'_>) -> Option<Arc<Engine>> {
 fn refresh(ctx: &Ctx<'_>, set: &mut RunSet) {
     set.set_limit(ctx.session.settings.build.parallel);
     if let Some(engine) = engine(ctx) {
-        let _ = set.poll(&AiHub::new(engine));
+        let hub = AiHub::with_stores(engine, ctx.session.config_dir().join("config.toml"), crate::KeyStore::system());
+        let _ = set.poll(&hub);
     }
 }
 
@@ -282,7 +283,11 @@ fn rebuild_question_ask(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, 
         super::question::ask(&AiHub::new(engine), &settings, Some(crate::failure_log::dir_in(&ctx.session.config_dir())), &ws, &p.question, &ctx.cancel)?;
     let question = p.question.trim();
     let from_session = answered.from == super::question::AnsweredFrom::BuildersSession;
-    let asked = AskedQuestion::new(question.to_string(), answered.answer.clone(), from_session, answered.backend.clone(), answered.cost_usd, after);
+    let asked = AskedQuestion {
+        deep: settings.deep_mode,
+        ..AskedQuestion::new(question.to_string(), answered.answer.clone(), from_session, answered.backend.clone(), answered.cost_usd, after)
+    };
+    // The replacement notice is for this caller; the saved question keeps the AI that answered.
     // An answer that couldn't be kept is still the answer.
     let not_kept = questions::add(&ws, asked).err().map(|e| e.message);
     Ok(ToolOutput::Value(json!({"project": ws.root, "question": question, "answered": answered, "not_kept": not_kept})))
@@ -300,7 +305,12 @@ fn rebuild_start(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErr
         ToolError::new(ErrorCode::FeatureMissing, "Building isn't available in this engine.").with_remediation("Use the app or `craft-anything-cli rebuild`.")
     })?;
     let runs = runs(ctx);
-    let settings: &Settings = &ctx.session.settings;
+    let cfg = crate::AiConfig::from_settings(&ctx.session.settings);
+    // Refuse an unknown or switched-off name before opening or making a project or adding pictures:
+    // a refused start must not leave anything behind.
+    if let Some(name) = p.backend.as_deref() {
+        builder_backend(&cfg, Some(name))?;
+    }
     let (ws, message) = match &p.project {
         Some(dir) => {
             if p.build_with.is_some() {
@@ -309,7 +319,9 @@ fn rebuild_start(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErr
             if p.generate_assets {
                 return Err(ToolError::invalid("generate_assets is for new projects.").with_remediation("Use project_assets_allow for an existing project."));
             }
-            (open(dir)?, (!p.resume).then(|| p.request.clone()))
+            let ws = open(dir)?;
+            ctx.session.remember_project(&ws.root)?;
+            (ws, (!p.resume).then(|| p.request.clone()))
         }
         None if p.resume => return Err(ToolError::invalid("resume is for an existing project.").with_remediation("Pass its folder as `project`.")),
         None => {
@@ -320,8 +332,8 @@ fn rebuild_start(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErr
                 (None, Some(d)) => project::Place::In(d),
                 (None, None) => project::Place::Projects,
             };
-            let ws = project::new_project(settings, target, &p.request, place, p.build_with.as_deref(), p.generate_assets, p.backend.as_deref())?;
-            if p.project_folder.is_some() {
+            let ws = project::new_project(&ctx.session.settings, target, &p.request, place, p.build_with.as_deref(), p.generate_assets, p.backend.as_deref())?;
+            if p.project_folder.is_some() || matches!(place, project::Place::At(..)) {
                 ctx.session.remember_project(&ws.root)?;
             }
             (ws, None)
@@ -330,6 +342,9 @@ fn rebuild_start(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErr
     if !p.pictures.is_empty() {
         ws.add_references(&p.pictures)?;
     }
+    // A headless start can't show the app's toast: say which AI builds when the saved one is gone.
+    let builder_notice =
+        p.project.as_ref().and_then(|_| super::builder_replacement(&cfg, &ws, p.backend.as_deref()).map(|r| super::replaced_builder_notice(&r.saved, &r.used)));
     let mut set = runs.0.lock().unwrap_or_else(PoisonError::into_inner);
     refresh(ctx, &mut set);
     if set.is_busy(&ws.root) {
@@ -344,18 +359,24 @@ fn rebuild_start(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErr
         continuing: p.resume,
         max_rounds: p.rounds.unwrap_or(2),
         beginner: false,
+        clean_room: Some(ctx.session.clean_room()),
         ..RunOptions::default()
     };
-    let hub = AiHub::new(engine);
-    let out = match set.start(&hub, ws, opts)? {
+    // A tool runs with the session locked, so the hub reads the saved file: use this session's
+    // config file (the person's own in the app), not the machine's default one.
+    let hub = AiHub::with_stores(engine, ctx.session.config_dir().join("config.toml"), crate::KeyStore::system());
+    let mut out = match set.start(&hub, ws, opts)? {
         Started::Running => json!({"project": root.display().to_string(), "started": true}),
         Started::Queued { position } => {
             // It starts when a place comes free, whether or not another tool is called.
             drop(set);
-            runs::keep_queue_moving(&runs.0, &hub.engine, QUEUE_TICK);
+            runs::keep_queue_moving(&runs.0, &hub.engine, ctx.session.config_dir().join("config.toml"), QUEUE_TICK);
             json!({"project": root.display().to_string(), "started": false, "queued": position})
         }
     };
+    if let Some(notice) = builder_notice {
+        out["builder_notice"] = json!(notice);
+    }
     Ok(ToolOutput::Value(out))
 }
 
@@ -516,6 +537,106 @@ mod tests {
         assert!(e.call("rebuild_note", json!({"project": ws.root, "text": "blue"}), ok()).is_err());
         assert!(e.call("rebuild_note_withdraw", json!({"project": ws.root, "id": 1}), ok()).is_err());
         assert!(e.call("rebuild_stop", json!({"project": ws.root}), ok()).is_err());
+    }
+
+    #[test]
+    fn a_disabled_or_unknown_backend_is_refused_before_the_tool_makes_a_project() {
+        let d = tempfile::tempdir().unwrap();
+        let mut s = craft_anything_engine::testing::session();
+        s.settings.ai = toml::from_str("[[backends]]\nname = \"Off\"\nkind = \"anthropic\"\nmodel = \"claude-test\"\nenabled = false\n").unwrap();
+        let e = Engine::shared(s, specs());
+        let ok = || CallOptions::new(Caller::Cli).with_consent(Consent::Granted);
+        for (backend, expected) in [("Off", "turned off"), ("No Such AI", "No AI backend named")] {
+            let p = json!({"request": "A page", "target": "-", "projects_dir": d.path(), "backend": backend});
+            let err = e.call("rebuild_start", p, ok()).unwrap_err();
+            assert!(err.message.contains(expected), "{backend}: {err:?}");
+            assert_eq!(std::fs::read_dir(d.path()).unwrap().count(), 0, "{backend}: a refused start must not make a project");
+        }
+    }
+
+    /// #1102: a tool holds the session while it runs, so starting a build on an API backend must not
+    /// ask for it again; over MCP the call waited on itself until the deadlock was broken.
+    #[test]
+    fn rebuild_start_on_an_api_backend_does_not_wait_on_its_own_session() {
+        let d = tempfile::tempdir().unwrap();
+        let mut s = craft_anything_engine::testing::session();
+        let mut ai = crate::AiConfig::default();
+        ai.upsert(crate::BackendEntry {
+            config: crate::BackendConfig {
+                name: "Local".into(),
+                kind: crate::BackendKind::OpenaiCompatible,
+                model: "qwen3:8b".into(),
+                // Nothing listens there: the run only has to start, not to get an answer.
+                base_url: Some("http://127.0.0.1:9/v1".into()),
+                ssh_host: None,
+                enabled: true,
+            },
+            options: Default::default(),
+        });
+        s.settings.ai = ai.to_table().unwrap();
+        s.settings.save_to(&s.config_dir().join("config.toml")).unwrap();
+        let e = Engine::shared(s, specs());
+        let ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+        let ok = || CallOptions::new(Caller::Mcp).with_consent(Consent::Granted);
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (call, root) = (e.clone(), ws.root.clone());
+        std::thread::spawn(move || {
+            let _ = tx.send(call.call("rebuild_start", json!({"project": root, "request": "make it blue", "rounds": 0, "backend": "Local"}), ok()));
+        });
+        let started = rx.recv_timeout(std::time::Duration::from_secs(60)).expect("rebuild_start returned instead of waiting on its own session");
+        assert!(started.is_ok(), "{:?}", started.err());
+        let _ = e.call("rebuild_stop", json!({"project": ws.root}), ok());
+    }
+
+    /// A saved builder that is off is named in the start result, so MCP callers see the
+    /// replacement too.
+    #[cfg(unix)]
+    #[test]
+    fn rebuild_start_names_a_replaced_saved_builder() {
+        use std::os::unix::fs::PermissionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let script = d.path().join("claude");
+        std::fs::write(
+            &script,
+            "#!/bin/sh\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Made it blue.\"}]}}'\nprintf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"num_turns\":1}'\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut s = craft_anything_engine::testing::session();
+        let mut ai = crate::AiConfig::default();
+        ai.upsert(crate::BackendEntry {
+            config: crate::BackendConfig {
+                name: "Off".into(),
+                kind: crate::BackendKind::Anthropic,
+                model: "claude-test".into(),
+                base_url: None,
+                ssh_host: None,
+                enabled: false,
+            },
+            options: Default::default(),
+        });
+        ai.upsert(crate::BackendEntry {
+            config: crate::BackendConfig {
+                name: "Claude".into(),
+                kind: crate::BackendKind::AgentCli,
+                model: "claude-code".into(),
+                base_url: None,
+                ssh_host: None,
+                enabled: true,
+            },
+            options: crate::BackendOptions { command: Some(script.display().to_string()), ..Default::default() },
+        });
+        s.settings.ai = ai.to_table().unwrap();
+        // The tool runs with the session locked; save the same settings where its hub reads them.
+        s.settings.save_to(&s.config_dir().join("config.toml")).unwrap();
+        let e = Engine::shared(s, specs());
+        let mut ws = Workspace::create(d.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+        ws.set_person(|m| m.builder = Some("Off".into())).unwrap();
+        let ok = || CallOptions::new(Caller::Cli).with_consent(Consent::Granted);
+        let out = e.call("rebuild_start", json!({"project": ws.root, "request": "make it blue", "rounds": 0}), ok()).unwrap().to_json();
+        let notice = out["result"]["builder_notice"].as_str().unwrap_or_default();
+        assert!(notice.contains("Off") && notice.contains("Claude"), "{out}");
+        let _ = e.call("rebuild_stop", json!({"project": ws.root}), ok());
     }
 
     #[test]

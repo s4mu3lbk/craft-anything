@@ -15,6 +15,7 @@ use craft_anything_engines::{ghidra, ida};
 use craft_anything_evidence::{Confidence, Environment, EvidenceBuilder, Limitation, Location, ToolError, host_triple};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Duration;
 
 /// Part of the project cache key, so a different engine or pinned language re-analyses rather than
@@ -150,11 +151,12 @@ fn provider_for_active(ctx: &mut Ctx<'_>) -> Result<Arc<dyn DeepDecompiler>, Opt
 pub fn prepare(settings: &Settings, bytes: &[u8], sha256: &str, progress: &(dyn Fn(&str) + Send + Sync)) -> Result<(), String> {
     let engine = settings.preferred_deep_engine().ok_or_else(|| not_installed(settings))?;
     let (cfg, digest) = config(settings, None, engine).ok_or_else(|| not_installed(settings))?;
-    let never = || false;
+    ANALYSING.fetch_add(1, Ordering::SeqCst);
+    let closing = || CLOSING.load(Ordering::SeqCst);
     let report = |_: f32, message: &str| progress(message);
-    match cfg {
-        ProviderConfig::Ghidra(cfg) => ghidra::analyse(&cfg, bytes, sha256, &digest, &never, &report).map(|_| ()).map_err(|e| e.to_string()),
-        ProviderConfig::Ida(cfg) => match ida::Session::start(&cfg, bytes, sha256, &digest, &never, &report) {
+    let result = match cfg {
+        ProviderConfig::Ghidra(cfg) => ghidra::analyse(&cfg, bytes, sha256, &digest, &closing, &report).map(|_| ()).map_err(|e| e.to_string()),
+        ProviderConfig::Ida(cfg) => match ida::Session::start(&cfg, bytes, sha256, &digest, &closing, &report) {
             Ok(_) => Ok(()),
             Err(e)
                 if settings.engines.deep_engine == DeepEngine::Auto
@@ -164,14 +166,34 @@ pub fn prepare(settings: &Settings, bytes: &[u8], sha256: &str, progress: &(dyn 
                 let (fallback, fallback_digest) = config(settings, None, DeepEngine::Ghidra).ok_or_else(|| not_installed(settings))?;
                 match fallback {
                     ProviderConfig::Ghidra(cfg) => {
-                        ghidra::analyse(&cfg, bytes, sha256, &fallback_digest, &never, &report).map(|_| ()).map_err(|e| e.to_string())
+                        ghidra::analyse(&cfg, bytes, sha256, &fallback_digest, &closing, &report).map(|_| ()).map_err(|e| e.to_string())
                     }
                     ProviderConfig::Ida(_) => Err(not_installed(settings)),
                 }
             }
             Err(e) => Err(e.to_string()),
         },
+    };
+    ANALYSING.fetch_sub(1, Ordering::SeqCst);
+    result
+}
+
+/// Analyses [`prepare`] has under way, and whether they are being stopped.
+static ANALYSING: AtomicUsize = AtomicUsize::new(0);
+static CLOSING: AtomicBool = AtomicBool::new(false);
+
+/// The app is closing: stop every analysis [`prepare`] started and wait up to `within` for them to
+/// end, as nothing acts on a process's drop once the app has gone (#946).
+pub fn stop_analyses(within: Duration) {
+    if ANALYSING.load(Ordering::SeqCst) == 0 {
+        return;
     }
+    CLOSING.store(true, Ordering::SeqCst);
+    let until = std::time::Instant::now() + within;
+    while ANALYSING.load(Ordering::SeqCst) > 0 && std::time::Instant::now() < until {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    CLOSING.store(false, Ordering::SeqCst);
 }
 
 fn remember(ctx: &mut Ctx<'_>, provider: Result<Arc<dyn DeepDecompiler>, String>) -> Result<Arc<dyn DeepDecompiler>, Option<String>> {

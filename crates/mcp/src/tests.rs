@@ -361,3 +361,111 @@ fn always_for_this_project_on_a_consent_card_is_remembered() {
     // Another tool is still asked about.
     assert_eq!(server.ask_consent("browser_other", "why", &cancelled), Some(false));
 }
+
+/// #855, #856: In restricted mode, tools that act on the machine (build_command_run, plugins_add,
+/// engines_install, adb_*) and web/capture tools (web_site_open, web_site_capture,
+/// web_page_states_capture) are omitted from tools/list even when --all-tools is set.
+#[test]
+fn restricted_mode_omits_machine_and_web_tools() {
+    let opts = ServerOptions { restricted: true, all_tools: true, ..Default::default() };
+    let out = run_with(opts, &[req(1, "tools/list", json!({}))]);
+    let names = tool_names(&response(&out, 1));
+
+    // Machine-acting tools (#855) are absent
+    assert!(!names.contains(&"build_command_run".to_string()));
+    assert!(!names.contains(&"plugins_add".to_string()));
+    assert!(!names.contains(&"engines_install".to_string()));
+    assert!(!names.iter().any(|n| n.starts_with("adb_")));
+
+    // Web and capture tools (#856) are absent by default
+    assert!(!names.contains(&"web_site_open".to_string()));
+    assert!(!names.contains(&"web_site_capture".to_string()));
+    assert!(!names.contains(&"web_page_states_capture".to_string()));
+
+    // Tools no list named: what each declares keeps them off too.
+    for id in ["project_play", "web_browser_connect", "web_page_screenshot_take", "web_standin_start", "native_cutter_command_run"] {
+        assert!(!names.contains(&id.to_string()), "{id}");
+    }
+
+    // Safe core tools remain available
+    assert!(names.contains(&"core_session_show".to_string()));
+    assert!(names.contains(&"core_investigation_show".to_string()));
+}
+
+/// #855, #856: Calling turned-off tools in restricted mode returns a refusal stating they are off.
+#[test]
+fn restricted_mode_refuses_calling_turned_off_tools() {
+    let opts = ServerOptions { restricted: true, ..Default::default() };
+    let out = run_with(
+        opts,
+        &[
+            req(1, "tools/call", json!({"name": "web_site_open", "arguments": {"url": "https://example.com"}})),
+            req(2, "tools/call", json!({"name": "web_site_capture", "arguments": {}})),
+            req(3, "tools/call", json!({"name": "web_page_states_capture", "arguments": {}})),
+            req(4, "tools/call", json!({"name": "build_command_run", "arguments": {"command": "cargo build"}})),
+            req(5, "tools/call", json!({"name": "plugins_add", "arguments": {}})),
+            req(6, "tools/call", json!({"name": "engines_install", "arguments": {}})),
+            req(7, "tools/call", json!({"name": "adb_device_show", "arguments": {}})),
+            req(8, "tools/call", json!({"name": "mcp__craft-anything__web_site_open", "arguments": {}})),
+            req(9, "tools/call", json!({"name": "web-site-open", "arguments": {}})),
+        ],
+    );
+
+    for (id, tool_name) in [
+        (1, "web_site_open"),
+        (2, "web_site_capture"),
+        (3, "web_page_states_capture"),
+        (4, "build_command_run"),
+        (5, "plugins_add"),
+        (6, "engines_install"),
+        (7, "adb_device_show"),
+        (8, "web_site_open"),
+        (9, "web_site_open"),
+    ] {
+        let r = response(&out, id);
+        assert_eq!(r["result"]["isError"], true, "id {id} ({tool_name}) should be error");
+        let e: Value = serde_json::from_str(r["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(e["error"]["code"], "feature_missing");
+        let msg = e["error"]["message"].as_str().unwrap();
+        assert!(msg.contains("turned off in restricted mode"), "{msg}");
+        assert_eq!(e["error"]["details"]["reason"], "restricted_mode");
+        assert_eq!(e["error"]["details"]["tool"], tool_name);
+    }
+}
+
+/// #856: When the operator allows web or capture tools in restricted mode, they are visible and
+/// callable, while machine-acting tools remain off.
+#[test]
+fn restricted_mode_allows_web_and_capture_tools_when_operator_permits() {
+    // With allow_web
+    let opts = ServerOptions { restricted: true, all_tools: true, allow_web: true, ..Default::default() };
+    let out = run_with(opts, &[req(1, "tools/list", json!({}))]);
+    let names = tool_names(&response(&out, 1));
+    assert!(names.contains(&"web_site_open".to_string()));
+    assert!(!names.contains(&"web_site_capture".to_string()), "--allow-web is only for web tools");
+    assert!(!names.contains(&"web_page_states_capture".to_string()));
+    assert!(!names.contains(&"build_command_run".to_string()));
+    assert!(!names.iter().any(|n| n.starts_with("adb_")));
+
+    // With allow_capture
+    let opts_cap = ServerOptions { restricted: true, all_tools: true, allow_capture: true, ..Default::default() };
+    let out_cap = run_with(opts_cap, &[req(1, "tools/list", json!({}))]);
+    let names_cap = tool_names(&response(&out_cap, 1));
+    assert!(!names_cap.contains(&"web_site_open".to_string()), "--allow-capture is only for capture tools");
+    assert!(names_cap.contains(&"web_site_capture".to_string()));
+    assert!(names_cap.contains(&"web_page_states_capture".to_string()));
+    assert!(!names_cap.contains(&"build_command_run".to_string()));
+    assert!(!names_cap.iter().any(|n| n.starts_with("adb_")));
+}
+
+#[test]
+fn restricted_mode_server_options_from_env() {
+    let map = [("CRAFT_ANYTHING_MCP_RESTRICTED", "1"), ("CRAFT_ANYTHING_MCP_ALLOW_WEB", "true"), ("CRAFT_ANYTHING_MCP_ALLOW_CAPTURE", "1")]
+        .into_iter()
+        .collect::<std::collections::HashMap<_, _>>();
+
+    let opts = ServerOptions::from_env_vars(|k| map.get(k).map(|s| s.to_string()));
+    assert!(opts.restricted);
+    assert!(opts.allow_web);
+    assert!(opts.allow_capture);
+}

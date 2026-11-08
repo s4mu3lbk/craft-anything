@@ -215,8 +215,8 @@ impl CraftApp {
     pub fn remember_project(&mut self, root: &std::path::Path) {
         if self.settings.remember_project(root) {
             self.settings_changed();
-            self.refresh_projects();
         }
+        self.refresh_projects();
     }
 
     /// Settings: list projects from another folder too.

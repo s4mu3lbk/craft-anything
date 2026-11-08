@@ -5,13 +5,19 @@
 
 use super::*;
 
+mod aider;
 mod antigravity;
 mod copilot;
+mod dsh;
+mod grok;
 mod hermes;
 mod maki;
 mod opencode;
+pub use aider::Aider;
 pub use antigravity::Antigravity;
 pub use copilot::Copilot;
+pub use dsh::DeepSeekHarness;
+pub use grok::Grok;
 pub use hermes::Hermes;
 pub use maki::Maki;
 pub use opencode::OpenCode;
@@ -84,9 +90,36 @@ pub trait AgentAdapter: Send + Sync {
     fn acp_mcp_options(&self, _mcp: &McpCommand) -> Vec<String> {
         Vec::new()
     }
+    /// Include `"type": "stdio"` on the MCP server in `session/new`. Grok's server enum requires
+    /// it. Other agents leave it off, so a session that has not been checked with the field
+    /// stays on the payload it already accepts.
+    fn acp_mcp_stdio_type(&self) -> bool {
+        false
+    }
+    /// Arguments after the ACP mode words and the model flag, still before a trailing subcommand.
+    /// The default adds none, so agents whose flags already sit in [`acp_options`](Self::acp_options)
+    /// stay unchanged.
+    fn acp_mode_options(&self, _options: &BackendOptions, _access: Access) -> Vec<String> {
+        Vec::new()
+    }
+    /// Words after every other ACP argument. Grok Build needs `stdio` last.
+    fn acp_trailing(&self) -> &'static [&'static str] {
+        &[]
+    }
+    /// Session options applied with `session/set_config_option` after the session opens, in order,
+    /// before the conversation is ready. Each value is sent as a JSON string. The default sets none.
+    fn acp_session_config(&self, _options: &BackendOptions) -> Vec<(String, String)> {
+        Vec::new()
+    }
     /// Refuse backend options that could bypass this adapter's restrictions, before its ACP
     /// process starts. The refusal is kept on the conversation and reported by `send`.
     fn validate_options(&self, _options: &BackendOptions) -> Result<(), ToolError> {
+        Ok(())
+    }
+    /// Refuse an access mode this agent cannot hold. The default allows every mode. A refusal
+    /// is kept beside [`validate_options`](Self::validate_options) and reported by `send`.
+    /// Model-list discovery sends no prompt, so it does not apply this check.
+    fn validate_access(&self, _access: Access) -> Result<(), ToolError> {
         Ok(())
     }
     /// The model shown in Settings: an explicit choice or the CLI's own default. `None` means
@@ -165,6 +198,21 @@ pub trait AgentAdapter: Send + Sync {
     fn check_tool_server(&self, _stop: &CancelToken) -> Result<(), ToolError> {
         Ok(())
     }
+    /// An environment variable that hands a local native run our tool server, for an agent that
+    /// takes it from its environment rather than its arguments.
+    fn mcp_env(&self, _mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
+        Ok(None)
+    }
+    /// Whether what a build needs on a remote SSH host is there, checked before a build starts.
+    /// Default: nothing to check on the host. `stop` ends the check when the person stops the build.
+    fn check_remote_tool_server(&self, _host: &str, _stop: &CancelToken) -> Result<(), ToolError> {
+        Ok(())
+    }
+    /// Prepare this run's tool server on a remote SSH host (a config file there), returning the
+    /// environment variable to set on the remote command. Default: the agent can't carry one.
+    fn remote_tool_server(&self, _host: &str, _mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
+        Ok(None)
+    }
     /// The file in which this computer keeps the agent's saved session `id`, so the project can
     /// keep a copy that travels with it. `None`: it keeps none we can copy, or not here.
     fn session_file(&self, _id: &str) -> Option<std::path::PathBuf> {
@@ -214,7 +262,7 @@ impl Default for AgentAdapters {
 }
 
 impl AgentAdapters {
-    /// The built-in coding agents, including Copilot's ACP-only adapter.
+    /// The built-in coding agents, including the ACP-only Copilot and Grok Build adapters.
     pub fn built_in() -> AgentAdapters {
         AgentAdapters {
             adapters: vec![
@@ -225,7 +273,10 @@ impl AgentAdapters {
                 Arc::new(Antigravity),
                 Arc::new(Hermes),
                 Arc::new(Maki),
+                Arc::new(Aider),
                 Arc::new(Copilot),
+                Arc::new(Grok),
+                Arc::new(DeepSeekHarness),
             ],
         }
     }
@@ -575,11 +626,7 @@ fn claude_config_dir() -> Option<std::path::PathBuf> {
     set.or_else(flatpak_claude_dir).or_else(|| dirs::home_dir().map(|h| h.join(".claude")))
 }
 
-/// Whether this app runs in a Flatpak sandbox (it sets `FLATPAK_ID` and makes `/.flatpak-info`).
-pub fn in_flatpak() -> bool {
-    static IN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *IN.get_or_init(|| std::env::var_os("FLATPAK_ID").is_some() || std::path::Path::new("/.flatpak-info").exists())
-}
+pub use craft_anything_platform::in_flatpak;
 
 /// Where Claude Code keeps its conversations when we start it under a Flatpak and the person
 /// hasn't chosen a folder: its own is `~/.claude`, which the sandbox only lets us read, so a

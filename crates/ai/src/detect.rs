@@ -148,7 +148,7 @@ pub fn agent_clis() -> Vec<Detected> {
     crate::cli_agents::KNOWN
         .iter()
         .filter_map(|(id, prog, display)| {
-            craft_anything_platform::which(prog).map(|p| Detected {
+            crate::cli_agents::find_program(prog).map(|p| Detected {
                 suggestion: cfg(display, BackendKind::AgentCli, id),
                 reason: format!("Found {display} at {}", p.display()),
                 needs_key: false,
@@ -184,7 +184,7 @@ impl DetectHint {
 
 /// Hints for what [`agent_clis`] can't offer.
 pub fn hints() -> Vec<DetectHint> {
-    if craft_anything_platform::which("claude").is_some() {
+    if crate::cli_agents::find_program("claude").is_some() {
         return Vec::new();
     }
     let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).map(PathBuf::from);
@@ -192,15 +192,26 @@ pub fn hints() -> Vec<DetectHint> {
     claude_desktop_app(home.as_deref(), local_data.as_deref()).map(|app| DetectHint::ClaudeDesktopWithoutCli { app }).into_iter().collect()
 }
 
+/// The Claude desktop app's Store package family (name and publisher id), whose folder Windows
+/// makes under `%LOCALAPPDATA%\Packages` for each person it's installed for.
+const CLAUDE_STORE_PACKAGE: &str = "Claude_pzs8sxrjxfjjc";
+
 /// Where the Claude desktop app is, if it's installed. On Windows the Store package leaves a
-/// `claude-desktop` app alias (a link that only `symlink_metadata` can read) and the older
-/// installer an `AnthropicClaude` folder; on macOS it's `Claude.app`. There's no Linux app.
+/// `claude-desktop` app alias (a link that only `symlink_metadata` can read), or, with its app
+/// aliases turned off, only its package folder; the older installer leaves an `AnthropicClaude`
+/// folder. On macOS it's `Claude.app`. There's no Linux app.
 fn claude_desktop_app(home: Option<&std::path::Path>, local_data: Option<&std::path::Path>) -> Option<PathBuf> {
     let places: Vec<PathBuf> = if cfg!(windows) {
         let local_data = local_data.map(PathBuf::from).or_else(|| home.map(|h| h.join("AppData").join("Local")));
         local_data
             .into_iter()
-            .flat_map(|d| [d.join("Microsoft").join("WindowsApps").join("claude-desktop.exe"), d.join("AnthropicClaude").join("claude.exe")])
+            .flat_map(|d| {
+                [
+                    d.join("Microsoft").join("WindowsApps").join("claude-desktop.exe"),
+                    d.join("AnthropicClaude").join("claude.exe"),
+                    d.join("Packages").join(CLAUDE_STORE_PACKAGE),
+                ]
+            })
             .collect()
     } else if cfg!(target_os = "macos") {
         std::iter::once(PathBuf::from("/Applications/Claude.app")).chain(home.map(|h| h.join("Applications").join("Claude.app"))).collect()
@@ -396,6 +407,11 @@ mod tests {
             std::fs::create_dir_all(alias.parent().unwrap()).unwrap();
             std::fs::write(&alias, b"").unwrap();
             assert_eq!(claude_desktop_app(None, Some(dir.path())), Some(alias));
+            // A Store install whose app aliases are turned off leaves only its package folder.
+            let store = tempfile::tempdir().unwrap();
+            let package = store.path().join("Packages").join(CLAUDE_STORE_PACKAGE);
+            std::fs::create_dir_all(&package).unwrap();
+            assert_eq!(claude_desktop_app(None, Some(store.path())), Some(package));
         } else if cfg!(target_os = "linux") {
             assert_eq!(found, None, "there's no Claude desktop app for Linux");
         }
@@ -469,11 +485,9 @@ mod tests {
 
     #[test]
     fn closed_port_is_fast_and_negative() {
-        let l = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = l.local_addr().unwrap().port();
-        drop(l);
+        // Binding port 0 chooses a nonzero port, so no listener can take this endpoint.
         let t = Instant::now();
-        assert!(probe_local("X", &format!("http://127.0.0.1:{port}/v1")).is_none());
+        assert!(probe_local("X", "http://127.0.0.1:0/v1").is_none());
         assert!(t.elapsed() < Duration::from_secs(1));
     }
 

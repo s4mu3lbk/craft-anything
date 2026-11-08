@@ -139,14 +139,18 @@ pub struct Coverage {
     pub next_offset: Option<u64>,
 }
 
+fn round1(v: f64) -> f64 {
+    (v * 10.0).round() / 10.0
+}
+
 /// A byte count in plain words: "512 B", "1.5 KB", "6.30 GB".
 pub fn human_bytes(n: u64) -> String {
     let n = n as f64;
     if n < 1024.0 {
         format!("{n} B")
-    } else if n < 1024.0 * 1024.0 {
+    } else if round1(n / 1024.0) < 1024.0 {
         format!("{:.1} KB", n / 1024.0)
-    } else if n < 1024.0 * 1024.0 * 1024.0 {
+    } else if round1(n / 1024.0 / 1024.0) < 1024.0 {
         format!("{:.1} MB", n / 1024.0 / 1024.0)
     } else {
         format!("{:.2} GB", n / 1024.0 / 1024.0 / 1024.0)
@@ -392,6 +396,14 @@ mod tests {
         .confidence(Confidence::Derived)
         .build()
         .unwrap()
+    }
+
+    #[test]
+    fn human_bytes_moves_to_next_unit_after_rounding() {
+        assert_eq!(human_bytes(1024), "1.0 KB");
+        assert_eq!(human_bytes(1_048_575), "1.0 MB");
+        assert_eq!(human_bytes(1024 * 1024 * 1024 - 1), "1.00 GB");
+        assert_eq!(human_bytes(1024 * 1024 * 1024), "1.00 GB");
     }
 
     #[test]

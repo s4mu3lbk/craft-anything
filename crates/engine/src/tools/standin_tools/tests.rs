@@ -229,27 +229,39 @@ fn waiting_keeps_it_running_until_cancelled_then_stops_it() {
         let e = Arc::new(Engine::new(crate::testing::session()));
         let out = dir.join("s");
         call(&e, "web_standin_build", json!({"path": recording(&dir), "output_dir": out})).unwrap();
-        let port = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        let servers = Arc::new(StandIns::default());
+        e.session().ext.insert(servers.clone());
         let cancel = crate::CancelToken::default();
         let (engine, token) = (e.clone(), cancel.clone());
         let waiting = std::thread::spawn(move || {
-            engine
-                .call("web_standin_start", json!({"path": out, "port": port, "wait": true}), CallOptions::new(Caller::Cli).with_cancel(token))
-                .map(|o| o.to_json())
+            engine.call("web_standin_start", json!({"path": out, "wait": true}), CallOptions::new(Caller::Cli).with_cancel(token)).map(|o| o.to_json())
         });
-        let url = format!("http://127.0.0.1:{port}");
         let until = std::time::Instant::now() + Duration::from_secs(20);
-        while TcpStream::connect(("127.0.0.1", port)).is_err() {
+        let (url, replay) = loop {
+            let ready = {
+                let running = servers.running.lock().unwrap_or_else(PoisonError::into_inner);
+                running.values().next().map(|r| (r.server.url(), Arc::downgrade(&r.replay)))
+            };
+            if let Some(ready) = ready {
+                break ready;
+            }
             assert!(std::time::Instant::now() < until, "it starts listening");
             std::thread::sleep(Duration::from_millis(20));
-        }
+        };
         // It answers while the call that started it is still going: answering needs no session.
         assert!(get(&url, "/users/1").contains("Pat"));
         assert!(!waiting.is_finished());
+        assert!(replay.upgrade().is_some(), "the running tool still owns its answerer");
         cancel.cancel();
         let done = waiting.join().unwrap().unwrap();
         assert_eq!(done["result"]["stopped"]["requests_answered"], 1, "{done}");
-        assert!(TcpStream::connect(("127.0.0.1", port)).is_err(), "and it's gone");
+        // A worker releases its slot just before dropping its captured answerer.
+        let until = std::time::Instant::now() + Duration::from_secs(1);
+        while replay.strong_count() > 0 {
+            assert!(std::time::Instant::now() < until, "the stopped server retained its answerer");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(replay.upgrade().is_none(), "the server and its request workers released their answerer");
         assert_eq!(call(&e, "web_standin_show", json!({})).unwrap()["result"]["servers"], json!([]));
     });
 }

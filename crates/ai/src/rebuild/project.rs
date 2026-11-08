@@ -57,7 +57,13 @@ pub fn new_project(
     let mut ws = match place {
         Place::Projects => Workspace::create(&settings.projects_dir(), &name, request, target_ref)?,
         Place::In(dir) => Workspace::create(dir, &name, request, target_ref)?,
-        Place::At(folder, existing) => Workspace::create_at(folder, &name, request, target_ref, existing)?,
+        Place::At(folder, existing) => {
+            if folder.join(craft_anything_engine::workspace::MANIFEST).is_file() {
+                Workspace::open(folder)?
+            } else {
+                Workspace::create_at(folder, &name, request, target_ref, existing)?
+            }
+        }
     };
     if let Some(s) = stack {
         ws.manifest.stack = s.name.clone();

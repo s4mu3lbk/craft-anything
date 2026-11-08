@@ -21,13 +21,20 @@ pub struct LangInfo {
 pub static LANGUAGES: &[LangInfo] = &[
     LangInfo { code: "en", name: "English", source: "" },
     LangInfo { code: "de", name: "Deutsch", source: include_str!("i18n/de.tsv") },
+    LangInfo { code: "ka", name: "ქართული", source: include_str!("i18n/ka.tsv") },
     LangInfo { code: "fr", name: "Français", source: include_str!("fr.tsv") },
+    LangInfo { code: "it", name: "Italiano", source: include_str!("i18n/it.tsv") },
     LangInfo { code: "ja", name: "日本語", source: include_str!("ja.tsv") },
     LangInfo { code: "zh-hans", name: "简体中文", source: include_str!("i18n/zh-hans.tsv") },
     LangInfo { code: "zh-hant", name: "繁體中文", source: include_str!("i18n/zh-hant.tsv") },
     LangInfo { code: "ru", name: "Русский", source: include_str!("i18n/ru.tsv") },
     LangInfo { code: "ko", name: "한국어", source: include_str!("i18n/ko.tsv") },
     LangInfo { code: "cs", name: "Čeština", source: include_str!("i18n/cs.tsv") },
+    LangInfo { code: "es", name: "Español", source: include_str!("i18n/es.tsv") },
+    LangInfo { code: "vi", name: "Tiếng Việt", source: include_str!("i18n/vi.tsv") },
+    LangInfo { code: "pt-br", name: "Português (Brasil)", source: include_str!("i18n/pt-br.tsv") },
+    LangInfo { code: "tr", name: "Türkçe", source: include_str!("i18n/tr.tsv") },
+    LangInfo { code: "th", name: "ไทย", source: include_str!("i18n/th.tsv") },
 ];
 
 /// Match a locale to a registered UI language. An explicit script wins over the region.
@@ -51,6 +58,7 @@ pub fn language_from_tag(tag: &str) -> Option<&'static str> {
                 Some("zh-hans")
             }
         }
+        "pt" => Some("pt-br"),
         _ => LANGUAGES.iter().find(|l| l.code == primary).map(|l| l.code),
     }
 }
@@ -130,6 +138,8 @@ mod tests {
         assert_eq!(tr("Untranslated"), "Untranslated");
     }
 
+    /// Script and region matching: an explicit script wins over a region, a registered language
+    /// resolves from any of its regions, and a locale with no catalogue falls back to English.
     #[test]
     fn chinese_scripts_regions_and_fallback() {
         for tag in ["zh", "zh-CN", "zh_SG.UTF-8", "ZH-Hans", "zh-Hans-TW"] {
@@ -143,14 +153,26 @@ mod tests {
         assert_eq!(language_from_tag("fr-CA"), Some("fr"));
         assert_eq!(language_from_tag("de-DE"), Some("de"));
         assert_eq!(language_from_tag("de_AT.UTF-8"), Some("de"));
-        assert_eq!(language_from_tag("es-ES"), None);
-        assert_eq!(preferred_language(["es-ES", "zh-HK", "en-US"]), "zh-hant");
+        assert_eq!(language_from_tag("es-ES"), Some("es"));
+        assert_eq!(language_from_tag("es-MX"), Some("es"));
+        assert_eq!(language_from_tag("sv-SE"), None);
+        assert_eq!(preferred_language(["sv-SE", "zh-HK", "en-US"]), "zh-hant");
+        assert_eq!(language_from_tag("vi-VN"), Some("vi"));
+        assert_eq!(language_from_tag("vi_VN.UTF-8"), Some("vi"));
+        assert_eq!(language_from_tag("pt_BR.UTF-8"), Some("pt-br"));
+        assert_eq!(language_from_tag("pt-PT"), Some("pt-br"));
+        assert_eq!(language_from_tag("tr-TR"), Some("tr"));
+        assert_eq!(language_from_tag("th-TH"), Some("th"));
+        assert_eq!(language_from_tag("th_TH.UTF-8"), Some("th"));
         assert_eq!(preferred_language(["de-DE", "zh-HK"]), "de");
+        assert_eq!(preferred_language(["sv-SE", "vi-VN", "en-US"]), "vi");
         assert_eq!(preferred_language(["en-US", "zh-CN"]), "en");
-        assert_eq!(preferred_language(["es-ES"]), "en");
+        assert_eq!(preferred_language(["sv-SE"]), "en");
         assert_eq!(preferred_language(std::iter::empty::<&str>()), "en");
     }
 
+    /// Every registered catalogue parses, and all of them carry the same key set: a language that
+    /// missed keys would fall back to English mid-interface.
     #[test]
     fn catalogs_are_valid_and_have_matching_keys() {
         fn placeholders(s: &str) -> Vec<&str> {
@@ -159,7 +181,9 @@ mod tests {
             out
         }
         let mut catalogs = Vec::new();
-        for lang in LANGUAGES.iter().filter(|l| matches!(l.code, "zh-hans" | "zh-hant" | "ru" | "ko" | "cs" | "de")) {
+        for lang in
+            LANGUAGES.iter().filter(|l| matches!(l.code, "zh-hans" | "zh-hant" | "ru" | "ko" | "cs" | "de" | "ka" | "es" | "it" | "vi" | "pt-br" | "tr" | "th"))
+        {
             let mut keys = std::collections::BTreeSet::new();
             for (i, line) in lang.source.lines().enumerate() {
                 if line.trim().is_empty() || line.starts_with('#') {

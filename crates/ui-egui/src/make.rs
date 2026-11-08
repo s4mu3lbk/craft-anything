@@ -366,8 +366,10 @@ fn choose_target(app: &mut CraftApp, ui: &mut Ui) {
         ui.add_space(14.0);
         ui.horizontal(|ui| {
             ui.label(RichText::new(tr("You chose:")).size(theme::BODY).color(t.text_dim));
-            ui.label(RichText::new(m.target.label()).font(theme::semibold(theme::BODY)));
-            ui.label(RichText::new(crate::short_path(&path)).color(t.text_faint).size(theme::SMALL));
+            // A long name (an APK from a mirror) is cut short, whole on hover, so the row never widens the page.
+            let name = m.target.label();
+            ui.add(egui::Label::new(RichText::new(name.clone()).font(theme::semibold(theme::BODY))).truncate()).on_hover_text(name);
+            ui.add(egui::Label::new(RichText::new(crate::short_path(&path)).color(t.text_faint).size(theme::SMALL)).truncate());
         });
     } else if website {
         ui.add_space(16.0);

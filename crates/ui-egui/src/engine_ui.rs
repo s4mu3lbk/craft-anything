@@ -417,6 +417,7 @@ impl CraftApp {
         let hub = self.hub.clone();
         self.jobs.spawn(tr("Save the key"), true, move |_| {
             hub.set_asset_key(&provider, &key).map_err(|e| e.message)?;
+            hub.refresh_loaded_asset_keys();
             Ok(Done::AssetKeys(stored_keys(&hub)))
         });
     }
@@ -425,6 +426,7 @@ impl CraftApp {
         let hub = self.hub.clone();
         self.jobs.spawn(tr("Forget the key"), true, move |_| {
             hub.remove_asset_key(&provider).map_err(|e| e.message)?;
+            hub.refresh_loaded_asset_keys();
             Ok(Done::AssetKeys(stored_keys(&hub)))
         });
     }

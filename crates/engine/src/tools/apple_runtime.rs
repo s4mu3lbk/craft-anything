@@ -75,7 +75,10 @@ pub struct ObserveUiParams {
     /// A specific window to restrict to (on Windows, its window handle).
     #[serde(default)]
     pub window_id: Option<u64>,
-    /// Include a screenshot (PNG, base64) alongside the tree.
+    /// Include a screenshot (PNG, base64) alongside the tree. macOS 14+: captures one on-screen
+    /// window belonging to pid, restricted by window_id when supplied, at up to 2048 pixels
+    /// per side. Without window_id, captures the first matching window. Needs existing Screen
+    /// Recording permission; failures are explicit limitations and never open permission dialogs.
     #[serde(default)]
     pub screenshot: bool,
     /// Include the accessibility tree.
@@ -416,6 +419,22 @@ mod macos {
         Ok(bin)
     }
 
+    /// Turn the helper's own error object into a tool error. The helper exits 0 after reporting a
+    /// refusal (such as a denied Accessibility permission), so an unchecked `nodes: []` would look
+    /// like a successful read of an empty tree (#240).
+    pub(super) fn helper_error(result: &Value) -> Option<ToolError> {
+        let message = result.get("error")?.as_str()?;
+        let reason = result.get("reason").and_then(Value::as_str).unwrap_or("helper_error");
+        let error = if reason == "accessibility_not_granted" {
+            ToolError::new(ErrorCode::NoPermission, "The app's screen was not read: this app does not have Accessibility permission.".to_string())
+                .with_remediation("Allow the app running Craft Anything in System Settings → Privacy & Security → Accessibility, then run this again.")
+        } else {
+            ToolError::new(ErrorCode::Internal, format!("The accessibility helper refused the request: {message}"))
+                .with_remediation("This is a bug in Craft Anything; report it with the details below.")
+        };
+        Some(error.with_details(json!({"reason": reason})))
+    }
+
     pub(super) fn run_helper(ctx: &mut Ctx<'_>, request: Value, duration_ms: u64) -> Result<Value, ToolError> {
         let root = private_root()?;
         let helper = build_helper(&root).inspect_err(|_| {
@@ -431,21 +450,55 @@ mod macos {
             .run_checked();
         let _ = std::fs::remove_dir_all(&root);
         let out = out?;
-        serde_json::from_slice(&out.stdout).map_err(|e| ToolError::new(ErrorCode::GarbledOutput, format!("accessibility helper output was not JSON: {e}")))
+        let result: Value = serde_json::from_slice(&out.stdout)
+            .map_err(|e| ToolError::new(ErrorCode::GarbledOutput, format!("accessibility helper output was not JSON: {e}")))?;
+        match helper_error(&result) {
+            Some(error) => Err(error),
+            None => Ok(result),
+        }
     }
 
+    /// Observe a running macOS app through the native helper and return its UI evidence.
+    /// Records the accessibility selection and reports a deliberately skipped tree in the
+    /// summary; with accessibility disabled, the helper needs no Accessibility permission.
     pub fn runtime_ui_read(ctx: &mut Ctx<'_>, p: ObserveUiParams) -> Result<ToolOutput, ToolError> {
         let pid = p.pid.ok_or_else(|| ToolError::invalid("pid is required to read a running app's UI"))?;
         let request = json!({"command": "observe", "pid": pid, "window_id": p.window_id, "screenshot": p.screenshot, "accessibility": p.accessibility, "max_nodes": p.max_nodes});
         let result = run_helper(ctx, request, 10_000)?;
         let nodes = result.get("nodes").and_then(Value::as_array).map(Vec::len).unwrap_or(0);
-        let b =
+        let summary = if p.accessibility {
+            format!("Read {nodes} accessibility node(s) from pid {pid}.")
+        } else {
+            format!("Skipped the accessibility tree for pid {pid}, as requested.")
+        };
+        let truncated = result.get("truncated").and_then(Value::as_bool).unwrap_or(false);
+        let screenshot_limitation = if p.screenshot && result.get("screenshot").is_none() {
+            let error = result.get("screenshot_error");
+            Some(Limitation::new(
+                error.and_then(|e| e.get("code")).and_then(Value::as_str).unwrap_or("screenshot_unavailable"),
+                error
+                    .and_then(|e| e.get("message"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("The requested screenshot was not captured; check the helper error and retry."),
+            ))
+        } else {
+            None
+        };
+        let mut b =
             EvidenceBuilder::new("runtime_ui_read", Subject { kind: "ui".into(), sha256: None, name: Some(format!("pid {pid}")) }, env(ctx, "accessibility"))
-                .params(json!({"pid": pid, "max_nodes": p.max_nodes, "screenshot": p.screenshot}))
+                .params(json!({"pid": pid, "window_id": p.window_id, "max_nodes": p.max_nodes, "screenshot": p.screenshot, "accessibility": p.accessibility}))
                 .result(result)
-                .summary(format!("Read {nodes} accessibility node(s) from pid {pid}."))
+                .summary(summary)
                 .confidence(Confidence::Observed)
                 .authority(Authority::OurRun);
+        if truncated {
+            b = b
+                .limitation(Limitation::new("tree_truncated", "The accessibility tree reached the node or output limit; only a prefix is included."))
+                .coverage(Coverage { status: craft_anything_evidence::CoverageStatus::Partial, ..Coverage::default() });
+        }
+        if let Some(limitation) = screenshot_limitation {
+            b = b.limitation(limitation).coverage(Coverage { status: craft_anything_evidence::CoverageStatus::Partial, ..Coverage::default() });
+        }
         Ok(ToolOutput::evidence(b.build()?))
     }
 
@@ -605,6 +658,74 @@ mod tests {
         }
     }
 
+    /// Exercise the real serializer with synthetic AX values and image data; no UI permissions.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_budgets_combined_tree_and_screenshot_output() {
+        use craft_anything_platform::process::Process;
+        use std::time::Duration;
+        let root = tempfile::tempdir().unwrap();
+        let source = include_str!("apple_runtime/native_ui_helper.swift").split("let input = FileHandle.standardInput").next().unwrap();
+        let fixture = include_str!("apple_runtime/output_budget_test.swift");
+        let src = root.path().join("budget.swift");
+        let bin = root.path().join("budget");
+        std::fs::write(&src, format!("{source}\n{fixture}")).unwrap();
+        Process::new("xcrun")
+            .args(["swiftc", "-Onone", "-module-cache-path"])
+            .arg(root.path().join("module-cache"))
+            .arg(&src)
+            .arg("-o")
+            .arg(&bin)
+            .timeout(Duration::from_secs(60))
+            .run_checked()
+            .unwrap();
+        Process::new(&bin).timeout(Duration::from_secs(30)).run_checked().unwrap();
+    }
+
+    /// Run the real Swift helper without reading app UI or requiring Accessibility permission.
+    /// Both zero and positive node limits must return an empty, non-truncated tree and evidence
+    /// that records the skipped read.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_can_skip_accessibility_without_reading_a_tree() {
+        let e = Engine::new(crate::testing::session());
+        for max_nodes in [0, 1] {
+            let output =
+                e.call("runtime_ui_read", json!({"pid": std::process::id(), "accessibility": false, "max_nodes": max_nodes}), granted()).unwrap().to_json();
+            assert_eq!(output["result"]["nodes"], json!([]), "{output}");
+            assert_eq!(output["result"]["truncated"], false, "{output}");
+            assert_eq!(output["params"]["accessibility"], false, "{output}");
+            assert!(output["result"].get("screenshot").is_none(), "{output}");
+            assert!(output["result"].get("screenshot_error").is_none(), "{output}");
+            assert!(output["summary"].as_str().unwrap().contains("Skipped the accessibility tree"), "{output}");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_reports_a_requested_screenshot_that_cannot_be_captured() {
+        let e = Engine::new(crate::testing::session());
+        // This process has no windows. A deliberately impossible window id ensures the helper
+        // can never capture anything, even on a machine with Screen Recording permission.
+        let output = e
+            .call("runtime_ui_read", json!({"pid": std::process::id(), "window_id": u64::MAX, "accessibility": false, "screenshot": true}), granted())
+            .unwrap()
+            .to_json();
+        assert_eq!(output["result"]["nodes"], json!([]), "{output}");
+        assert!(output["result"].get("screenshot").is_none(), "{output}");
+        let error = &output["result"]["screenshot_error"];
+        assert!(
+            matches!(
+                error["code"].as_str(),
+                Some("screen_recording_denied" | "screenshot_window_not_found" | "screenshot_unsupported" | "screenshot_capture_failed")
+            ),
+            "{output}"
+        );
+        assert!(output["limitations"].as_array().unwrap().iter().any(|l| l["code"] == error["code"] && l["message"] == error["message"]), "{output}");
+        assert_eq!(output["coverage"]["status"], "partial", "{output}");
+        assert_eq!(output["params"]["window_id"], u64::MAX, "{output}");
+    }
+
     #[cfg(target_os = "macos")]
     #[test]
     fn calls_validate_before_dispatch() {
@@ -703,6 +824,29 @@ mod tests {
         let e = Engine::new(crate::testing::session());
         let err = e.call("runtime_ui_read", json!({"pid": 1}), CallOptions::new(Caller::Mcp)).unwrap_err();
         assert_eq!(err.code, craft_anything_evidence::ErrorCode::ConsentRequired);
+    }
+
+    /// #240: the helper answers a denied Accessibility permission with `{"error": …}` and exits 0,
+    /// so the empty `nodes` list must not be reported as a successful read.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn a_denied_accessibility_permission_is_an_error_not_an_empty_tree() {
+        use craft_anything_evidence::ErrorCode;
+        let denied = json!({
+            "error": "accessibility permission not granted",
+            "reason": "accessibility_not_granted",
+            "nodes": []
+        });
+        let err = super::macos::helper_error(&denied).expect("a denial is an error");
+        assert_eq!(err.code, ErrorCode::NoPermission);
+        assert_eq!(err.details.as_ref().unwrap()["reason"], "accessibility_not_granted");
+        assert!(err.message.contains("was not read"), "{}", err.message);
+        assert!(err.remediation.as_deref().is_some_and(|r| r.contains("Accessibility")), "{err:?}");
+        // An empty tree the helper really read stays a successful result.
+        assert!(super::macos::helper_error(&json!({"nodes": [], "truncated": false})).is_none());
+        // Any other refusal is still an error, not an empty tree.
+        let err = super::macos::helper_error(&json!({"error": "unknown command"})).expect("a refusal is an error");
+        assert_eq!(err.code, ErrorCode::Internal);
     }
 
     /// #251: the callback had a literal backslash and `n` between its Python statements, which lldb

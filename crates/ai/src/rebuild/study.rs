@@ -3,6 +3,12 @@
 
 use super::*;
 
+/// An Electron program is the Chromium and Node runtime, and analysing that takes hours: the app's
+/// own logic is the JavaScript in `resources/app.asar` beside it, which the study maps (#947).
+pub(super) fn is_electron_runtime(program: &Path) -> bool {
+    program.parent().is_some_and(|dir| dir.join("resources/app.asar").is_file())
+}
+
 impl Worker {
     pub(super) fn study(&mut self, ws: &mut Workspace, kind: &dyn TargetKind) -> Result<(), ToolError> {
         match ws.manifest.target.clone() {
@@ -93,8 +99,14 @@ impl Worker {
                     }
                     notes.push_str(&inventory(&f));
                 }
-                let is_js = path.extension().is_some_and(|e| e == "asar") || path.join("resources/app.asar").exists() || path.join("package.json").exists();
-                if is_js && let Ok(out) = self.call("js_app_map", json!({"input_path": path.display().to_string(), "limit": 50})) {
+                // A program's app.asar or package.json sits beside it, so look in its folder too.
+                let js_root = if program.is_file() { program.parent().filter(|p| !p.as_os_str().is_empty()).map(Path::to_path_buf) } else { None };
+                let packaged = |root: &Path| root.join("resources/app.asar").exists() || root.join("package.json").exists();
+                let js_input =
+                    if path.extension().is_some_and(|e| e == "asar") || packaged(&path) { Some(path.clone()) } else { js_root.filter(|r| packaged(r)) };
+                if let Some(input) = js_input
+                    && let Ok(out) = self.call("js_app_map", json!({"input_path": input.display().to_string(), "limit": 50}))
+                {
                     notes.push_str("\n## JavaScript application\n\n");
                     notes.push_str(&describe(&out));
                 }
@@ -237,7 +249,7 @@ impl Worker {
     /// Deep mode with an external engine installed: analyse `program` on its own thread. The
     /// builder's tools share the saved analysis, waiting for it rather than starting another.
     pub(super) fn prepare_deep(&self, program: &Path) -> Option<Receiver<Result<(), String>>> {
-        if !program.is_file() {
+        if !program.is_file() || is_electron_runtime(program) {
             return None;
         }
         let (settings, engine) = {
@@ -249,12 +261,22 @@ impl Worker {
         };
         let program = program.to_path_buf();
         let (tx, rx) = std::sync::mpsc::channel();
+        let (feed, events, wake) = (self.feed.clone(), self.tx.clone(), self.wake.clone());
         std::thread::Builder::new()
             .name(format!("{}-prepare", engine.id()))
             .spawn(move || {
                 let result = std::fs::read(&program).map_err(|e| e.to_string()).and_then(|bytes| {
                     let sha = craft_anything_evidence::sha256_hex(&bytes);
-                    craft_anything_engine::tools::deep::prepare(&settings, &bytes, &sha, &|_| {})
+                    // Said in the feed (once per change), so a wait for an earlier analysis shows.
+                    let last = Mutex::new(String::new());
+                    let said = |m: &str| {
+                        let mut last = last.lock().unwrap_or_else(PoisonError::into_inner);
+                        if *last != m {
+                            *last = m.to_string();
+                            emit_event(&feed, &events, &wake, RunEvent::Step { step: Step::Study, text: m.to_string() });
+                        }
+                    };
+                    craft_anything_engine::tools::deep::prepare(&settings, &bytes, &sha, &said)
                 });
                 if let Err(e) = &result {
                     log::warn!("{} analysis of {} failed: {e}", engine.name(), program.display());

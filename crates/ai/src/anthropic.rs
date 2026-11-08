@@ -8,6 +8,11 @@ use serde_json::{Value, json};
 
 pub const DEFAULT_BASE: &str = "https://api.anthropic.com";
 pub const DEFAULT_MODEL: &str = "claude-opus-5-5";
+
+/// Whether an address is Anthropic's own API, which speaks this protocol and not OpenAI's (#1100).
+pub fn is_anthropic_api(address: &str) -> bool {
+    crate::openai::https_host_path(address).is_some_and(|(host, _)| host.eq_ignore_ascii_case("api.anthropic.com"))
+}
 /// Offered in the model dropdown when the live list can't be fetched.
 pub const MODELS: &[&str] = &["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-fable-5-1"];
 /// Models that offer fewer effort levels than all five (Claude's effort guide), by model id
@@ -38,6 +43,8 @@ pub struct Anthropic {
     pub model: String,
     /// Send the server-side fallback header and body field.
     pub fallbacks: bool,
+    /// How long one streamed answer may take.
+    pub stream_limit: std::time::Duration,
 }
 
 impl Anthropic {
@@ -47,6 +54,7 @@ impl Anthropic {
             api_key,
             model: if model.is_empty() { DEFAULT_MODEL.to_string() } else { model.to_string() },
             fallbacks: true,
+            stream_limit: http::STREAM_BODY,
         }
     }
 
@@ -122,14 +130,17 @@ pub fn message_json(m: &Msg) -> Value {
     let content: Vec<Value> = m
         .blocks
         .iter()
-        .map(|b| match b {
-            Block::Text { text } => json!({"type": "text", "text": text}),
-            Block::Thinking { thinking, signature } => json!({"type": "thinking", "thinking": thinking, "signature": signature}),
-            Block::RedactedThinking { data } => json!({"type": "redacted_thinking", "data": data}),
-            Block::ToolUse { id, name, input } => json!({"type": "tool_use", "id": id, "name": name, "input": input}),
-            Block::ToolResult { tool_use_id, content, is_error } => {
-                json!({"type": "tool_result", "tool_use_id": tool_use_id, "content": content, "is_error": is_error})
-            }
+        .filter_map(|b| {
+            Some(match b {
+                Block::Text { text } => json!({"type": "text", "text": text}),
+                Block::Thinking { thinking, signature } => json!({"type": "thinking", "thinking": thinking, "signature": signature}),
+                Block::RedactedThinking { data } => json!({"type": "redacted_thinking", "data": data}),
+                Block::ToolUse { id, name, input } => json!({"type": "tool_use", "id": id, "name": name, "input": input}),
+                Block::ToolExtra { .. } => return None,
+                Block::ToolResult { tool_use_id, content, is_error } => {
+                    json!({"type": "tool_result", "tool_use_id": tool_use_id, "content": content, "is_error": is_error})
+                }
+            })
         })
         .collect();
     json!({"role": role, "content": content})
@@ -302,13 +313,13 @@ impl StreamState {
             None => return Err(ToolError::new(ErrorCode::Truncated, "The answer stream ended early.").with_remediation("Try again.")),
         };
         let model = if self.model.is_empty() { fallback_model.to_string() } else { self.model };
-        Ok(TurnResult { message: Msg { role: Speaker::Assistant, blocks }, stop, usage: self.usage, model })
+        Ok(TurnResult { message: Msg { role: Speaker::Assistant, blocks }, stop, usage: self.usage, model, follow_up: None })
     }
 }
 
 impl ChatModel for Anthropic {
     fn turn(&mut self, req: &TurnRequest<'_>, on_delta: &mut dyn FnMut(Delta), stop: &Stop) -> Result<TurnResult, ToolError> {
-        let agent = http::stream_agent();
+        let agent = http::stream_agent(self.stream_limit);
         let reader = http::post_json(&agent, "Anthropic", &self.url("messages"), &self.headers(), &self.body(req))?;
         let mut state = StreamState::default();
         http::parse_sse(reader, |ev| {
@@ -342,6 +353,17 @@ pub fn sorted(mut tools: Vec<ToolDef>) -> Vec<ToolDef> {
 mod tests {
     use super::*;
     use crate::model::Effort;
+
+    /// #1100: Anthropic's own address is told apart by its host, not by a look-alike.
+    #[test]
+    fn anthropics_own_address_is_recognised() {
+        for yes in ["https://api.anthropic.com/v1", "https://api.anthropic.com", "HTTPS://API.Anthropic.com/v1/"] {
+            assert!(is_anthropic_api(yes), "{yes}");
+        }
+        for no in ["http://api.anthropic.com/v1", "https://api.anthropic.com.example.test/v1", "https://proxy.test/api.anthropic.com/v1", "api.anthropic.com"] {
+            assert!(!is_anthropic_api(no), "{no}");
+        }
+    }
 
     #[test]
     fn body_has_required_fields() {

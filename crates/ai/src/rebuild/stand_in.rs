@@ -42,6 +42,7 @@ impl StandIns {
             }
             let (tx, rx) = std::sync::mpsc::channel();
             let running = Arc::new(AtomicBool::new(true));
+            let clean_room = opts.clean_room.unwrap_or(false);
             let feed = Arc::new(Mutex::new(feed::FeedLog::open(&ws)));
             if let Some(shown) = opts.shown {
                 feed.lock().unwrap_or_else(PoisonError::into_inner).push(feed::FeedItem::User(feed::UserItem::new(shown, opts.shown_pictures)));
@@ -62,6 +63,7 @@ impl StandIns {
                 running,
                 preview: Arc::default(),
                 notes: Arc::default(),
+                clean_room,
                 feed,
                 root: ws.root.clone(),
                 started: std::time::Instant::now(),

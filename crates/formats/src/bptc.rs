@@ -259,18 +259,19 @@ fn bc6h_halves(block: &[u8; 16], signed: bool) -> [[u16; 3]; 16] {
 }
 
 /// A half float's value.
-fn half(h: u16) -> f32 {
+pub(crate) fn half(h: u16) -> f32 {
     let sign = if h & 0x8000 == 0 { 1.0 } else { -1.0 };
     let (exponent, mantissa) = (i32::from(h >> 10 & 31), f32::from(h & 1023));
     sign * match exponent {
         0 => mantissa * 2f32.powi(-24),
+        31 if mantissa != 0.0 => f32::NAN,
         31 => f32::INFINITY,
         e => (1024.0 + mantissa) * 2f32.powi(e - 25),
     }
 }
 
 /// A linear light value as an 8-bit sRGB value; 0..1 is kept, brighter and negative values clip.
-fn srgb8(v: f32) -> u8 {
+pub(crate) fn srgb8(v: f32) -> u8 {
     let v = v.clamp(0.0, 1.0);
     let s = if v <= 0.003_130_8 { v * 12.92 } else { 1.055 * v.powf(1.0 / 2.4) - 0.055 };
     (s * 255.0 + 0.5) as u8

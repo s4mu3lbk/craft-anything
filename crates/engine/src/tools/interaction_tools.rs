@@ -6,15 +6,17 @@
 //! Approvals follow a small, explicit policy so ordinary building doesn't nag: editing files
 //! inside the workspace's `app/` folder and a fixed list of build commands are allowed; starting
 //! long-running dev servers is refused with a hint; anything else asks the person, who can allow
-//! it once or for the rest of the project. In Auto mode (the default) nothing asks: those actions
-//! go ahead, except a few that are never done unasked ([`never_unasked`]), which are refused so
-//! the builder finds another way. Questions are shown to the person or answered with "decide
-//! yourself", as the project chooses (`Manifest::questions`), else the app (`Settings::questions`,
+//! it once or for the rest of the project. What's asked about falls into a kind ([`kind_of`]:
+//! the web, commands, files outside the project, publishing…), and each project can choose what a
+//! kind gets (allow, ask or refuse; `project_approvals_set`). A kind it hasn't chosen follows Auto
+//! mode: with it on (the default) nothing asks, and what can be undone goes ahead while the rest
+//! ([`never_unasked`]) is refused so the builder finds another way. Questions are shown to the
+//! person or answered with "decide yourself", as the project chooses (`Manifest::questions`), else the app (`Settings::questions`,
 //! which follows Auto mode until the person picks).
 
 use crate::inbox::{Inbox, InboxDir, RequestKind};
 use crate::tool::{Ctx, Effects, Requires, ToolOutput, ToolSpec, Toolset, parse_params, schema_of};
-use crate::workspace::{Questions, Workspace};
+use crate::workspace::{ActionKind, Approval, Questions, Workspace};
 use craft_anything_evidence::{ErrorCode, ToolError};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -346,7 +348,20 @@ fn decide_command(cmd: &str, app: &Path) -> Decision {
     Decision::Allow
 }
 
-/// The policy for one action. `ws` is the workspace the agent works in, if known.
+/// Where a file tool's `target` may be opened: as written when it's absolute; else from the project
+/// folder (where agents are started) and from app/ (where they may `cd`), so a check holds for
+/// both. `None` for a path that climbs above the root.
+fn opened_at(ws: Option<&Workspace>, target: &str) -> Vec<Option<PathBuf>> {
+    let bases = match ws {
+        Some(w) if Path::new(target).is_relative() => vec![w.root.clone(), w.app_dir()],
+        Some(w) => vec![w.app_dir()],
+        None => vec![PathBuf::from("/")],
+    };
+    bases.iter().map(|b| resolve_as_opened(b, target)).collect()
+}
+
+/// The policy for one action, before the project's choices and anything the person always allowed
+/// ([`approve_with`] applies those). `ws` is the workspace the agent works in, if known.
 pub fn decide(ws: Option<&Workspace>, tool: &str, input: &Value) -> Decision {
     let s = |k: &str| input.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
     let kind = match tool {
@@ -355,9 +370,6 @@ pub fn decide(ws: Option<&Workspace>, tool: &str, input: &Value) -> Decision {
         "WebFetch" | "WebSearch" => "web".to_string(),
         other => other.to_string(),
     };
-    if ws.is_some_and(|w| w.manifest.allowed_actions.contains(&kind)) {
-        return Decision::Allow;
-    }
     let app = ws.map(Workspace::app_dir);
     match tool {
         "Read" | "Glob" | "Grep" | "LS" | "TodoWrite" => Decision::Allow,
@@ -367,22 +379,26 @@ pub fn decide(ws: Option<&Workspace>, tool: &str, input: &Value) -> Decision {
             // approvals are answered), the manifest and the person's pictures stay out of reach,
             // also when the app is the project folder itself.
             let checks = ws.map(Workspace::checks_dir);
-            match (&app, resolve_as_opened(app.as_deref().unwrap_or(Path::new("/")), &target)) {
-                // Followed through links, so a link in app/ can't lead a write out of it.
-                (Some(app), Some(p))
-                    if (really_inside(app, &p) || checks.as_ref().is_some_and(|c| really_inside(c, &p))) && !ws.is_some_and(|w| w.is_own_record(&p)) =>
-                {
-                    Decision::Allow
-                }
-                _ => Decision::Ask { title: format!("Change a file outside the project: {target}"), kind },
+            // Followed through links, so a link in app/ can't lead a write out of it; and wherever
+            // the agent opens a relative path from, so `craft.json` isn't taken for app/craft.json.
+            let ours = |p: &Path| {
+                app.as_ref().is_some_and(|app| really_inside(app, p) || checks.as_ref().is_some_and(|c| really_inside(c, p)))
+                    && !ws.is_some_and(|w| w.is_own_record(p))
+            };
+            if opened_at(ws, &target).iter().all(|p| p.as_deref().is_some_and(ours)) {
+                Decision::Allow
+            } else {
+                Decision::Ask { title: format!("Change a file outside the project: {target}"), kind }
             }
         }
         "Bash" => match &app {
             Some(app) => decide_command(&s("command"), app),
             None => Decision::Ask { title: format!("Run a command: `{}`", s("command")), kind },
         },
-        // Reading the web changes nothing (references, engine docs).
-        "WebFetch" | "WebSearch" => Decision::Allow,
+        // Reading the web changes nothing (references, engine docs), so it's allowed unless the
+        // project chose otherwise (`ActionKind::Web`).
+        "WebFetch" => Decision::Ask { title: format!("Read a web page: {}", s("url")), kind },
+        "WebSearch" => Decision::Ask { title: format!("Search the web: {}", s("query")), kind },
         other => Decision::Ask { title: format!("Use {other}"), kind },
     }
 }
@@ -415,21 +431,16 @@ pub fn approve_with(
     if clean_room && let Some(why) = off_limits(ws.as_ref(), tool, input) {
         return Ok(Err(why));
     }
-    match decide(ws.as_ref(), tool, input) {
-        Decision::Allow => Ok(Ok(())),
-        Decision::Deny(m) => Ok(Err(m)),
-        // Auto mode: keep going; only what's never done unasked is refused, without stopping.
-        Decision::Ask { .. } if auto_mode => Ok(match never_unasked(ws.as_ref(), tool, input) {
-            Some(why) => Err(why),
-            None => Ok(()),
-        }),
-        Decision::Ask { title, kind } => {
+    match outcome(ws.as_ref(), auto_mode, tool, input) {
+        Outcome::Allow => Ok(Ok(())),
+        Outcome::Refuse(why) => Ok(Err(why)),
+        Outcome::Ask { title, remember } => {
             let Some(inbox) = inbox else {
                 return Ok(Err("Nobody is available to approve this. Stay inside the project folder and use the build commands.".into()));
             };
             let detail = serde_json::to_string_pretty(input).unwrap_or_default().chars().take(4000).collect::<String>();
             waiting();
-            Ok(match wait_for_approval(&inbox, ws.as_mut(), &title, &detail, &kind, cancelled)? {
+            Ok(match wait_for_approval(&inbox, ws.as_mut(), &title, &detail, remember, cancelled)? {
                 Verdict::Yes => Ok(()),
                 Verdict::No(text) => {
                     Err(format!("The person said no{}. Find another way or ask them with core_person_ask.", text.map(|t| format!(": {t}")).unwrap_or_default()))
@@ -437,6 +448,52 @@ pub fn approve_with(
                 Verdict::NoAnswer => Err("No answer came in time, so this wasn't done. Continue without it if you can.".into()),
             })
         }
+    }
+}
+
+/// What [`approve_with`] does with one action, before anyone is asked.
+#[derive(Debug, PartialEq)]
+enum Outcome {
+    Allow,
+    /// Not done; the builder is told why and keeps going.
+    Refuse(String),
+    /// A card for the person, and what "always for this project" on it keeps.
+    Ask {
+        title: String,
+        remember: Remember,
+    },
+}
+
+/// The policy ([`decide`]), then what the person always allowed, then the project's choice for
+/// the action's kind, or Auto mode's default for it.
+fn outcome(ws: Option<&Workspace>, auto_mode: bool, tool: &str, input: &Value) -> Outcome {
+    let (title, action) = match decide(ws, tool, input) {
+        Decision::Allow => return Outcome::Allow,
+        Decision::Deny(m) => return Outcome::Refuse(m),
+        Decision::Ask { title, kind } => (title, kind),
+    };
+    // The strictest of what each of its kinds gets decides (the first kind on a tie): a command
+    // that pushes and changes the system needs both allowed.
+    let gets = |kind: ActionKind| {
+        let chosen = ws.and_then(|w| w.manifest.approvals.get(&kind).copied());
+        (kind, chosen, chosen.unwrap_or_else(|| kind.default_in(auto_mode)))
+    };
+    let kinds = kinds_of(ws, tool, input);
+    let Some((kind, chosen, approval)) = kinds.iter().map(|k| gets(*k)).fold(None, |best: Option<(ActionKind, Option<Approval>, Approval)>, next| match best {
+        Some(b) if b.2.strictness() >= next.2.strictness() => Some(b),
+        _ => Some(next),
+    }) else {
+        return Outcome::Ask { title, remember: Remember::Action(action) };
+    };
+    // "Always" on an earlier card, for kinds where that was one action rather than the whole kind
+    // (a `cd` before a push mustn't let the push through), unless the kind is refused now.
+    if kinds.iter().all(|k| remembers_actions(*k)) && chosen != Some(Approval::Refuse) && ws.is_some_and(|w| w.manifest.allowed_actions.contains(&action)) {
+        return Outcome::Allow;
+    }
+    match approval {
+        Approval::Allow => Outcome::Allow,
+        Approval::Refuse => Outcome::Refuse(refusal(kind, chosen.is_some())),
+        Approval::Ask => Outcome::Ask { title, remember: if remembers_actions(kind) { Remember::Action(action) } else { Remember::Kind(kind) } },
     }
 }
 
@@ -511,43 +568,193 @@ fn core_action_approve(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, T
     })
 }
 
-/// In Auto mode, what's still never done without the person: deleting outside the project,
-/// changing system files or settings, shutting down, and publishing anywhere. `Some(why)` refuses it.
-pub fn never_unasked(ws: Option<&Workspace>, tool: &str, input: &Value) -> Option<String> {
+/// Which kind an action the policy asks about is, for the project's choices
+/// (`Manifest::approvals`).
+pub fn kind_of(ws: Option<&Workspace>, tool: &str, input: &Value) -> ActionKind {
     let s = |k: &str| input.get(k).and_then(Value::as_str).unwrap_or_default().to_string();
-    let refuse = |what: &str| Some(format!("Auto mode never {what} without the person. Find another way, or leave it and say so in your summary."));
     match tool {
         "Write" | "Edit" | "MultiEdit" | "NotebookEdit" => {
             let target = if tool == "NotebookEdit" { s("notebook_path") } else { s("file_path") };
-            let p = resolve_as_opened(ws.map(|w| w.root.clone()).as_deref().unwrap_or(Path::new("/")), &target)?;
-            // Followed through links: a link in app/ to a system folder is that folder.
-            let system = SYSTEM_DIRS.iter().any(|d| may_reach(Path::new(d), &p));
-            // The inbox (where answers are written), the manifest and the other records stay out of reach.
-            let ours = ws.is_some_and(|w| w.is_own_record(&p));
-            (system || ours).then(|| refuse("changes system files or Craft Anything's own records")).flatten()
+            let system = |p: &Path| {
+                // Followed through links: a link in app/ to a system folder is that folder.
+                SYSTEM_DIRS.iter().any(|d| may_reach(Path::new(d), p))
+                    // The inbox (where answers are written), the manifest and the other records
+                    // stay out of reach.
+                    || ws.is_some_and(|w| w.is_own_record(p))
+            };
+            if opened_at(ws, &target).iter().flatten().any(|p| system(p)) { ActionKind::System } else { ActionKind::OutsideFiles }
         }
-        "Bash" | "PowerShell" => {
-            let command = s("command");
-            let c = command.to_ascii_lowercase();
-            if PUBLISH.iter().any(|k| c.contains(k)) {
-                return refuse("publishes or pushes anything");
+        "Bash" | "PowerShell" => kinds_of(ws, tool, input).first().copied().unwrap_or(ActionKind::Commands),
+        "WebFetch" | "WebSearch" => ActionKind::Web,
+        _ => ActionKind::OtherTools,
+    }
+}
+
+/// Every kind an action is: one for most, but a shell command can be several at once (a push and
+/// a system change, `git push && craft-anything-cli …`), and each of their choices applies. The
+/// first is [`kind_of`]'s.
+pub fn kinds_of(ws: Option<&Workspace>, tool: &str, input: &Value) -> Vec<ActionKind> {
+    if !matches!(tool, "Bash" | "PowerShell") {
+        return vec![kind_of(ws, tool, input)];
+    }
+    let command = input.get("command").and_then(Value::as_str).unwrap_or_default();
+    let c = command.to_ascii_lowercase();
+    let mut kinds = Vec::new();
+    if publishes(&c) {
+        kinds.push(ActionKind::Publish);
+    }
+    if SYSTEM_COMMANDS.iter().any(|k| c.contains(k)) || names_records(&c, ws) {
+        kinds.push(ActionKind::System);
+    }
+    // Paths keep their case: on a Mac or Linux `/Users/x` isn't `/users/x`.
+    if DELETES.iter().any(|k| c.contains(k)) && deletes_outside(command, ws) {
+        kinds.push(ActionKind::DeleteOutside);
+    }
+    if kinds.is_empty() {
+        kinds.push(ActionKind::Commands);
+    }
+    kinds
+}
+
+/// Whether "always for this project" on a card of this kind remembers that one action (`bash:npm`,
+/// a tool's name) rather than allowing the whole kind. Pushes, deletes outside the project and
+/// system changes are allowed whole: "always" on a push allows pushing, and an earlier "always" on
+/// some other command that starts the same way (`cd`) doesn't.
+fn remembers_actions(kind: ActionKind) -> bool {
+    matches!(kind, ActionKind::Web | ActionKind::Commands | ActionKind::OutsideFiles | ActionKind::OtherTools)
+}
+
+/// What the builder is told when an action of `kind` is refused: by the project's own choice
+/// (`chosen`), or by Auto mode's default.
+fn refusal(kind: ActionKind, chosen: bool) -> String {
+    let (what, name) = (kind.what(), kind.name());
+    if chosen {
+        format!(
+            "This project refuses {what} (\"{name}\" in its approvals). Find another way, or leave it and say so in your summary; the person can change that choice."
+        )
+    } else {
+        format!(
+            "Auto mode never allows {what} without the person. Find another way, or leave it and say so in your summary. The person can choose to allow it, or to be asked, in this project's approvals (\"{name}\")."
+        )
+    }
+}
+
+/// In Auto mode with nothing chosen for the project, what's still never done without the person:
+/// deleting outside the project, changing system files or settings, shutting down, publishing
+/// anywhere, and tools with no rule. `Some(why)` refuses it.
+pub fn never_unasked(ws: Option<&Workspace>, tool: &str, input: &Value) -> Option<String> {
+    let kind = kind_of(ws, tool, input);
+    (kind.default_in(true) == Approval::Refuse).then(|| refusal(kind, false))
+}
+
+/// Whether a lower-cased command pushes or publishes anywhere in it: `git push` (also
+/// `git -C app push`), publishing a package or an image, and `gh` commands that change something
+/// on GitHub. Each command the shell would run is read on its own: after `;`, `&&`, `|`, a newline,
+/// inside `$(…)`, backticks or `bash -c "…"`. `gh … view`, `list`, `clone` and the like only read,
+/// and are commands like any other.
+fn publishes(c: &str) -> bool {
+    c.split([';', '&', '|', '\n', '(', ')', '`', '{', '}', '<', '>']).any(|part| {
+        let words: Vec<&str> = part.split_whitespace().map(|w| w.trim_matches(|ch: char| matches!(ch, '"' | '\'' | '$'))).filter(|w| !w.is_empty()).collect();
+        words.iter().enumerate().any(|(i, w)| publishes_with(program_name(w), words.get(i + 1..).unwrap_or_default()))
+    })
+}
+
+/// Whether a lower-cased command names what a builder mustn't change from the shell either: the
+/// project's manifest (where its approvals are kept), its inbox (where answers are written), the
+/// tool that sets approvals (`craft-anything-cli` can call it) or the marker that makes our CLI call
+/// as an agent ([`crate::AGENT_ENV`]). Read with quotes and escapes taken out, as the shell joins
+/// `approv'als-set'`. A command that reaches them without naming them (a script that builds the
+/// path) isn't caught: with commands allowed, the builder is trusted that far.
+fn names_records(c: &str, ws: Option<&Workspace>) -> bool {
+    let without = |gone: &[char]| c.chars().filter(|ch| !gone.contains(ch)).collect::<String>();
+    // Names, with every escape out; a path, with only the quotes out, as its backslashes are
+    // separators on Windows (`C:\p\in'box'\x` is `C:\p\inbox\x`).
+    let (joined, path) = (without(&['"', '\'', '\\', '`']), without(&['"', '\'', '`']));
+    let agent = crate::AGENT_ENV.to_ascii_lowercase();
+    ["craft.json", "approvals_set", "approvals-set", agent.as_str()].iter().any(|n| joined.contains(n))
+        || ws.is_some_and(|w| [c, path.as_str(), joined.as_str()].iter().any(|t| mentions(t, &w.inbox_dir())) || reaches_inbox(c, w))
+}
+
+/// Whether one of a command's arguments, read as the shell reads it (`in'box'` is `inbox`), is a
+/// path into the project's inbox from a folder the shell may be in: the project folder (where agents
+/// start) or app/ (`../inbox/x`). Also after `=` or a redirection written without a space
+/// (`--out=inbox/x`, `>inbox/x`). Only an argument that names the inbox counts, so an app's own
+/// `src/inbox/` stays a command like any other.
+fn reaches_inbox(c: &str, ws: &Workspace) -> bool {
+    let inbox = ws.inbox_dir();
+    let bases = [ws.root.clone(), ws.app_dir()];
+    let pieces = shell_words(c).into_iter().flat_map(|w| w.split(['=', '>', '<', '|', ';', '&']).map(str::to_string).collect::<Vec<_>>());
+    // Each piece as written, with `\` as a separator (PowerShell's, on any system), with Bash's
+    // escapes out (`inb\ox`), and a PowerShell parameter's value after its colon (`-Path:inbox/x`;
+    // a drive's `C:` isn't one).
+    let readings = pieces.flat_map(|w| {
+        let value = w.strip_prefix('-').and_then(|p| p.split_once(':')).map(|(_, v)| v.to_string());
+        let mut out = vec![w.replace('\\', "/"), w.replace('\\', "")];
+        out.extend(value.map(|v| v.replace('\\', "/")));
+        out.push(w);
+        out
+    });
+    readings.filter(|w| w.contains("inbox")).any(|w| bases.iter().any(|b| resolve(b, &w).is_some_and(|p| inside(&inbox, &p))))
+}
+
+/// A program's name as typed, without its folder or a Windows extension (`/usr/bin/npm`, `npm.cmd`).
+fn program_name(word: &str) -> &str {
+    let base = word.rsplit(['/', '\\']).next().unwrap_or(word);
+    [".exe", ".cmd", ".bat", ".ps1"].iter().find_map(|x| base.strip_suffix(x)).unwrap_or(base)
+}
+
+/// Whether `program` followed by the words `rest` (to the end of its command) pushes or publishes.
+fn publishes_with(program: &str, rest: &[&str]) -> bool {
+    let has = |w: &str| rest.contains(&w);
+    match program {
+        "git" => {
+            // Past git's own options to the subcommand; `-C dir` and `-c key=value` (both `-c`
+            // here, lower-cased) take a value.
+            let mut j = 0;
+            while let Some(o) = rest.get(j).filter(|o| o.starts_with('-')) {
+                j += if *o == "-c" { 2 } else { 1 };
             }
-            if SYSTEM_COMMANDS.iter().any(|k| c.contains(k)) {
-                return refuse("changes the system, its settings or its users, or shuts it down");
-            }
-            // Paths keep their case: on a Mac or Linux `/Users/x` isn't `/users/x`.
-            if DELETES.iter().any(|k| c.contains(k)) && deletes_outside(&command, ws) {
-                return refuse("deletes anything outside the project or the temp folder");
-            }
-            None
+            rest.get(j) == Some(&"push")
         }
-        _ => refuse("uses a tool that has no automatic approval rule"),
+        "gh" => gh_publishes(rest),
+        // Wherever the subcommand comes (`npm --registry x publish`, `cargo +nightly publish`).
+        "npm" | "pnpm" | "yarn" | "bun" | "cargo" => has("publish"),
+        "twine" => has("upload"),
+        "docker" | "podman" | "gem" => has("push"),
+        "dotnet" => has("nuget") && has("push"),
+        _ => false,
+    }
+}
+
+/// `gh` areas that don't change anything on GitHub.
+const GH_LOCAL: &[&str] = &["auth", "browse", "search", "help", "config", "alias", "completion", "status", "version", "--version", "--help"];
+
+/// `gh` verbs that only read, or only copy to this computer.
+const GH_READS: &[&str] = &["view", "list", "status", "checks", "diff", "download", "clone", "checkout", "watch"];
+
+/// Whether `gh` with these words changes something on GitHub: any verb that isn't one of
+/// [`GH_READS`] (`gh issue create`, `gh gist create`, `gh pr merge`…), and `gh api` with a method
+/// other than GET or any fields (`-f` and `-F`, lower-cased here, also written `-fkey=v`).
+fn gh_publishes(rest: &[&str]) -> bool {
+    match rest {
+        ["api", args @ ..] => {
+            let method = |m: &str| !m.is_empty() && m != "get";
+            args.iter().any(|a| {
+                (a.starts_with("-f") && !a.starts_with("--"))
+                    || matches!(*a, "--field" | "--raw-field" | "--input")
+                    || ["--field=", "--raw-field=", "--input="].iter().any(|p| a.starts_with(p))
+                    || a.strip_prefix("--method=").is_some_and(method)
+                    || a.strip_prefix("-x").is_some_and(method)
+            }) || args.windows(2).any(|p| matches!(p, [flag, m] if matches!(*flag, "-x" | "--method") && method(m)))
+        }
+        [area, ..] if GH_LOCAL.contains(area) => false,
+        [_, verbs @ ..] => verbs.iter().find(|v| !v.starts_with('-')).is_some_and(|v| !GH_READS.contains(v)),
+        [] => false,
     }
 }
 
 const SYSTEM_DIRS: &[&str] =
     &["C:/Windows", "C:/Program Files", "C:/Program Files (x86)", "C:/ProgramData", "/etc", "/usr", "/bin", "/sbin", "/System", "/Library"];
-const PUBLISH: &[&str] = &["git push", "npm publish", "cargo publish", "gh release", "gh pr ", "gh repo", "twine upload", "docker push"];
 const SYSTEM_COMMANDS: &[&str] = &[
     "shutdown",
     "restart-computer",
@@ -653,7 +860,16 @@ pub(crate) enum Verdict {
 pub(crate) fn ask_approval(ctx: &mut Ctx<'_>, inbox: &Inbox, ws: Option<&mut Workspace>, title: &str, detail: &str, kind: &str) -> Result<Verdict, ToolError> {
     ctx.report(None, "Waiting for your OK…");
     let cancel = ctx.cancel.clone();
-    wait_for_approval(inbox, ws, title, detail, kind, &|| cancel.is_cancelled())
+    wait_for_approval(inbox, ws, title, detail, Remember::Action(kind.to_string()), &|| cancel.is_cancelled())
+}
+
+/// What "always for this project" on a card keeps.
+#[derive(Debug, PartialEq)]
+enum Remember {
+    /// That one action, in `allowed_actions` (`bash:npm`).
+    Action(String),
+    /// The whole kind, as the project's choice (`approvals`).
+    Kind(ActionKind),
 }
 
 fn wait_for_approval(
@@ -661,18 +877,27 @@ fn wait_for_approval(
     ws: Option<&mut Workspace>,
     title: &str,
     detail: &str,
-    kind: &str,
+    remember: Remember,
     cancelled: &dyn Fn() -> bool,
 ) -> Result<Verdict, ToolError> {
-    let id = inbox.post(RequestKind::Approval, title, detail, Vec::new(), false, Some(kind.to_string()))?;
+    let tag = match &remember {
+        Remember::Action(a) => a.clone(),
+        Remember::Kind(k) => k.name().to_string(),
+    };
+    let id = inbox.post(RequestKind::Approval, title, detail, Vec::new(), false, Some(tag))?;
     Ok(match inbox.wait(&id, WAIT, cancelled) {
         Some(a) if a.allow == Some(true) => {
             if a.always
                 && let Some(w) = ws
             {
-                let _ = w.set_person(|m| {
-                    if !m.allowed_actions.iter().any(|k| k == kind) {
-                        m.allowed_actions.push(kind.to_string());
+                let _ = w.set_person(|m| match remember {
+                    Remember::Action(a) => {
+                        if !m.allowed_actions.contains(&a) {
+                            m.allowed_actions.push(a);
+                        }
+                    }
+                    Remember::Kind(k) => {
+                        m.approvals.insert(k, Approval::Allow);
                     }
                 });
             }
@@ -942,8 +1167,10 @@ mod tests {
     #[test]
     fn web_reads_and_notes_go_ahead_the_inbox_never_does() {
         let (_d, w) = ws();
-        assert_eq!(decide(Some(&w), "WebFetch", &json!({"url": "https://docs.godotengine.org"})), Decision::Allow);
-        assert_eq!(decide(Some(&w), "WebSearch", &json!({"query": "unity batchmode build"})), Decision::Allow);
+        for auto_mode in [true, false] {
+            assert_eq!(outcome(Some(&w), auto_mode, "WebFetch", &json!({"url": "https://docs.godotengine.org"})), Outcome::Allow);
+            assert_eq!(outcome(Some(&w), auto_mode, "WebSearch", &json!({"query": "unity batchmode build"})), Outcome::Allow);
+        }
         let note = w.checks_dir().join("round-1/notes.md");
         assert_eq!(decide(Some(&w), "Write", &json!({"file_path": note.display().to_string()})), Decision::Allow);
         for off in [w.inbox_dir().join("1.answer.json"), w.root.join("craft.json"), w.root.join("reference/picture-1.png")] {
@@ -955,18 +1182,232 @@ mod tests {
     fn remembered_kinds_and_reads() {
         let (_d, mut w) = ws();
         let cmd = json!({"command": "lsblk"});
-        assert!(matches!(decide(Some(&w), "Bash", &cmd), Decision::Ask { .. }));
+        assert!(matches!(outcome(Some(&w), false, "Bash", &cmd), Outcome::Ask { remember: Remember::Action(_), .. }));
         w.manifest.allowed_actions.push("bash:lsblk".into());
-        assert_eq!(decide(Some(&w), "Bash", &cmd), Decision::Allow, "\"always for this project\" is remembered");
-        assert_eq!(decide(None, "Read", &json!({})), Decision::Allow);
+        assert_eq!(outcome(Some(&w), false, "Bash", &cmd), Outcome::Allow, "\"always for this project\" is remembered");
+        assert_eq!(outcome(None, false, "Read", &json!({})), Outcome::Allow);
+        // A kind the person refuses later wins over what they always allowed before; asking keeps it.
+        w.manifest.approvals.insert(ActionKind::Commands, Approval::Refuse);
+        assert!(matches!(outcome(Some(&w), true, "Bash", &cmd), Outcome::Refuse(_)));
+        w.manifest.approvals.insert(ActionKind::Commands, Approval::Ask);
+        assert_eq!(outcome(Some(&w), true, "Bash", &cmd), Outcome::Allow);
+    }
+
+    #[test]
+    fn a_shell_command_that_names_the_projects_records_is_a_system_change() {
+        // Commands are allowed in Auto mode; these would let a builder loosen its own approvals.
+        let (_d, w) = ws();
+        let inbox = w.inbox_dir().display().to_string();
+        for cmd in [
+            "craft-anything-cli call project_approvals_set --project . --kind publish --mode allow",
+            "craft-anything-cli project-approvals-set --kind publish --mode allow",
+            "python -c \"import json; d=json.load(open('craft.json'))\"",
+            "echo '{}' > ../craft.json",
+            &format!("echo yes > \"{inbox}/1.answer.json\""),
+            // The shell joins quoted pieces, and the marker can be taken away first.
+            "env -u CRAFT_ANYTHING_AGENT craft-anything-cli project-approv'als-set' --kind publish --mode allow",
+            "unset CRAFT_ANYTHING_AGENT; cat craft.\"json\"",
+        ] {
+            assert_eq!(kind_of(Some(&w), "Bash", &json!({"command": cmd})), ActionKind::System, "{cmd}");
+            assert!(matches!(outcome(Some(&w), true, "Bash", &json!({"command": cmd})), Outcome::Refuse(_)), "{cmd}");
+        }
+        assert_eq!(kind_of(Some(&w), "Bash", &json!({"command": "cat package.json"})), ActionKind::Commands);
+    }
+
+    #[test]
+    fn a_command_of_several_kinds_needs_each_allowed() {
+        let (_d, mut w) = ws();
+        let mixed = json!({"command": "git push && env -u CRAFT_ANYTHING_AGENT craft-anything-cli project-approvals-set --kind system --mode allow"});
+        assert_eq!(kinds_of(Some(&w), "Bash", &mixed), [ActionKind::Publish, ActionKind::System]);
+        // Pushing allowed, system changes refused: refused, and the message names the refused kind.
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Allow);
+        w.manifest.approvals.insert(ActionKind::System, Approval::Refuse);
+        let Outcome::Refuse(why) = outcome(Some(&w), true, "Bash", &mixed) else { panic!("refused") };
+        assert!(why.contains("\"system\""), "{why}");
+        // The other way round: refused for pushing.
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Refuse);
+        w.manifest.approvals.insert(ActionKind::System, Approval::Allow);
+        let Outcome::Refuse(why) = outcome(Some(&w), true, "Bash", &mixed) else { panic!("refused") };
+        assert!(why.contains("\"publish\""), "{why}");
+        // Asked about when one asks and the other allows; allowed only when both allow.
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Ask);
+        assert!(matches!(outcome(Some(&w), true, "Bash", &mixed), Outcome::Ask { remember: Remember::Kind(ActionKind::Publish), .. }));
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Allow);
+        assert_eq!(outcome(Some(&w), true, "Bash", &mixed), Outcome::Allow);
+        // An earlier "always" on the command's first word lets none of it through.
+        w.manifest.approvals.clear();
+        w.manifest.allowed_actions.push("bash:git".into());
+        assert!(matches!(outcome(Some(&w), true, "Bash", &mixed), Outcome::Refuse(_)));
+    }
+
+    #[test]
+    fn an_inbox_path_split_by_quotes_is_still_the_inbox() {
+        let (_d, w) = ws();
+        let inbox = w.inbox_dir().display().to_string().replace('\\', "/");
+        let (head, tail) = inbox.split_at(inbox.len() - 3);
+        let cmd = format!("echo yes > {head}'{tail}'/1.answer.json");
+        assert_eq!(kind_of(Some(&w), "Bash", &json!({"command": cmd})), ActionKind::System, "{cmd}");
+        // With Windows' separators, as PowerShell writes it.
+        let (head, tail) = (head.replace('/', "\\"), tail.replace('/', "\\"));
+        let cmd = format!("Set-Content -Path {head}'{tail}'\\1.answer.json -Value yes");
+        assert_eq!(kind_of(Some(&w), "PowerShell", &json!({"command": cmd})), ActionKind::System, "{cmd}");
+        // Relative, from the project folder or from app/, however it's quoted or attached.
+        for cmd in [
+            "echo yes > in'box'/1.answer.json",
+            "cd app && echo yes > ../inbox/1.answer.json",
+            "echo yes >inbox/1.answer.json",
+            "tool --out=./inbox/x",
+            "echo yes > inb\\ox/1.answer.json",
+            "Set-Content -Path:inbox/1.answer.json -Value yes",
+            "Set-Content -Path:..\\inbox\\1.answer.json -Value yes",
+        ] {
+            assert_eq!(kind_of(Some(&w), "Bash", &json!({"command": cmd})), ActionKind::System, "{cmd}");
+            assert!(matches!(outcome(Some(&w), true, "Bash", &json!({"command": cmd})), Outcome::Refuse(_)), "{cmd}");
+        }
+        // An app's own inbox folder is the builder's work.
+        for cmd in ["mkdir -p src/inbox", "cat app/src/inbox/view.rs"] {
+            assert_eq!(kind_of(Some(&w), "Bash", &json!({"command": cmd})), ActionKind::Commands, "{cmd}");
+        }
+    }
+
+    #[test]
+    fn a_relative_path_is_judged_wherever_the_agent_opens_it() {
+        // Agents start in the project folder: `craft.json` there is the manifest, not app/craft.json.
+        let (_d, w) = ws();
+        let write = |p: &str| json!({"file_path": p});
+        for record in ["craft.json", "inbox/1.answer.json", "./craft.json"] {
+            assert!(matches!(decide(Some(&w), "Write", &write(record)), Decision::Ask { .. }), "{record}");
+            assert_eq!(kind_of(Some(&w), "Write", &write(record)), ActionKind::System, "{record}");
+            assert!(matches!(outcome(Some(&w), true, "Write", &write(record)), Outcome::Refuse(_)), "{record}");
+        }
+        // Inside app/ from either folder, or written in full, it's the builder's own work.
+        assert_eq!(decide(Some(&w), "Write", &write("app/src/main.rs")), Decision::Allow);
+        let full = w.app_dir().join("src/main.rs");
+        assert_eq!(decide(Some(&w), "Write", &write(&full.display().to_string())), Decision::Allow);
+        // A bare name could be the project folder's or app/'s: asked about, not refused.
+        assert!(matches!(decide(Some(&w), "Write", &write("src/main.rs")), Decision::Ask { .. }));
+        assert_eq!(kind_of(Some(&w), "Write", &write("src/main.rs")), ActionKind::OutsideFiles);
+    }
+
+    #[test]
+    fn an_earlier_always_never_lets_a_push_through() {
+        // "Always" on `cd app && npm i` was kept as `bash:cd`, and the same start let any later
+        // command through, pushes included.
+        let (_d, mut w) = ws();
+        w.manifest.allowed_actions.push("bash:cd".into());
+        let push = json!({"command": "cd app && git push origin main"});
+        assert!(matches!(outcome(Some(&w), true, "Bash", &push), Outcome::Refuse(_)), "Auto mode still refuses it");
+        assert!(matches!(outcome(Some(&w), false, "Bash", &push), Outcome::Ask { remember: Remember::Kind(ActionKind::Publish), .. }));
+        assert_eq!(outcome(Some(&w), true, "Bash", &json!({"command": "cd app && lsblk"})), Outcome::Allow);
+    }
+
+    #[test]
+    fn a_projects_choice_decides_each_kind() {
+        let (_d, mut w) = ws();
+        let push = json!({"command": "git push origin main"});
+        let fetch = json!({"url": "https://example.com/"});
+        // Nothing chosen: Auto mode refuses a push and asks nobody; without it, the person is asked.
+        let Outcome::Refuse(why) = outcome(Some(&w), true, "Bash", &push) else { panic!("refused") };
+        assert!(why.contains("Auto mode never") && why.contains("\"publish\""), "{why}");
+        assert!(matches!(outcome(Some(&w), false, "Bash", &push), Outcome::Ask { .. }));
+        // Pushes asked about, even in Auto mode: the card it was missing.
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Ask);
+        let Outcome::Ask { title, remember } = outcome(Some(&w), true, "Bash", &push) else { panic!("asked") };
+        assert!(title.contains("git push"));
+        assert_eq!(remember, Remember::Kind(ActionKind::Publish));
+        // Allowed for this project: no card.
+        w.manifest.approvals.insert(ActionKind::Publish, Approval::Allow);
+        assert_eq!(outcome(Some(&w), true, "Bash", &push), Outcome::Allow);
+        // Each kind on its own: the web can be refused while pushing is allowed.
+        w.manifest.approvals.insert(ActionKind::Web, Approval::Refuse);
+        let Outcome::Refuse(why) = outcome(Some(&w), true, "WebFetch", &fetch) else { panic!("refused") };
+        assert!(why.contains("This project refuses reading the web"), "{why}");
+        assert_eq!(outcome(Some(&w), true, "Bash", &push), Outcome::Allow);
+        // Commands the build list allows aren't asked about, whatever "commands" gets.
+        w.manifest.approvals.insert(ActionKind::Commands, Approval::Refuse);
+        assert_eq!(outcome(Some(&w), true, "Bash", &json!({"command": "npm run build"})), Outcome::Allow);
+        assert!(matches!(outcome(Some(&w), true, "Bash", &json!({"command": "lsblk"})), Outcome::Refuse(_)));
+    }
+
+    #[test]
+    fn pushes_and_publishes_are_told_from_commands_that_only_read() {
+        let kind = |c: &str| kind_of(None, "Bash", &json!({"command": c}));
+        for publish in [
+            "git push origin main",
+            "cd app && git push -u origin feat/x 2>&1 | tail -4",
+            "git -C app push",
+            "git -c core.hooksPath=x push --tags",
+            "ANICRAFT_FIRST_PUBLISH=1 git push origin main v0.1.0",
+            "/usr/bin/git push",
+            "npm publish --access public",
+            "cargo publish",
+            "gh pr create --fill",
+            "gh pr merge 12 --squash",
+            "gh repo create storytold/x --public",
+            "gh release create v1.0.0",
+            "gh api repos/o/r/pulls/1/merge -X PUT",
+            "gh api repos/o/r/issues -f title=x",
+            "docker push img:1",
+            "twine upload dist/*",
+            // Another command the shell runs, without spaces or inside another one.
+            "x;git push",
+            "cd app&&git push",
+            "echo $(git push)",
+            "echo `git push`",
+            "bash -c \"git push origin main\"",
+            "ls | git push",
+            // Packages and images however they're started.
+            "/usr/local/bin/npm publish",
+            "npm.cmd publish",
+            "npm --registry https://r.example publish",
+            "cargo +nightly publish",
+            "docker image push img:1",
+            "dotnet nuget push x.nupkg",
+            // Anything gh changes on GitHub, and gh api's attached flags.
+            "gh issue create --title x",
+            "gh issue comment 3 --body x",
+            "gh gist create --public notes.md",
+            "gh api repos/o/r/pulls/1/merge -XPUT",
+            "gh api repos/o/r/issues -ftitle=x",
+            "gh api repos/o/r/issues --method=POST",
+        ] {
+            assert_eq!(kind(publish), ActionKind::Publish, "{publish}");
+        }
+        for reads in [
+            "gh repo view storytold/AniCraft --json name,visibility",
+            "gh pr view 12",
+            "gh pr list",
+            "gh release list",
+            "gh pr checks 12",
+            "gh api repos/o/r/pulls",
+            "gh auth status",
+            "git ls-remote origin",
+            "git log --oneline -5",
+            "git status",
+            "npm run publish-docs",
+            "gh repo clone storytold/craft-anything",
+            "gh pr checkout 12",
+            "gh run watch 42",
+            "gh api repos/o/r/pulls -XGET",
+            "gh pr",
+            "cd /d/repos/git && ls",
+            "npm install && echo published",
+        ] {
+            assert_eq!(kind(reads), ActionKind::Commands, "{reads}");
+        }
     }
 
     #[test]
     fn approval_round_trip_through_the_inbox() {
-        let (_d, w) = ws();
+        let (_d, mut w) = ws();
         let e = std::sync::Arc::new(crate::Engine::new(crate::testing::session()));
-        // Asking is what Auto mode switches off.
-        e.session().settings.auto_mode = false;
+        // Auto mode is on, and the project asks about pushes: the card reaches the person and
+        // their OK reaches the builder.
+        assert!(e.session().settings.auto_mode);
+        w.set_person(|m| {
+            m.approvals.insert(ActionKind::Publish, Approval::Ask);
+        })
+        .unwrap();
         e.session().ext.insert(std::sync::Arc::new(InboxDir(w.inbox_dir())));
         let inbox = Inbox::new(w.inbox_dir());
         let answerer = std::thread::spawn(move || {
@@ -987,12 +1428,47 @@ mod tests {
         assert_eq!(v["result"]["behavior"], "allow");
         assert_eq!(v["result"]["updatedInput"]["command"], "git push");
         let reopened = Workspace::open(&w.root).unwrap();
-        assert!(reopened.manifest.allowed_actions.contains(&"bash:git".to_string()), "always-allow is remembered");
+        assert_eq!(reopened.manifest.approvals.get(&ActionKind::Publish), Some(&Approval::Allow), "\"always\" allows pushing in this project");
+        assert!(reopened.manifest.allowed_actions.is_empty(), "not as `bash:git`, which would let every git command through");
         // Without an inbox, a question is a clear, actionable error.
         let e2 = crate::Engine::new(crate::testing::session());
         e2.session().settings.auto_mode = false;
         let err = e2.call("core_person_ask", json!({"question": "Blue or red?"}), crate::CallOptions::new(crate::Caller::Mcp)).err().unwrap();
         assert!(err.remediation.unwrap_or_default().contains("sensible choice"));
+    }
+
+    #[test]
+    fn the_person_chooses_approvals_and_an_agent_can_only_tighten_them() {
+        let (_d, w) = ws();
+        let e = crate::Engine::new(crate::testing::session());
+        let call = |caller: crate::Caller, p: Value| e.call("project_approvals_set", p, crate::CallOptions::new(caller));
+        let gets = |v: &Value, kind: &str| v["kinds"].as_array().unwrap().iter().find(|k| k["kind"] == kind).unwrap()["gets"].clone();
+        // Read: every kind, with what Auto mode gives it.
+        let read = call(crate::Caller::Ui, json!({"project": w.root})).unwrap().to_json()["result"].clone();
+        assert_eq!(read["kinds"].as_array().unwrap().len(), crate::workspace::ACTION_KINDS.len());
+        assert_eq!((gets(&read, "publish"), gets(&read, "web")), (json!("refuse"), json!("allow")));
+        // The person allows pushes from the app; it's kept in craft.json.
+        let set = call(crate::Caller::Ui, json!({"project": w.root, "kind": "publish", "mode": "allow"})).unwrap().to_json()["result"].clone();
+        assert_eq!(gets(&set, "publish"), "allow");
+        assert_eq!((set["set"]["kind"].as_str(), set["set"]["gets"].as_str()), (Some("publish"), Some("allow")), "says what changed");
+        assert!(read["set"].is_null(), "a read changes nothing");
+        assert_eq!(Workspace::open(&w.root).unwrap().manifest.approvals.get(&ActionKind::Publish), Some(&Approval::Allow));
+        // A builder may make a kind stricter, not looser: not even back to a default that allows more.
+        assert!(call(crate::Caller::Mcp, json!({"project": w.root, "kind": "publish", "mode": "ask"})).is_ok());
+        call(crate::Caller::Ui, json!({"project": w.root, "kind": "commands", "mode": "refuse"})).unwrap();
+        for (kind, mode) in [("publish", "allow"), ("other_tools", "ask"), ("commands", "default"), ("outside_files", "allow")] {
+            let err = call(crate::Caller::Mcp, json!({"project": w.root, "kind": kind, "mode": mode})).unwrap_err();
+            assert_eq!(err.code, ErrorCode::NoPermission, "{kind} {mode}");
+        }
+        assert!(call(crate::Caller::Agent, json!({"project": w.root, "kind": "web", "mode": "refuse"})).is_ok());
+        let m = Workspace::open(&w.root).unwrap().manifest;
+        assert_eq!((m.approvals.get(&ActionKind::Publish), m.approvals.get(&ActionKind::Web)), (Some(&Approval::Ask), Some(&Approval::Refuse)));
+        // `default` takes the choice away; a mode needs a kind and the other way round.
+        call(crate::Caller::Cli, json!({"project": w.root, "kind": "web", "mode": "default"})).unwrap();
+        assert!(!Workspace::open(&w.root).unwrap().manifest.approvals.contains_key(&ActionKind::Web));
+        assert!(call(crate::Caller::Ui, json!({"project": w.root, "kind": "web"})).is_err());
+        assert!(call(crate::Caller::Ui, json!({"project": w.root, "mode": "allow"})).is_err());
+        assert!(call(crate::Caller::Ui, json!({"project": w.root, "kind": "everything", "mode": "allow"})).is_err());
     }
 
     #[test]

@@ -76,6 +76,15 @@ pub fn apply(feed: &mut Vec<FeedItem>, e: &RunEvent) {
         RunEvent::Preview(_) => {}
         RunEvent::Finished { ok, message, paused } => {
             end_stream(feed);
+            // #504: a run that ends with steps still open marks them stopped on the plan card,
+            // instead of leaving them "Doing"; a later run's checklist updates the list again.
+            if let Some(FeedItem::Plan(steps)) = feed.iter_mut().rev().find(|i| matches!(i, FeedItem::Plan(_))) {
+                for step in steps {
+                    if step.status == PlanStatus::Doing {
+                        step.status = PlanStatus::Stopped;
+                    }
+                }
+            }
             // An agent error already explains itself; don't say it twice.
             let explained = matches!(feed.last(), Some(FeedItem::Error { .. }));
             if *paused {
@@ -227,6 +236,39 @@ mod tests {
         assert!(!feed.iter().any(|i| matches!(i, FeedItem::PlanDismissed)), "the fold went with the old list");
         assert!(craft_anything_engine::feed::visible_plan(&feed).is_some(), "the new list shows");
         assert!(matches!(feed.last(), Some(FeedItem::Plan(p)) if p[0].status == PlanStatus::Doing));
+    }
+
+    /// #504: a run that ends with steps still open marks them stopped on the plan card instead of
+    /// leaving them "Doing"; a paused run stops them too, and the next run's checklist takes over.
+    #[test]
+    fn a_run_that_ends_marks_open_steps_stopped() {
+        let todo = |status: &str| {
+            json!({"todos": [
+                {"content": "Lay out the arena", "activeForm": "Laying out the arena", "status": "completed"},
+                {"content": "Add the snake", "activeForm": "Adding the snake", "status": status},
+                {"content": "Keep score", "activeForm": "Keeping score", "status": "pending"},
+            ]})
+        };
+        let call = |status: &str| RunEvent::Agent(AgentEvent::ToolStarted { call_id: "t".into(), tool: "TodoWrite".into(), input: todo(status) });
+        let steps = |f: &[FeedItem]| craft_anything_engine::feed::visible_plan(f).unwrap().to_vec();
+        let mut feed = vec![FeedItem::User(UserItem::Text("A snake game".into()))];
+        apply(&mut feed, &call("in_progress"));
+        apply(&mut feed, &RunEvent::Finished { ok: true, message: "Ready.".into(), paused: false });
+        let after = steps(&feed);
+        assert_eq!(after[0].status, PlanStatus::Done, "done steps stay done");
+        assert_eq!(after[1].status, PlanStatus::Stopped, "the step left open stops");
+        assert_eq!(after[2].status, PlanStatus::Todo, "never-started steps stay as they were");
+        // A paused run stops the open step too, and the next run's checklist takes the list over.
+        let mut paused = vec![FeedItem::User(UserItem::Text("A snake game".into()))];
+        apply(&mut paused, &call("in_progress"));
+        apply(&mut paused, &RunEvent::Finished { ok: true, message: "Paused.".into(), paused: true });
+        assert!(steps(&paused).iter().any(|s| s.status == PlanStatus::Stopped), "pausing stops the open step too");
+        apply(&mut paused, &call("in_progress"));
+        assert!(steps(&paused).iter().any(|s| s.status == PlanStatus::Doing), "the next run's checklist takes over");
+        // No checklist: nothing to mark, nothing to lose.
+        let mut bare = vec![FeedItem::User(UserItem::Text("A game".into()))];
+        apply(&mut bare, &RunEvent::Finished { ok: true, message: "Ready.".into(), paused: false });
+        assert!(matches!(bare.last(), Some(FeedItem::User(_))));
     }
 
     #[test]

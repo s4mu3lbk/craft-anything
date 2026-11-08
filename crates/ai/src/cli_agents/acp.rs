@@ -31,11 +31,13 @@ pub const ACP_AGENTS: &[(&str, &[&str])] = &[
     ("hermes", &["acp"]),
     ("maki", &["acp"]),
     ("copilot", &["--acp", "--stdio"]),
+    // Flags that belong to this mode (`--model`, `--no-leader`) go between `agent` and `stdio`.
+    ("grok", &["agent"]),
 ];
 
 /// Agents whose ACP mode takes the backend's model (`cli_model`), and the flag after the ACP
 /// arguments that picks it. Others keep the model they're set to.
-pub const ACP_MODEL_FLAGS: &[(&str, &str)] = &[("maki", "-m")];
+pub const ACP_MODEL_FLAGS: &[(&str, &str)] = &[("maki", "-m"), ("grok", "--model")];
 
 /// The arguments after `agent`'s ACP ones that pick `model`; none when its ACP mode isn't known
 /// to take one.
@@ -116,6 +118,9 @@ enum Pending {
     Initialize,
     NewSession,
     LoadSession,
+    /// `session/set_config_option`. The session is not ready until these finish: model discovery
+    /// waits on `ready`, and some agents replace the CLI's model flag when the session opens.
+    SetConfig,
     Prompt,
 }
 
@@ -153,6 +158,13 @@ pub struct AcpCore {
     models: Vec<String>,
     current_model: String,
     config_options: Vec<Value>,
+    /// `(configId, value)` applied in order after the session opens, before it is ready.
+    config_queue: VecDeque<(String, String)>,
+    /// A loaded session already has history. Set when the session response arrives, and copied
+    /// onto [`session_has_history`](Self::session_has_history) once the config queue is done.
+    opened_with_history: bool,
+    /// The adapter asked for `"type": "stdio"` on our MCP server. Off for every other agent.
+    typed_mcp: bool,
 }
 
 impl AcpCore {
@@ -178,6 +190,9 @@ impl AcpCore {
             models: Vec::new(),
             current_model: String::new(),
             config_options: Vec::new(),
+            config_queue: VecDeque::new(),
+            opened_with_history: false,
+            typed_mcp: false,
         }
     }
 
@@ -236,7 +251,45 @@ impl AcpCore {
     }
 
     fn mcp_servers(&self) -> Value {
-        if self.question { json!([]) } else { json!([{"name": super::MCP_NAME, "command": self.mcp.command, "args": self.mcp.args, "env": []}]) }
+        // Questions attach no server. `"type": "stdio"` is only added for an adapter that
+        // requires it (Grok). Other agents keep the payload their sessions already accept.
+        if self.question {
+            return json!([]);
+        }
+        let mut server = json!({"name": super::MCP_NAME, "command": self.mcp.command, "args": self.mcp.args, "env": []});
+        if self.typed_mcp {
+            server["type"] = json!("stdio");
+        }
+        json!([server])
+    }
+
+    /// The current string value of a session config option, when the agent reports one.
+    fn config_current(options: &[Value], id: &str) -> Option<String> {
+        let option = options.iter().find(|option| option.get("id").and_then(Value::as_str) == Some(id))?;
+        match option.get("currentValue") {
+            Some(Value::String(value)) => Some(value.clone()),
+            Some(value) => value.get("value").and_then(Value::as_str).map(str::to_string),
+            None => None,
+        }
+    }
+
+    /// Send the next config override that the session does not already have, then mark it ready.
+    /// A value is a JSON string: Grok rejects a nested `{"value": ...}` wrapper.
+    fn advance_config(&mut self) -> Vec<Out> {
+        while let Some((id, value)) = self.config_queue.front().cloned() {
+            if Self::config_current(&self.config_options, &id).as_deref() == Some(value.as_str()) {
+                self.config_queue.pop_front();
+                continue;
+            }
+            let Some(sid) = self.session.clone() else {
+                return self.fail(format!("{} started no session", self.agent_name), None);
+            };
+            let params = json!({"sessionId": sid, "configId": id, "value": value});
+            return vec![self.request("session/set_config_option", params, Pending::SetConfig)];
+        }
+        self.ready = true;
+        self.session_has_history = self.opened_with_history;
+        self.flush()
     }
 
     /// One line from the agent.
@@ -281,9 +334,15 @@ impl AcpCore {
                 Some(-32602..=-32600) => FailureKind::Configuration,
                 _ => FailureKind::Unknown,
             }));
-            let fix = matches!(kind, Pending::Initialize | Pending::NewSession).then(|| {
-                self.sign_in_fix.clone().unwrap_or_else(|| format!("Check that {} is installed and signed in: run it once in a terminal.", self.agent_name))
-            });
+            let fix = match kind {
+                Pending::Initialize | Pending::NewSession => Some(
+                    self.sign_in_fix
+                        .clone()
+                        .unwrap_or_else(|| format!("Check that {} is installed and signed in: run it once in a terminal.", self.agent_name)),
+                ),
+                Pending::SetConfig => Some("Choose a model and thinking depth this agent lists, then try again.".into()),
+                Pending::LoadSession | Pending::Prompt => None,
+            };
             return self.fail(format!("{}: {text}", self.agent_name), fix);
         }
         let result = msg.get("result").unwrap_or(&Value::Null);
@@ -321,9 +380,21 @@ impl AcpCore {
                 if self.session.is_none() {
                     return self.fail(format!("{} started no session", self.agent_name), None);
                 }
-                self.ready = true;
-                self.session_has_history = kind == Pending::LoadSession;
-                self.flush()
+                // Ready waits until the queued overrides are applied. Grok's `--model` flag does
+                // not survive `session/new`; the saved default comes back and has to be set here.
+                self.opened_with_history = kind == Pending::LoadSession;
+                self.advance_config()
+            }
+            Pending::SetConfig => {
+                if let Some(options) = result.get("configOptions").and_then(Value::as_array) {
+                    self.config_options = options.clone();
+                }
+                if let Some(model) = Self::config_current(&self.config_options, "model").filter(|model| !model.is_empty()) {
+                    self.current_model = model;
+                }
+                // One attempt. A response that does not echo the new value is not sent again.
+                self.config_queue.pop_front();
+                self.advance_config()
             }
             Pending::Prompt => {
                 let mut out = Vec::new();
@@ -528,6 +599,10 @@ pub struct AcpConversation {
     question: bool,
     /// Report invalid backend settings through the conversation before starting a child process.
     validation_error: Option<craft_anything_evidence::ToolError>,
+    /// An access mode this agent cannot hold. Cleared for model-list discovery, which sends no prompt.
+    access_error: Option<craft_anything_evidence::ToolError>,
+    /// Copied onto the core when the process starts, and applied before the session is ready.
+    session_config: Vec<(String, String)>,
 }
 
 impl AcpConversation {
@@ -546,6 +621,9 @@ impl AcpConversation {
 
     pub(crate) fn model_metadata_with_stop(mut self, timeout: Duration, stop: &Stop) -> Result<ModelMetadata, craft_anything_evidence::ToolError> {
         stop.check()?;
+        // No prompt is sent. The question-shaped session only keeps the tool server off, so a
+        // refusal of questions and Clean room does not apply to reading the model list.
+        self.access_error = None;
         self.spawn()?;
         self.busy.store(true, Ordering::SeqCst);
         let started = Instant::now();
@@ -587,6 +665,12 @@ impl AcpConversation {
         self
     }
 
+    /// Keep an access-mode refusal until the conversation starts. Model-list discovery clears it.
+    pub fn with_access_limit(mut self, result: Result<(), craft_anything_evidence::ToolError>) -> Self {
+        self.access_error = result.err();
+        self
+    }
+
     /// A read-only question: attach no MCP server and refuse permission requests. The caller
     /// must also choose a fresh session and restrictive agent flags; this switch alone doesn't
     /// prevent native tools from running without a permission request.
@@ -611,6 +695,12 @@ impl AcpConversation {
     /// Text put before each message, as the CLI runs do (who it works for, how to use our tools).
     pub fn with_preamble(mut self, preamble: String) -> Self {
         self.preamble = preamble;
+        self
+    }
+
+    /// Config options applied with `session/set_config_option` after `session/new` or `session/load`.
+    pub fn with_session_config(mut self, config: Vec<(String, String)>) -> Self {
+        self.session_config = config;
         self
     }
 
@@ -644,6 +734,8 @@ impl AcpConversation {
             failure: None,
             question: false,
             validation_error: None,
+            access_error: None,
+            session_config: Vec::new(),
         }
     }
 
@@ -653,14 +745,16 @@ impl AcpConversation {
 
     /// Start the agent and send `initialize`.
     fn spawn(&mut self) -> Result<(), craft_anything_evidence::ToolError> {
-        if let Some(error) = &self.validation_error {
-            return Err(error.clone());
+        if let Some(error) = self.validation_error.clone().or_else(|| self.access_error.clone()) {
+            return Err(error);
         }
         let name = display_for(&self.agent);
         let resume = self.lock().as_ref().and_then(|s| s.core.session_id()).or_else(|| self.resume.clone());
         let mut core = AcpCore::new(&self.backend, &name, self.cwd.clone(), self.mcp.clone(), resume);
         core.question = self.question;
         core.sign_in_fix = self.adapter.sign_in_fix();
+        core.typed_mcp = self.adapter.acp_mcp_stdio_type();
+        core.config_queue = VecDeque::from(self.session_config.clone());
         if self.approver.is_some() {
             core = core.deciding();
         }
@@ -673,6 +767,8 @@ impl AcpConversation {
             .process(&self.program)
             .args(&self.args)
             .cwd(&self.cwd)
+            // Our own CLI, started from inside the agent, calls tools as an agent (not the person).
+            .env(craft_anything_engine::AGENT_ENV, "1")
             .stdin(StdinMode::Piped)
             // One process serves the whole chat; a builder turn may take hours.
             .timeout(Duration::from_secs(24 * 3600))
@@ -859,12 +955,14 @@ mod tests {
 
     #[test]
     fn model_metadata_deadlines_name_the_current_agent() {
-        for (agent, name) in [("gemini-cli", "Gemini CLI"), ("copilot", "GitHub Copilot")] {
+        for (agent, name) in [("gemini-cli", "Gemini CLI"), ("copilot", "GitHub Copilot"), ("grok", "Grok Build")] {
             let mcp = McpCommand { command: "not-started".into(), args: Vec::new(), notes: None };
             let conversation = AcpConversation::new("Test", agent, "not-started".into(), Vec::new(), PathBuf::new(), mcp, None);
             let error = conversation.model_metadata_timeout();
             assert_eq!(error.message, format!("{name} did not list its models before the deadline."));
-            assert_eq!(error.remediation.unwrap().contains("copilot login"), agent == "copilot");
+            let fix = error.remediation.unwrap();
+            assert_eq!(fix.contains("copilot login"), agent == "copilot");
+            assert_eq!(fix.contains("grok login"), agent == "grok");
         }
     }
 
@@ -905,6 +1003,7 @@ mod tests {
         assert_eq!(new[0]["method"], "session/new");
         assert_eq!(new[0]["params"]["cwd"], "/w/project");
         assert_eq!(new[0]["params"]["mcpServers"][0]["name"], "craft-anything");
+        assert!(new[0]["params"]["mcpServers"][0].get("type").is_none(), "only an adapter that asks sends type");
         assert_eq!(new[0]["params"]["mcpServers"][0]["env"], json!([]));
         let prompt = sent(&c.line(r#"{"jsonrpc":"2.0","id":2,"result":{"sessionId":"s-1"}}"#));
         assert_eq!(prompt[0]["method"], "session/prompt");
@@ -1191,6 +1290,168 @@ printf '{"jsonrpc":"2.0","id":%s,"result":{"stopReason":"end_turn"}}\n' "$prompt
         };
         let Some(c) = super::super::acp_for(&super::super::CliSpec::new(config, options, false, None)) else { panic!("Maki speaks ACP") };
         assert_eq!((c.program.as_str(), c.args.as_slice()), ("maki", &["--no-plugins", "acp", "-m", "anthropic/claude-sonnet-4-6"].map(String::from)[..]));
+        assert!(!c.adapter.acp_mcp_stdio_type());
+    }
+
+    /// Grok's server enum needs `"type": "stdio"`. A session for any other agent leaves it off,
+    /// and a question still attaches no server.
+    #[test]
+    fn only_grok_sends_a_typed_stdio_server() {
+        let mut plain = core(None);
+        plain.start();
+        let untyped = sent(&plain.line(r#"{"jsonrpc":"2.0","id":1,"result":{"agentCapabilities":{"loadSession":true}}}"#));
+        assert_eq!(untyped[0]["method"], "session/new");
+        assert!(untyped[0]["params"]["mcpServers"][0].get("type").is_none());
+
+        let mut grok = core(None);
+        grok.typed_mcp = true;
+        grok.start();
+        let typed = sent(&grok.line(r#"{"jsonrpc":"2.0","id":1,"result":{"agentCapabilities":{"loadSession":true}}}"#));
+        assert_eq!(typed[0]["params"]["mcpServers"][0]["type"], "stdio");
+        assert_eq!(typed[0]["params"]["mcpServers"][0]["name"], "craft-anything");
+
+        let mut question = core(None);
+        question.question = true;
+        question.typed_mcp = true;
+        question.start();
+        let asked = sent(&question.line(r#"{"jsonrpc":"2.0","id":1,"result":{}}"#));
+        assert_eq!(asked[0]["params"]["mcpServers"], json!([]));
+    }
+
+    /// `grok agent [flags] stdio`: the model flag and `--no-leader` sit between `agent` and `stdio`.
+    #[test]
+    fn a_grok_backend_runs_agent_then_its_flags_then_stdio() {
+        let options = crate::BackendOptions { cli_model: Some("grok-4.6".into()), cli_thinking: Some(crate::Effort::Low), ..Default::default() };
+        let Some(c) = super::super::acp_for(&super::super::CliSpec::new(grok_config(), options, false, None)) else { panic!("Grok speaks ACP") };
+        assert_eq!(
+            (c.program.as_str(), c.args.as_slice()),
+            ("grok", &["agent", "--model", "grok-4.6", "--no-leader", "--reasoning-effort", "low", "stdio"].map(String::from)[..])
+        );
+        assert_eq!(c.session_config, [("model".into(), "grok-4.6".into()), ("reasoning_effort".into(), "low".into())]);
+        assert!(!c.args.iter().any(|arg| arg.contains("always-approve") || arg.contains("yolo")));
+
+        let quiet = crate::BackendOptions::default();
+        let Some(plain) = super::super::acp_for(&super::super::CliSpec::new(grok_config(), quiet.clone(), false, None)) else { panic!("Grok speaks ACP") };
+        assert_eq!(plain.args, ["agent", "--no-leader", "stdio"]);
+        assert!(plain.session_config.is_empty());
+        assert!(plain.adapter.acp_mcp_stdio_type());
+        // A chat that is not deep is Clean room. Grok cannot hold that, so the run is refused
+        // before the process starts. The argv is still the one a deep build uses.
+        assert!(plain.access_error.as_ref().is_some_and(|error| error.message.contains("Clean room")));
+
+        let mut question = super::super::CliSpec::new(
+            grok_config(),
+            crate::BackendOptions { cli_model: Some("grok-4.5".into()), effort: Some(crate::Effort::Medium), ..Default::default() },
+            false,
+            None,
+        );
+        question.question = true;
+        let Some(asked) = super::super::acp_for(&question) else { panic!("Grok answers questions") };
+        assert_eq!(asked.args, ["agent", "--model", "grok-4.5", "--no-leader", "--reasoning-effort", "medium", "stdio"]);
+        assert!(asked.question);
+        assert!(asked.access_error.as_ref().is_some_and(|error| error.message.contains("question")));
+        assert_eq!(asked.session_config, [("model".into(), "grok-4.5".into()), ("reasoning_effort".into(), "medium".into())]);
+
+        // Deep chat is analysis only. Grok can still edit when it never asks, so that run is refused too.
+        let mut chat = super::super::CliSpec::new(grok_config(), crate::BackendOptions::default(), false, None);
+        chat.deep = true;
+        let Some(analyse) = super::super::acp_for(&chat) else { panic!("Grok speaks ACP") };
+        assert!(analyse.access_error.as_ref().is_some_and(|error| error.message.contains("deep chat")));
+        assert_eq!(analyse.args, ["agent", "--no-leader", "stdio"]);
+
+        let mut deep = super::super::CliSpec::new(grok_config(), quiet, false, None);
+        deep.deep = true;
+        deep.builder = Some(super::super::Builder { investigation: None, inbox: std::env::temp_dir() });
+        let Some(build) = super::super::acp_for(&deep) else { panic!("a deep build is allowed") };
+        assert!(build.access_error.is_none() && build.validation_error.is_none());
+        assert_eq!(build.args, ["agent", "--no-leader", "stdio"]);
+
+        let blocked = crate::BackendOptions { args: vec!["--always-approve".into()], ..Default::default() };
+        let Some(refused) = super::super::acp_for(&super::super::CliSpec::new(grok_config(), blocked, false, None)) else { panic!("Grok speaks ACP") };
+        assert_eq!(refused.args, ["agent", "--no-leader", "stdio"]);
+        assert!(refused.validation_error.is_some());
+
+        let mut remote = grok_config();
+        remote.ssh_host = Some("other-computer".into());
+        assert!(super::super::acp_for(&super::super::CliSpec::new(remote, crate::BackendOptions::default(), false, None)).is_none());
+        let off = crate::BackendOptions { acp: Some(false), ..Default::default() };
+        assert!(super::super::acp_for(&super::super::CliSpec::new(grok_config(), off, false, None)).is_none());
+    }
+
+    fn grok_config() -> crate::BackendConfig {
+        crate::BackendConfig { name: "Grok".into(), kind: crate::BackendKind::AgentCli, model: "grok".into(), base_url: None, ssh_host: None, enabled: true }
+    }
+
+    fn session_opened(model: &str, effort: &str) -> String {
+        json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+                "sessionId": "s-1",
+                "models": {"currentModelId": model, "availableModels": [{"modelId": "grok-4.7"}, {"modelId": "grok-4.6"}]},
+                "configOptions": [
+                    {"id": "model", "currentValue": model, "options": [{"value": "grok-4.7", "name": "Grok 4.7"}, {"value": "grok-4.6", "name": "Grok 4.6"}]},
+                    {"id": "reasoning_effort", "category": "thought_level", "currentValue": effort, "options": [{"value": "low", "name": "Low"}, {"value": "high", "name": "High"}]}
+                ]
+            }
+        })
+        .to_string()
+    }
+
+    fn config_reply(id: u64, model: &str, effort: &str) -> String {
+        json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "result": {"configOptions": [
+                {"id": "model", "currentValue": model},
+                {"id": "reasoning_effort", "currentValue": effort, "options": [{"value": "low", "name": "Low"}, {"value": "medium", "name": "Medium"}, {"value": "high", "name": "High"}]}
+            ]}
+        })
+        .to_string()
+    }
+
+    /// The CLI model flag does not stick after `session/new`. Overrides go out before the prompt,
+    /// a value the session already has is skipped, and the session id is kept.
+    #[test]
+    fn session_config_is_applied_before_the_prompt_and_a_matching_value_is_skipped() {
+        let mut c = core(None);
+        c.config_queue = VecDeque::from([("model".into(), "grok-4.6".into()), ("reasoning_effort".into(), "low".into())]);
+        c.prompt("Build it.");
+        c.line(r#"{"jsonrpc":"2.0","id":1,"result":{"agentCapabilities":{"loadSession":true}}}"#);
+        let first = sent(&c.line(&session_opened("grok-4.7", "high")));
+        assert_eq!(first[0]["method"], "session/set_config_option");
+        assert_eq!(first[0]["params"], json!({"sessionId": "s-1", "configId": "model", "value": "grok-4.6"}));
+        assert!(!c.ready, "the picker waits until the override lands");
+        assert_eq!(c.models, ["grok-4.7", "grok-4.6"]);
+        let second = sent(&c.line(&config_reply(3, "grok-4.6", "high")));
+        assert_eq!(second[0]["params"], json!({"sessionId": "s-1", "configId": "reasoning_effort", "value": "low"}));
+        assert_eq!(c.current_model, "grok-4.6");
+        assert_eq!(c.session_id().as_deref(), Some("s-1"), "a config reply does not carry the session id");
+        let prompt = sent(&c.line(&config_reply(4, "grok-4.6", "low")));
+        assert_eq!(prompt[0]["method"], "session/prompt");
+        assert_eq!(prompt[0]["params"]["prompt"][0]["text"], "Build it.");
+        assert!(c.ready);
+        assert_eq!(c.models, ["grok-4.7", "grok-4.6"], "the session's model list stays");
+
+        let mut same = core(None);
+        same.config_queue = VecDeque::from([("model".into(), "grok-4.7".into()), ("reasoning_effort".into(), "low".into())]);
+        same.prompt("Hi");
+        same.line(r#"{"jsonrpc":"2.0","id":1,"result":{}}"#);
+        let only_effort = sent(&same.line(&session_opened("grok-4.7", "high")));
+        assert_eq!(only_effort.len(), 1);
+        assert_eq!(only_effort[0]["params"]["configId"], "reasoning_effort");
+        assert_eq!(only_effort[0]["params"]["value"], "low");
+
+        let mut failed = core(None);
+        failed.config_queue = VecDeque::from([("model".into(), "missing".into())]);
+        failed.prompt("Hi");
+        failed.line(r#"{"jsonrpc":"2.0","id":1,"result":{}}"#);
+        failed.line(&session_opened("grok-4.7", "high"));
+        let outs = failed.line(r#"{"jsonrpc":"2.0","id":3,"error":{"code":-32602,"message":"unknown model"}}"#);
+        assert_eq!(failed.failure, Some(TurnFailure::new(FailureKind::Configuration)));
+        assert!(outs.contains(&Out::TurnEnded));
+        assert!(!failed.ready);
+        assert!(sent(&outs).is_empty(), "a failed override does not prompt");
     }
 
     #[test]

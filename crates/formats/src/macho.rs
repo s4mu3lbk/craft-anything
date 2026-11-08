@@ -144,6 +144,23 @@ fn platform_name(p: u32) -> &'static str {
     }
 }
 
+/// Fixed bytes required before decoding a known load command's fields.
+pub(crate) fn load_command_min_size(cmd: u32) -> usize {
+    match cmd {
+        0x1 => 56,
+        0x2 | 0x1b | 0x2c | 0x32 | 0x8000_0028 => 24,
+        0x5 => 16,
+        0xb => 80,
+        0xc | 0xd | 0x20 | 0x8000_0018 | 0x8000_001f | 0x8000_0023 => 24,
+        0xe | 0xf | 0x12 | 0x13 | 0x14 | 0x15 | 0x27 | 0x8000_001c => 12,
+        0x19 => 72,
+        0x1d | 0x1e | 0x24 | 0x25 | 0x26 | 0x29 | 0x2a | 0x2b | 0x2e | 0x2f | 0x30 | 0x8000_0033 | 0x8000_0034 => 16,
+        0x21 => 20,
+        0x22 | 0x8000_0022 => 48,
+        _ => 8,
+    }
+}
+
 fn nibble_version(v: u32) -> String {
     format!("{}.{}.{}", v >> 16, (v >> 8) & 0xff, v & 0xff)
 }
@@ -161,8 +178,13 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
         return;
     }
     let ncmds = r.u32_le(16).unwrap_or(0) as usize;
+    let sizeofcmds = r.u32_le(20).unwrap_or(0) as usize;
     let header_flags = r.u32_le(24).unwrap_or(0);
-    let mut pos = if is64 { 32 } else { 28 };
+    let mut pos: usize = if is64 { 32 } else { 28 };
+    let limit = pos.saturating_add(sizeofcmds).min(data.len());
+    if sizeofcmds > data.len().saturating_sub(pos) {
+        b.warnings.push("sizeofcmds runs past the end of the file".into());
+    }
     let mut sections = Vec::new();
     let mut segments = Vec::new();
     let mut symtab = None;
@@ -173,6 +195,10 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
     let mut cmds_json = Vec::new();
     let mut libs = Vec::new();
     for _ in 0..ncmds.min(MAX_CMDS) {
+        if pos.checked_add(8).is_none_or(|end| end > limit) {
+            b.warnings.push("load command header runs past sizeofcmds; stopped".into());
+            break;
+        }
         let (Some(cmd), Some(size)) = (r.u32_le(pos), r.u32_le(pos + 4)) else {
             b.warnings.push("load commands cut short".into());
             break;
@@ -182,12 +208,23 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
             b.warnings.push("a load command has a size below 8; stopped".into());
             break;
         }
+        let Some(end) = pos.checked_add(size).filter(|&end| end <= limit) else {
+            b.warnings.push("a load command runs past sizeofcmds; stopped".into());
+            break;
+        };
         if cmds_json.len() < 512 {
             cmds_json.push(json!({"cmd": load_command_name(cmd), "size": size}));
         }
+        let minimum = load_command_min_size(cmd);
+        if size < minimum {
+            b.warnings.push(format!("{} needs at least {minimum} bytes; skipped its fields", load_command_name(cmd)));
+            pos = end;
+            continue;
+        }
+        let r = Reader::new(data.get(..end).unwrap_or(&[]));
         let str_at = |field: usize| -> Option<String> {
             let o = r.u32_le(pos + field)? as usize;
-            if o >= size {
+            if o < minimum || o >= size {
                 return None;
             }
             r.cstr(pos + o, size - o)
@@ -200,11 +237,12 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
                 let fileoff = if cmd == 0x19 { r.u64_le(pos + fo) } else { r.u32_le(pos + fo).map(u64::from) }.unwrap_or(0);
                 segments.push(MSegment { name, vmaddr, fileoff });
                 let nsects = r.u32_le(pos + ns).unwrap_or(0) as usize;
-                for i in 0..nsects.min(256) {
+                let complete = (size - sh) / shsize;
+                if nsects > complete {
+                    b.warnings.push("segment section headers run past the load command; reading complete headers".into());
+                }
+                for i in 0..nsects.min(256).min(complete) {
                     let o = pos + sh + i * shsize;
-                    if o + shsize > pos + size {
-                        break;
-                    }
                     let (addr, sz, flags_o) = if cmd == 0x19 {
                         (r.u64_le(o + 32), r.u64_le(o + 40), 64)
                     } else {
@@ -283,10 +321,7 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
             }
             _ => {}
         }
-        pos = match pos.checked_add(size) {
-            Some(p) => p,
-            None => break,
-        };
+        pos = end;
     }
     b.libraries = libs;
     if b.mitigations.code_signature.is_none() {
@@ -309,15 +344,24 @@ pub fn enrich(data: &[u8], b: &mut Binary) {
     }
     // Function starts: ULEB deltas from the start of __TEXT.
     if let (Some((off, size)), Some(t)) = (fstarts, &text) {
-        let mut o = off as usize;
+        let start = off as usize;
         let end = (off as usize).saturating_add(size as usize).min(data.len());
+        let starts = Reader::new(data.get(start..end).unwrap_or(&[]));
+        let mut o = 0;
         let mut addr = t.vmaddr;
-        while o < end && b.function_starts.len() < 2_000_000 {
-            let Some((delta, n)) = r.uleb128(o) else { break };
+        while o < starts.len() && b.function_starts.len() < 2_000_000 {
+            let Some((delta, n)) = starts.uleb128(o) else {
+                b.warnings.push("function-start delta is cut short or invalid".into());
+                break;
+            };
             if delta == 0 {
                 break;
             }
-            addr = addr.wrapping_add(delta);
+            let Some(next) = addr.checked_add(delta) else {
+                b.warnings.push("function-start address overflows".into());
+                break;
+            };
+            addr = next;
             b.function_starts.push(addr);
             o += n;
         }

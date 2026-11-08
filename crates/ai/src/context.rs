@@ -35,6 +35,7 @@ pub fn estimate_tokens(history: &[Msg]) -> u64 {
             Block::Thinking { thinking, .. } => thinking.len(),
             Block::RedactedThinking { data } => data.len(),
             Block::ToolUse { input, name, .. } => name.len() + input.to_string().len(),
+            Block::ToolExtra { extra, .. } => extra.to_string().len(),
             Block::ToolResult { content, .. } => content.len(),
         })
         .sum();

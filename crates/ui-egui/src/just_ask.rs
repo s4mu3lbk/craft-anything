@@ -52,6 +52,8 @@ pub fn question_in(text: &str, just_ask: bool) -> Result<Option<String>, String>
     match slash::read(text) {
         Typed::Command(Command::Btw, "") => Err(tr("Type your question after /btw.")),
         Typed::Command(Command::Btw, question) => Ok(Some(question.to_string())),
+        // Not a question: the prompt box hands it to `approvals::command_in` before asking here.
+        Typed::Command(Command::Approvals, _) => Ok(None),
         Typed::Unknown(name) => Err(trf("There's no /{name} command. You can use {commands}.", &[("name", name), ("commands", &slash::names())])),
         Typed::Message => Ok(Some(text.trim()).filter(|t| just_ask && !t.is_empty()).map(str::to_string)),
     }
@@ -106,6 +108,9 @@ impl CraftApp {
                 if let Some(slot) = self.waiting_question(&root, Some(q)) {
                     slot.answer = Some(Ok(answer));
                     slot.reveal = true;
+                }
+                if let Some(notice) = a["builder_notice"].as_str() {
+                    self.toast(notice.to_string(), false);
                 }
                 if let Some(why) = v["not_kept"].as_str() {
                     self.toast(format!("{} {why}", tr("This answer won't be there after a restart:")), true);
@@ -211,6 +216,23 @@ mod tests {
         assert_eq!(out[0].pictures, pics);
         assert_eq!(out[1].text, "/btw where are the files");
         assert!(out[1].pictures.is_empty());
+    }
+
+    #[test]
+    fn a_question_answered_by_a_replacement_says_so() {
+        let mut app = crate::demo::app(crate::demo::engine(craft_anything_engine::Mode::Beginner, true));
+        app.question_done(Ok(serde_json::json!({
+            "project": "/tmp/example",
+            "question": "where?",
+            "answered": {
+                "answer": "In app.",
+                "from": "the_files",
+                "backend": "Claude",
+                "builder_notice": "The AI chosen for this project (Off) is turned off or no longer set up. Claude builds instead."
+            },
+            "not_kept": null
+        })));
+        assert!(app.state.toasts.iter().any(|(t, err)| !*err && t.contains("Off") && t.contains("Claude")), "{:?}", app.state.toasts);
     }
 
     #[test]

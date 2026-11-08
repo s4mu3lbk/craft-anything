@@ -89,16 +89,20 @@ pub fn headers(data: &[u8]) -> Result<PeHeaders, FormatError> {
     let opt_size = usize::from(t(r.u16_le(coff + 16))?);
     let characteristics = t(r.u16_le(coff + 18))?;
     let opt = coff + 20;
-    let magic = r.u16_le(opt).ok_or_else(|| FormatError::Truncated("optional header".into()))?;
+    let optional = Reader::new(r.slice(opt, opt_size).ok_or_else(|| FormatError::Truncated("optional header".into()))?);
+    let magic = optional.u16_le(0).ok_or_else(|| FormatError::Truncated("optional header".into()))?;
     let pe32_plus = match magic {
         0x20b => true,
         0x10b => false,
         m => return Err(FormatError::Malformed(format!("optional header magic {m:#x}"))),
     };
-    let image_base = if pe32_plus { r.u64_le(opt + 24) } else { r.u32_le(opt + 28).map(u64::from) }.unwrap_or(0);
-    let (dd, count_off) = if pe32_plus { (opt + 112, opt + 108) } else { (opt + 96, opt + 92) };
-    let count = (r.u32_le(count_off).unwrap_or(0) as usize).min(16);
-    let data_dirs = (0..count).map(|i| (r.u32_le(dd + i * 8).unwrap_or(0), r.u32_le(dd + i * 8 + 4).unwrap_or(0))).collect();
+    let (dd, count_off) = if pe32_plus { (112, 108) } else { (96, 92) };
+    if opt_size < dd {
+        return Err(FormatError::Truncated("fixed optional header fields".into()));
+    }
+    let image_base = if pe32_plus { optional.u64_le(24) } else { optional.u32_le(28).map(u64::from) }.unwrap_or(0);
+    let count = (optional.u32_le(count_off).unwrap_or(0) as usize).min(16).min((opt_size - dd) / 8);
+    let data_dirs = (0..count).map(|i| (optional.u32_le(dd + i * 8).unwrap_or(0), optional.u32_le(dd + i * 8 + 4).unwrap_or(0))).collect();
     let sh = opt + opt_size;
     let mut sections = Vec::new();
     for i in 0..nsections.min(96) {
@@ -121,10 +125,10 @@ pub fn headers(data: &[u8]) -> Result<PeHeaders, FormatError> {
         characteristics,
         pe32_plus,
         image_base,
-        entry_rva: r.u32_le(opt + 16).unwrap_or(0),
-        subsystem: r.u16_le(opt + 68).unwrap_or(0),
-        dll_characteristics: r.u16_le(opt + 70).unwrap_or(0),
-        linker: (r.u8(opt + 2).unwrap_or(0), r.u8(opt + 3).unwrap_or(0)),
+        entry_rva: optional.u32_le(16).unwrap_or(0),
+        subsystem: optional.u16_le(68).unwrap_or(0),
+        dll_characteristics: optional.u16_le(70).unwrap_or(0),
+        linker: (optional.u8(2).unwrap_or(0), optional.u8(3).unwrap_or(0)),
         data_dirs,
         sections,
     })
@@ -726,9 +730,42 @@ fn utf16_at(r: &Reader<'_>, off: usize, units: usize) -> Option<String> {
 pub fn parse_resources(data: &[u8], max_entries: usize) -> Result<Resources, FormatError> {
     let h = headers(data)?;
     let mut res = Resources::default();
-    let Some((rva, _size)) = h.dir(2) else { return Ok(res) };
+    let Some((rva, size)) = h.dir(2) else { return Ok(res) };
     let base = h.rva_to_offset(rva).ok_or_else(|| FormatError::Malformed("resource directory is not in the file".into()))?;
-    let r = Reader::new(data);
+    let available = data.get(base..).ok_or_else(|| FormatError::Truncated("resource directory".into()))?;
+    // Keep resource metadata inside the initial RVA mapping.
+    let next_section_distance = |count: usize| {
+        h.sections
+            .iter()
+            .take(count)
+            .filter(|s| s.virtual_size.max(s.raw_size) > 0)
+            .filter_map(|s| s.rva.checked_sub(rva))
+            .filter(|&distance| distance > 0)
+            .min()
+            .unwrap_or(u32::MAX)
+    };
+    let mapped_len = match h.sections.iter().enumerate().find(|(_, s)| rva.checked_sub(s.rva).is_some_and(|delta| delta < s.virtual_size.max(s.raw_size))) {
+        Some((index, s)) => rva.checked_sub(s.rva).and_then(|delta| s.raw_size.checked_sub(delta)).map(|len| len.min(next_section_distance(index))),
+        None => {
+            let first = h.sections.iter().map(|s| s.raw_offset).filter(|&o| o > 0).min().unwrap_or(u32::MAX);
+            first.checked_sub(rva).map(|len| len.min(next_section_distance(h.sections.len())))
+        }
+    }
+    .map(u64::from)
+    .and_then(|len| {
+        let address_end = u64::from(u32::MAX) + 1;
+        let remaining_rvas = address_end.checked_sub(u64::from(rva))?;
+        let remaining_offsets = address_end.checked_sub(u64::try_from(base).ok()?)?;
+        usize::try_from(len.min(remaining_rvas).min(remaining_offsets)).ok()
+    })
+    .ok_or_else(|| FormatError::Malformed("resource directory is not in the file".into()))?;
+    if size as usize > available.len() {
+        res.warnings.push("resource directory runs past the end of the file; reading the available bytes".into());
+    }
+    if size as usize > mapped_len {
+        res.warnings.push("resource directory runs past its mapped extent; reading the available bytes".into());
+    }
+    let r = Reader::new(available.get(..(size as usize).min(mapped_len).min(available.len())).unwrap_or(&[]));
     let mut visited = BTreeSet::new();
     // (dir offset relative to base, depth, path)
     type Path = Vec<(Option<u32>, String)>;
@@ -738,19 +775,31 @@ pub fn parse_resources(data: &[u8], max_entries: usize) -> Result<Resources, For
             res.warnings.push("resource directory loops or nests too deep; skipped a branch".into());
             continue;
         }
-        let at = base.saturating_add(dir);
+        let at = dir;
         let (Some(named), Some(ids)) = (r.u16_le(at + 12), r.u16_le(at + 14)) else {
             res.warnings.push("resource directory cut short".into());
             continue;
         };
         let n = usize::from(named) + usize::from(ids);
-        for i in (0..n).rev() {
+        let complete = r.len().saturating_sub(at + 16) / 8;
+        if n > complete {
+            res.warnings.push("resource directory entries cut short".into());
+        }
+        for i in (0..n.min(complete)).rev() {
             let e = at + 16 + i * 8;
             let (Some(name), Some(target)) = (r.u32_le(e), r.u32_le(e + 4)) else { break };
             let label = if name & 0x8000_0000 != 0 {
-                let so = base.saturating_add((name & 0x7fff_ffff) as usize);
-                let len = usize::from(r.u16_le(so).unwrap_or(0));
-                (None, utf16_at(&r, so + 2, len).unwrap_or_default())
+                let so = (name & 0x7fff_ffff) as usize;
+                let Some(label) = r.u16_le(so).and_then(|len| {
+                    let start = so.checked_add(2)?;
+                    let units = usize::from(len);
+                    r.slice(start, units.checked_mul(2)?)?;
+                    utf16_at(&r, start, units)
+                }) else {
+                    res.warnings.push("resource name runs past the directory; skipped an entry".into());
+                    continue;
+                };
+                (None, label)
             } else {
                 (Some(name), name.to_string())
             };
@@ -763,7 +812,11 @@ pub fn parse_resources(data: &[u8], max_entries: usize) -> Result<Resources, For
                     res.truncated = true;
                     continue;
                 }
-                let de = base.saturating_add(target as usize);
+                let de = target as usize;
+                if r.slice(de, 16).is_none() {
+                    res.warnings.push("resource data entry runs past the directory; skipped an entry".into());
+                    continue;
+                }
                 let (Some(drva), Some(dsize)) = (r.u32_le(de), r.u32_le(de + 4)) else { continue };
                 let (type_id, type_label) = p.first().cloned().unwrap_or((None, String::new()));
                 let type_name = match type_id {

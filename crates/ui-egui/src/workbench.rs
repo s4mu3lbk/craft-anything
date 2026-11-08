@@ -111,8 +111,10 @@ pub fn show(app: &mut CraftApp, ui: &mut Ui) {
         .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin { left: 8, right: 10, top: 10, bottom: 8 }))
         .show(ui, |ui| crate::guard_ui(ui, "inspector", |ui| right(app, ui)));
     let mut open = app.state.bottom_open;
-    egui::Panel::bottom("wb-bottom")
-        .default_size(240.0)
+    // A new id: nobody could resize the old one, so its saved sizes were never anyone's choice.
+    egui::Panel::bottom("wb-console")
+        .resizable(true)
+        .default_size(280.0)
         .size_range(120.0..=600.0)
         .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin { left: 8, right: 10, top: 4, bottom: 8 }))
         .show_collapsible(ui, &mut open, |ui| crate::guard_ui(ui, "bottom", |ui| bottom(app, ui)));
@@ -881,8 +883,10 @@ fn status_line(app: &CraftApp, ui: &mut Ui) {
     let t = Tokens::get(ui.ctx());
     let n = app.jobs.running().filter(|j| j.visible).count();
     let text = if n > 0 { crate::i18n::trf("{n} job(s) running", &[("n", &n.to_string())]) } else { tr("Ready") };
-    ui.label(RichText::new(text).color(t.text_faint).size(theme::CAPTION));
-    ui.label(RichText::new(format!("· {} {}", app.view.findings.len(), tr("findings"))).color(t.text_faint).size(theme::CAPTION));
+    // One label that shortens: in a narrow console, two would run over the tabs beside them. The
+    // count goes first so it's what stays; the Jobs tab's title also says how many are running.
+    let text = format!("{} {} · {text}", app.view.findings.len(), tr("findings"));
+    ui.add(egui::Label::new(RichText::new(text).color(t.text_faint).size(theme::CAPTION)).truncate());
 }
 
 fn bottom(app: &mut CraftApp, ui: &mut Ui) {

@@ -374,6 +374,12 @@ impl<'a> Marshal<'a> {
         let (digit_pairs, _) = raw.as_chunks::<2>();
         for (i, pair) in digit_pairs.iter().enumerate() {
             let digit = i64::from(u16::from_le_bytes(*pair));
+            if digit > 0x7fff {
+                return Err(bad("a long integer digit exceeds 15 bits"));
+            }
+            if i + 1 == digits && digit == 0 {
+                return Err(bad("a long integer has a zero leading digit"));
+            }
             let shift = u32::try_from(i).ok().and_then(|i| i.checked_mul(15)).filter(|s| *s < 62);
             value = value.and_then(|v| {
                 let shift = shift?;

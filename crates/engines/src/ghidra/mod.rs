@@ -422,6 +422,114 @@ fn lock_is_fresh(lock: &Path) -> bool {
     std::fs::metadata(lock).and_then(|m| m.modified()).is_ok_and(|t| t.elapsed().is_ok_and(|age| age < LOCK_STALE))
 }
 
+/// A project folder a stale lock was guarding, moved out of the way instead of removed: a Ghidra
+/// that outlived the app that started it keeps writing into its own folder, not into the one this
+/// analysis is about to fill (#951). Dropping it frees the room once this analysis has its own.
+struct Aside(PathBuf);
+
+impl Drop for Aside {
+    /// Free the room once this analysis has a folder of its own.
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Move `project_dir` aside if anything is there, and say where. Fails where the folder cannot be
+/// moved — Windows refuses while a process has files open in it — which is exactly the case a
+/// caller must read as *another analysis is still going* rather than as *nothing to do*.
+fn set_aside(project_dir: &Path) -> std::io::Result<Option<Aside>> {
+    if !project_dir.exists() {
+        return Ok(None);
+    }
+    let token = random_token();
+    let aside = project_dir.with_extension(format!("orphaned-{}", token.get(..8).unwrap_or(&token)));
+    match std::fs::rename(project_dir, &aside) {
+        Ok(()) => Ok(Some(Aside(aside))),
+        // Gone between the check and the move: nothing to move, not a reason to wait.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+/// Whether a refused move may pass: Windows reports a folder it has open files in as a permission
+/// and an antivirus holding a handle looks the same for a moment.
+/// Anything else — a path we cannot even name — is the caller's to hear now, not after a timeout.
+fn move_may_pass(e: &std::io::Error) -> bool {
+    matches!(e.kind(), std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::WouldBlock)
+}
+
+/// The error for a move that cannot pass: the lock goes back first, because left behind it reads
+/// to every other process as an analysis in progress. What the person hears is the move, and a
+/// lock that also cannot be released is named beside it rather than hiding it.
+fn refuse_move(lock: &Path, project_dir: &Path, refusal: &std::io::Error) -> GhidraError {
+    let moving = format!("moving {} out of the way: {refusal}", project_dir.display());
+    match release(lock) {
+        Ok(()) => GhidraError::Launch(moving),
+        // The second reason without the outer "could not start Ghidra", which would read twice.
+        Err(GhidraError::Launch(also)) => GhidraError::Launch(format!("{moving}; and {also}")),
+        Err(other) => GhidraError::Launch(format!("{moving}; and {other}")),
+    }
+}
+
+/// Give the analysis lock back. A lock this process cannot release would read to everyone else as
+/// an analysis in progress, so it ends the attempt with the reason instead of waiting it out.
+fn release(lock: &Path) -> Result<(), GhidraError> {
+    match std::fs::remove_file(lock) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(GhidraError::Launch(format!("releasing the analysis lock {}: {e}", lock.display()))),
+    }
+}
+
+/// The start of the folder names Ghidra gives this system's native programs (`mac_arm_64`, ...).
+/// None where we don't know them, so nothing is refused there.
+fn native_folder_prefix() -> Option<&'static str> {
+    if cfg!(target_os = "macos") {
+        Some("mac_")
+    } else if cfg!(target_os = "linux") {
+        Some("linux_")
+    } else if cfg!(windows) {
+        Some("win_")
+    } else {
+        None
+    }
+}
+
+/// Whether an install at `root` has a decompiler for a system whose folders start with `prefix`.
+/// Ghidra's public releases leave macOS out, and building them puts them under `build/os`.
+/// An install laid out in a way we don't recognise counts as having one: Ghidra then decides.
+fn has_decompiler_for(root: &Path, prefix: &str) -> bool {
+    let decompiler = root.join("Ghidra").join("Features").join("Decompiler");
+    let shipped = decompiler.join("os");
+    if !shipped.is_dir() {
+        return true;
+    }
+    [shipped, decompiler.join("build").join("os")].iter().any(|folder| {
+        std::fs::read_dir(folder).is_ok_and(|entries| {
+            entries
+                .flatten()
+                .any(|e| e.file_name().to_string_lossy().starts_with(prefix) && ["decompile", "decompile.exe"].iter().any(|exe| e.path().join(exe).is_file()))
+        })
+    })
+}
+
+/// Stops before a long analysis that couldn't lead to pseudo-code: without its decompiler program
+/// Ghidra analyses for as long as ever and then answers nothing.
+fn check_decompiler(analyze_headless: &Path) -> Result<(), GhidraError> {
+    let Some(prefix) = native_folder_prefix() else { return Ok(()) };
+    // <install>/support/analyzeHeadless; a linked launcher is followed to the real install.
+    let launcher = std::fs::canonicalize(analyze_headless).unwrap_or_else(|_| analyze_headless.to_path_buf());
+    let Some(root) = launcher.parent().and_then(Path::parent) else { return Ok(()) };
+    if has_decompiler_for(root, prefix) {
+        return Ok(());
+    }
+    let gradle = root.join("support").join("gradle");
+    Err(GhidraError::Launch(format!(
+        "this Ghidra has no decompiler program for this computer, which its public downloads leave out on macOS. Build it once by running `./gradlew buildNatives` in {}",
+        gradle.display()
+    )))
+}
+
 /// Make sure the target is analysed and saved in its cached project, analysing it now if no one
 /// has (a big program can take hours; it happens once). If another process is already analysing
 /// it, wait for that instead of starting over. Returns the cached project folder, as the path to
@@ -435,6 +543,7 @@ pub fn analyse(
     cancel: &Cancel<'_>,
     progress: &Progress<'_>,
 ) -> Result<PathBuf, GhidraError> {
+    check_decompiler(&cfg.analyze_headless)?;
     let started = Instant::now();
     let minutes = || started.elapsed().as_secs() / 60;
     let deadline = started + cfg.startup_timeout;
@@ -443,7 +552,10 @@ pub fn analyse(
     let lock = lock_path(&project_dir);
     // The lock sits beside the project, in the cache folder a fresh store doesn't have yet.
     make_private_dir(lock.parent().unwrap_or(&root))?;
-    loop {
+    // Why a move was refused last, so a timeout says what actually kept this waiting.
+    let mut held_by: Option<String> = None;
+    // The loop ends by handing over what it moved aside, if anything.
+    let kept_aside = loop {
         if is_analysed(&project_dir) {
             return Ok(project_dir);
         }
@@ -451,7 +563,11 @@ pub fn analyse(
             return Err(GhidraError::Cancelled);
         }
         if Instant::now() >= deadline {
-            return Err(GhidraError::Timeout(format!("Ghidra's analysis didn't finish within {} s", cfg.startup_timeout.as_secs())));
+            let why = match &held_by {
+                Some(e) => format!(": the folder an earlier analysis left could not be moved out of the way ({e})"),
+                None => String::new(),
+            };
+            return Err(GhidraError::Timeout(format!("Ghidra's analysis didn't finish within {} s{why}", cfg.startup_timeout.as_secs())));
         }
         if lock_is_fresh(&lock) {
             progress(0.05, &format!("waiting for Ghidra's analysis of this program, started earlier ({} min so far)", minutes()));
@@ -459,21 +575,34 @@ pub fn analyse(
             continue;
         }
         // Stale or none: take it (create_new, so only one of two racing processes wins).
-        let _ = std::fs::remove_file(&lock);
+        release(&lock)?;
         match std::fs::OpenOptions::new().write(true).create_new(true).open(&lock) {
-            Ok(_) => break,
+            Ok(_) => {}
             Err(e) if e.kind() != std::io::ErrorKind::AlreadyExists => {
                 return Err(GhidraError::Launch(format!("taking the analysis lock {}: {e}", lock.display())));
             }
-            Err(_) => {}
+            // Another process won the race: look at the folder again.
+            Err(_) => continue,
         }
-    }
+        // Whatever the dead process left is moved, not removed, so a Ghidra that outlived it keeps
+        // its own folder. A refusal to move it means that Ghidra is still working: wait for it.
+        match set_aside(&project_dir) {
+            Ok(aside) => break aside,
+            Err(e) if !move_may_pass(&e) => return Err(refuse_move(&lock, &project_dir, &e)),
+            Err(e) => {
+                release(&lock)?;
+                held_by = Some(e.to_string());
+                progress(0.05, &format!("waiting for the analysis of this program already under way ({e})"));
+                std::thread::sleep(Duration::from_secs(2));
+            }
+        }
+    };
     let held = HeldLock(lock.clone());
+    let _aside = kept_aside;
     let scratch = Scratch::new(&root, "ghidra-analysis")?;
     let program = format!("target-{}", target_sha256.get(..12).unwrap_or(target_sha256));
     // Beside the saved analysis, so it can be read after a failure.
     let log = project_dir.with_extension("log");
-    remove_soon(&project_dir);
     make_private_dir(&project_dir)?;
     let script_dir = scratch.0.join("scripts");
     make_private_dir(&script_dir)?;
@@ -495,6 +624,8 @@ pub fn analyse(
     let mut last_progress = Instant::now();
     let done = loop {
         if cancel() {
+            // Confirmed here: the caller may be the app closing, and a drop only raises a flag (#946).
+            running.kill_and_wait(Duration::from_secs(10));
             return Err(GhidraError::Cancelled);
         }
         if let Some(r) = running.wait_timeout(Duration::from_millis(500)) {

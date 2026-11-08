@@ -8,10 +8,13 @@ use craft_anything_ui_egui::CraftApp;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[cfg(any(windows, test))]
+mod renderer;
 mod start_guard;
 
-/// Set when the last start never opened its window (see [`start_guard`]): the software renderer
-/// (WARP) is asked for, as with `CRAFT_ANYTHING_RENDERER=software`, for this start only.
+/// Set when this start draws with the software renderer (WARP), as with
+/// `CRAFT_ANYTHING_RENDERER=software`: the renderer chain chose it (see [`renderer`]), or the
+/// environment picks the backend and the last start never opened its window.
 #[cfg(windows)]
 static RETRY_IN_SOFTWARE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
@@ -33,13 +36,15 @@ fn main() -> eframe::Result {
     log_to_file();
     log::info!("starting {} (pid {})", env!("CARGO_PKG_VERSION"), std::process::id());
     // A driver that crashes natively leaves nothing behind but this mark (#74): the start after it
-    // draws without the graphics card, and the one after that is back to normal.
+    // draws another way (on Windows, the next renderer, which is kept once it works).
     let config = craft_anything_engine::settings::config_dir();
-    if start_guard::last_start_failed(&config) {
-        log::warn!("the last start never opened its window; drawing without the graphics card this time");
-        #[cfg(windows)]
-        RETRY_IN_SOFTWARE.store(true, std::sync::atomic::Ordering::Relaxed);
+    let last_failed = start_guard::last_start_failed(&config);
+    if last_failed {
+        log::warn!("the last start never opened its window");
     }
+    // Windows: the way to draw this time, the next one when the last start failed (#794).
+    #[cfg(windows)]
+    let renderer = pick_renderer(&config, last_failed);
     start_guard::begin(&config);
 
     let settings = Settings::load();
@@ -56,10 +61,15 @@ fn main() -> eframe::Result {
         .with_app_id("ai.storyteller.craft-anything")
         .with_inner_size([1360.0, 860.0])
         .with_min_inner_size([760.0, 520.0])
-        // Our own title bar draws the window controls, moves and resizes the window.
-        .with_decorations(false)
         .with_resizable(true)
         .with_drag_and_drop(true);
+    // Our own title bar draws the window controls, moves and resizes the window. macOS keeps its
+    // own buttons and frame instead, with the content reaching under a see-through title bar (#20).
+    let viewport = if cfg!(target_os = "macos") {
+        viewport.with_fullsize_content_view(true).with_titlebar_shown(false).with_title_shown(false)
+    } else {
+        viewport.with_decorations(false)
+    };
     // On macOS a window icon replaces the Dock icon, and the bundle's own icon is the one padded to
     // Apple's icon grid (the full tile looked bigger than other apps', #102). An empty icon keeps
     // the bundle's; no icon at all would bring eframe's own.
@@ -80,7 +90,7 @@ fn main() -> eframe::Result {
         // Intel drivers crash in it (ig9icd64.dll, #196), so the window never opens. Similarly,
         // starting Vulkan loads Intel's Vulkan driver (igvk64.dll, #394) and crashes before any
         // window. DX12 (with WARP) covers all Windows systems; `WGPU_BACKEND` still asks for others.
-        setup.instance_descriptor.backends = windows_backends(eframe::wgpu::Backends::from_env());
+        setup.instance_descriptor.backends = windows_backends(eframe::wgpu::Backends::from_env(), renderer);
         setup.instance_descriptor.backend_options.dx12.shader_compiler = dx12_compiler(eframe::wgpu::Dx12Compiler::from_env());
         setup.native_adapter_selector = Some(Arc::new(pick_adapter));
     }
@@ -119,13 +129,31 @@ fn main() -> eframe::Result {
         Ok(()) => log::info!("closed"),
         Err(e) => {
             log::error!("the window couldn't start: {e}");
+            // A wgpu error before the window was shown, with another renderer still to try: start
+            // again with it at once rather than ask the person to (#794). The chain ends, so this
+            // can't loop.
+            #[cfg(windows)]
+            if !shown.load(std::sync::atomic::Ordering::Relaxed)
+                && let Some(next) = renderer.and_then(|r| renderer::relaunch_with(r, &e.to_string()))
+                && {
+                    start_guard::release();
+                    relaunch(&args)
+                }
+            {
+                log::warn!("starting again with {}", next.title());
+                return run;
+            }
             // Without a window the app would just vanish (#166): say why, and where the log is.
             let log = craft_anything_engine::settings::config_dir().join("desktop.log");
+            #[cfg(windows)]
+            let retry = next_start_note(renderer, shown.load(std::sync::atomic::Ordering::Relaxed));
+            #[cfg(not(windows))]
+            let retry = String::new();
             let _ = rfd::MessageDialog::new()
                 .set_level(rfd::MessageLevel::Error)
                 .set_title("Craft Anything couldn't open its window")
                 .set_description(format!(
-                    "{e}\n\n{} What happened is written to {}; please attach it if you report this.",
+                    "{e}\n\n{}{retry} What happened is written to {}; please attach it if you report this.",
                     graphics_advice(&e.to_string()),
                     log.display()
                 ))
@@ -149,6 +177,17 @@ fn dx12_compiler(from_env: Option<eframe::wgpu::Dx12Compiler>) -> eframe::wgpu::
 #[cfg_attr(all(not(windows), not(test)), expect(dead_code, reason = "only Windows picks its own graphics adapter"))]
 fn wants_software(setting: Option<&str>) -> bool {
     setting.is_some_and(|s| s.trim().eq_ignore_ascii_case("software"))
+}
+
+/// What the error dialog says the next start will do. Only a start whose window was never shown
+/// leaves its mark, so only then does the next start move on to another renderer; after the window
+/// was shown the next start draws as this one did, and the dialog says nothing about it.
+#[cfg(windows)]
+fn next_start_note(renderer: Option<renderer::Renderer>, shown: bool) -> String {
+    match renderer {
+        Some(r) if !shown => format!(" The next start will draw with {}.", renderer::choose(Some(r), true).title()),
+        _ => String::new(),
+    }
 }
 
 /// The result of a run that may have panicked. A panic before the window's first frames were shown
@@ -215,9 +254,50 @@ fn pick_adapter(adapters: &[eframe::wgpu::Adapter], surface: Option<&eframe::wgp
 /// only (#196, #394). Vulkan and GL load third-party driver DLLs (igvk64.dll, ig9icd64.dll) before
 /// an adapter is chosen, which crash on some Intel systems. DX12 (with WARP) covers all Windows
 /// installations; `WGPU_BACKEND=vulkan` or `gl` still asks for them explicitly.
+/// After a start that failed, the renderer chain may have moved on to Vulkan or GL (#794): it is
+/// only reached once DX12 has failed.
 #[cfg(windows)]
-fn windows_backends(from_env: Option<eframe::wgpu::Backends>) -> eframe::wgpu::Backends {
-    from_env.unwrap_or(eframe::wgpu::Backends::DX12)
+fn windows_backends(from_env: Option<eframe::wgpu::Backends>, renderer: Option<renderer::Renderer>) -> eframe::wgpu::Backends {
+    from_env.or(renderer.map(renderer::Renderer::backends)).unwrap_or(eframe::wgpu::Backends::DX12)
+}
+
+/// Windows: the renderer for this start (see [`renderer`]), remembered before the window is asked
+/// for, so a start that dies makes the next one try the next renderer. `None` when
+/// `WGPU_BACKEND` or `CRAFT_ANYTHING_RENDERER` decides; then a failed start only brings WARP, as
+/// before.
+#[cfg(windows)]
+fn pick_renderer(config: &std::path::Path, last_failed: bool) -> Option<renderer::Renderer> {
+    use std::sync::atomic::Ordering;
+    let set = |name: &str| std::env::var_os(name).is_some_and(|v| !v.is_empty());
+    if set("WGPU_BACKEND") || set("CRAFT_ANYTHING_RENDERER") {
+        if last_failed {
+            log::warn!("drawing without the graphics card this time");
+            RETRY_IN_SOFTWARE.store(true, Ordering::Relaxed);
+        }
+        return None;
+    }
+    let version = env!("CARGO_PKG_VERSION");
+    let chosen = renderer::choose(renderer::remembered(config, version), last_failed);
+    renderer::remember(config, version, chosen);
+    RETRY_IN_SOFTWARE.store(chosen.software(), Ordering::Relaxed);
+    if last_failed {
+        log::warn!("drawing with {} ({}), after a start that never opened its window", chosen.title(), chosen.name());
+    } else if chosen != renderer::Renderer::Dx12 {
+        log::info!("drawing with {} ({}), which opened the window last time", chosen.title(), chosen.name());
+    }
+    Some(chosen)
+}
+
+/// Starts the app again with the same arguments; whether it started.
+#[cfg(windows)]
+fn relaunch(args: &[String]) -> bool {
+    let started = std::env::current_exe()
+        .map_err(|e| e.to_string())
+        .and_then(|exe| craft_anything_platform::process::Launch::new(&exe).args(args).label("Craft Anything").start().map_err(|e| e.to_string()));
+    if let Err(e) = &started {
+        log::warn!("couldn't start again: {e}");
+    }
+    started.is_ok()
 }
 
 /// Lower is better: GL last, fastest device first, DX12 before Vulkan only between same-class devices
@@ -266,10 +346,16 @@ mod tests {
     #[test]
     fn gl_and_vulkan_are_only_started_when_asked_for() {
         use eframe::wgpu::Backends;
-        let started = windows_backends(None);
-        assert_eq!(started, Backends::DX12);
-        assert_eq!(windows_backends(Some(Backends::GL)), Backends::GL, "WGPU_BACKEND=gl still works");
-        assert_eq!(windows_backends(Some(Backends::VULKAN)), Backends::VULKAN, "WGPU_BACKEND=vulkan still works");
+        use renderer::Renderer;
+        assert_eq!(windows_backends(None, None), Backends::DX12);
+        assert_eq!(windows_backends(None, Some(Renderer::Dx12)), Backends::DX12);
+        assert_eq!(windows_backends(None, Some(Renderer::Warp)), Backends::DX12, "WARP is a DX12 adapter");
+        assert_eq!(windows_backends(Some(Backends::GL), None), Backends::GL, "WGPU_BACKEND=gl still works");
+        assert_eq!(windows_backends(Some(Backends::VULKAN), None), Backends::VULKAN, "WGPU_BACKEND=vulkan still works");
+        // #794: once DX12 and WARP failed, the chain reaches them without the variable.
+        assert_eq!(windows_backends(None, Some(Renderer::Vulkan)), Backends::VULKAN);
+        assert_eq!(windows_backends(None, Some(Renderer::Gl)), Backends::GL);
+        assert_eq!(windows_backends(Some(Backends::DX12), Some(Renderer::Gl)), Backends::DX12, "the variable wins");
     }
 }
 
@@ -392,5 +478,16 @@ mod graphics_tests {
     #[test]
     fn wants_software_reads_the_setting() {
         assert!(wants_software(Some(" Software ")) && !wants_software(Some("gpu")) && !wants_software(None));
+    }
+
+    /// #909 review: only a start whose window never showed moves on to another renderer, so only
+    /// then does the dialog say the next start will draw differently.
+    #[cfg(windows)]
+    #[test]
+    fn the_dialog_promises_another_renderer_only_before_the_window_was_shown() {
+        use renderer::Renderer;
+        assert_eq!(next_start_note(Some(Renderer::Dx12), false), " The next start will draw with Windows' software renderer.");
+        assert_eq!(next_start_note(Some(Renderer::Dx12), true), "");
+        assert_eq!(next_start_note(None, false), "", "a renderer from the environment is never changed");
     }
 }

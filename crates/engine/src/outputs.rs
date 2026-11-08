@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 /// Where a built site lives in `app`: a build folder with index.html, else a plain static site.
 /// An Electron app's bundled page is its window, not a site.
 pub fn site_dir(app: &Path) -> Option<PathBuf> {
-    if uses_electron(app) {
+    if uses_electron(app) || crate::toolchains::found_in(app).and_then(|t| t.launch(app)).is_some() {
         return None;
     }
     for d in ["dist", "build", "out"] {
@@ -138,6 +138,7 @@ fn cargo_programs(app: &Path) -> Vec<String> {
 
 /// What "Play" starts for a finished game or app: (program, arguments), run from app/. A Godot
 /// project opens in the Godot it was built with, an Electron app in the Electron it installed.
+/// Other toolchains may declare an interpreted/runner launch when no packaged program exists.
 pub fn launch(app: &Path, godot: Option<&Path>) -> Option<(PathBuf, Vec<String>)> {
     if app.join("project.godot").is_file() {
         return godot.map(|g| (g.to_path_buf(), vec!["--path".to_string(), app.display().to_string()]));
@@ -145,7 +146,7 @@ pub fn launch(app: &Path, godot: Option<&Path>) -> Option<(PathBuf, Vec<String>)
     if uses_electron(app) {
         return electron_program(app).map(|e| (e, vec![app.display().to_string()]));
     }
-    built_program(app).or_else(|| packaged_program(&app.join("Build"))).map(|p| (p, Vec::new()))
+    built_program(app).or_else(|| packaged_program(&app.join("Build"))).map(|p| (p, Vec::new())).or_else(|| crate::toolchains::found_in(app)?.launch(app))
 }
 
 /// The packages `app`'s package.json depends on (dev dependencies too); none without a readable one.

@@ -7,7 +7,7 @@ version up to the current one, then turn the document into Rust types. The step 
 
 | File | Owner | Current version | Older files | Newer files |
 |---|---|---|---|---|
-| `<project>/craft.json` | `engine::workspace` (`Manifest`) | `MANIFEST_VERSION` = 2 (`version`; missing = 0) | brought forward, saved as current | opened read-only: saving is refused |
+| `<project>/craft.json` | `engine::workspace` (`Manifest`) | `MANIFEST_VERSION` = 3 (`version`; missing = 0; 3 adds `approvals`) | brought forward, saved as current | opened read-only: saving is refused |
 | `<project>/inbox/build-progress.json` | `engine::workspace::progress` (`BuildProgress`; written only by the rebuild run) | `BUILD_PROGRESS_VERSION` = 1 (`version`; missing = 0) | brought forward; an absent file starts with no counted turns | the build stops and the record is left unchanged |
 | `config.toml` (`settings::config_dir()`) | `engine::settings` (`Settings`) | `SETTINGS_VERSION` = 2 (`version`; missing = 0; 2 moved `[engines.ghidra] enabled` to `deep_mode`) | brought forward | loaded, never saved over |
 | `<name>.cany/project.toml` | `engine::project` (`ProjectMeta`) | `FORMAT_VERSION` = 1 (`format_version`, required) | brought forward | refused, with "update Craft Anything" |
@@ -18,7 +18,7 @@ version up to the current one, then turn the document into Rust types. The step 
 | `<project>/questions.json` | `engine::questions` (`AskedQuestion`, written by `rebuild_question_ask`) | `QUESTIONS_VERSION` = 1 (`{version, items}`) | read as before | read as far as its fields are known |
 | `<project>/pinned/<n>/pin.json` | `engine::pins` (`Pin`) | `PIN_VERSION` = 2 (`version`; missing = 1; 2 records the selected program for a copied direct launch) | brought forward | read as far as its fields are known |
 | `<folder>/standin.json` | `engine::tools::standin_tools` (`analysis::standin::StandIn`; written only by `web_standin_build`) | `STANDIN_VERSION` = 1 (`version`, required) | brought forward | refused, with "update Craft Anything", and never written over |
-| `<project>/feed.json` | `ai::rebuild::feed` (written by the run) | `FEED_VERSION` = 4 (`{version, items}`; a bare list = 0; 4 adds `PlanDismissed`, a folded plan card) | read as before, saved as current | never written over; the conversation is rebuilt from the project for display |
+| `<project>/feed.json` | `ai::rebuild::feed` (written by the run) | `FEED_VERSION` = 5 (`{version, items}`; a bare list = 0; 4 adds `PlanDismissed`, a folded plan card; 5 marks open steps stopped at a run's end) | read as before, saved as current | never written over; the conversation is rebuilt from the project for display |
 
 A saved `User` message with pictures is `{text, pictures: [paths]}`, where the pictures are the
 copies in the project's `attachments/`; one without pictures stays the plain string earlier

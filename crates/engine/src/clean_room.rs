@@ -59,6 +59,7 @@ pub const TOOLS: &[&str] = &[
     "project_duplicate",
     "project_delete",
     "project_questions_set",
+    "project_approvals_set",
     "project_build_finish",
     "project_pin_create",
     "project_pins_list",

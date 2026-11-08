@@ -21,6 +21,12 @@ pub use fs::{backup_once, write_atomic, write_atomic_private};
 pub use process::{Cancel, Ended, Launch, Launched, LineSink, Output, Process, RunningProcess, StdinMode, open_path};
 pub use which::{cli_file_name, self_cli_path, which, which_all};
 
+/// Whether this app runs in a Flatpak sandbox (it sets `FLATPAK_ID` and makes `/.flatpak-info`).
+pub fn in_flatpak() -> bool {
+    static IN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *IN.get_or_init(|| std::env::var_os("FLATPAK_ID").is_some() || std::path::Path::new("/.flatpak-info").exists())
+}
+
 /// Owns the helper that keeps a build awake until the guard is released. Dropping it waits up to
 /// five seconds for supervised cleanup and logs a warning if that deadline passes.
 #[derive(Debug)]

@@ -5,6 +5,9 @@
 use crate::bptc;
 use crate::common::FormatError;
 
+/// Default RGBA output budget: 256 MiB, matching the texture exporters' 8192×8192 pixel limit.
+pub const DEFAULT_MAX_RGBA_BYTES: u64 = 256 << 20;
+
 /// How a texture's pixels are laid out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Layout {
@@ -12,6 +15,12 @@ pub enum Layout {
     Alpha8,
     /// One grey channel.
     R8,
+    RHalf,
+    RgHalf,
+    RgbaHalf,
+    RFloat,
+    RgFloat,
+    RgbaFloat,
     Rgb24,
     Rgba32,
     Argb32,
@@ -38,12 +47,31 @@ pub fn size(layout: Layout, width: u32, height: u32) -> Option<usize> {
     let blocks = w.div_ceil(4).checked_mul(h.div_ceil(4))?;
     match layout {
         Layout::Alpha8 | Layout::R8 => w.checked_mul(h),
-        Layout::Rgb565 | Layout::Rgba4444 | Layout::Argb4444 => w.checked_mul(h)?.checked_mul(2),
+        Layout::Rgb565 | Layout::Rgba4444 | Layout::Argb4444 | Layout::RHalf => w.checked_mul(h)?.checked_mul(2),
         Layout::Rgb24 => w.checked_mul(h)?.checked_mul(3),
-        Layout::Rgba32 | Layout::Argb32 | Layout::Bgra32 => w.checked_mul(h)?.checked_mul(4),
+        Layout::Rgba32 | Layout::Argb32 | Layout::Bgra32 | Layout::RgHalf | Layout::RFloat => w.checked_mul(h)?.checked_mul(4),
+        Layout::RgbaHalf | Layout::RgFloat => w.checked_mul(h)?.checked_mul(8),
+        Layout::RgbaFloat => w.checked_mul(h)?.checked_mul(16),
         Layout::Dxt1 | Layout::Bc4 => blocks.checked_mul(8),
         Layout::Dxt5 | Layout::Bc5 | Layout::Bc6h | Layout::Bc6hSigned | Layout::Bc7 => blocks.checked_mul(16),
     }
+}
+
+/// Treat RGB as linear light, alpha as coverage, and show a scalar texture in grey.
+fn float_pixels(mut samples: impl Iterator<Item = f32>, channels: usize) -> impl Iterator<Item = [u8; 4]> {
+    std::iter::from_fn(move || {
+        let r = bptc::srgb8(samples.next()?);
+        if channels == 1 {
+            return Some([r, r, r, 255]);
+        }
+        let g = bptc::srgb8(samples.next()?);
+        if channels == 2 {
+            return Some([r, g, 0, 255]);
+        }
+        let b = bptc::srgb8(samples.next()?);
+        let a = (samples.next()?.clamp(0.0, 1.0) * 255.0).round() as u8;
+        Some([r, g, b, a])
+    })
 }
 
 fn expand5(v: u16) -> u8 {
@@ -157,30 +185,57 @@ fn blocks(out: &mut [u8], w: usize, h: usize, texels: impl Iterator<Item = [[u8;
 }
 
 /// Decode a `width`×`height` picture (`data` starts with it) into RGBA, rows in stored order.
+///
+/// Caps the output at [`DEFAULT_MAX_RGBA_BYTES`]; use [`decode_with_limit`] for a different budget.
 pub fn decode(layout: Layout, width: u32, height: u32, data: &[u8]) -> Result<Vec<u8>, FormatError> {
+    decode_with_limit(layout, width, height, data, DEFAULT_MAX_RGBA_BYTES)
+}
+
+/// Decode into RGBA, allowing at most `max_bytes` of output.
+///
+/// The budget applies to RGBA bytes, not the encoded input, and is checked before reading pixels
+/// or reserving the output. Output reservation failures are reported as [`FormatError::TooLarge`].
+pub fn decode_with_limit(layout: Layout, width: u32, height: u32, data: &[u8], max_bytes: u64) -> Result<Vec<u8>, FormatError> {
     let need = size(layout, width, height).ok_or_else(|| FormatError::TooLarge(format!("a {width}×{height} picture")))?;
-    let data = data.get(..need).ok_or_else(|| FormatError::Truncated(format!("{} bytes of pixels, {need} needed", data.len())))?;
     let (w, h) = (width as usize, height as usize);
+    let out_len = w
+        .checked_mul(h)
+        .and_then(|pixels| pixels.checked_mul(4))
+        .filter(|bytes| *bytes <= isize::MAX as usize)
+        .ok_or_else(|| FormatError::TooLarge(format!("a {width}×{height} RGBA picture")))?;
+    if out_len as u64 > max_bytes {
+        return Err(FormatError::TooLarge(format!("a {width}×{height} RGBA picture exceeds {max_bytes} bytes")));
+    }
+    let data = data.get(..need).ok_or_else(|| FormatError::Truncated(format!("{} bytes of pixels, {need} needed", data.len())))?;
     if w == 0 || h == 0 {
         return Err(FormatError::Malformed("an empty picture".into()));
     }
-    let mut out = vec![0u8; w * h * 4];
+    let mut out: Vec<u8> = Vec::new();
+    out.try_reserve_exact(out_len).map_err(|_| FormatError::TooLarge(format!("a {width}×{height} RGBA picture")))?;
+    out.resize(out_len, 0);
     let mut put = |px: &mut dyn Iterator<Item = [u8; 4]>| {
         for (dst, p) in out.as_chunks_mut::<4>().0.iter_mut().zip(px) {
             *dst = p;
         }
     };
-    let u16s = |d: &[u8]| -> Vec<u16> { d.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes(*b)).collect() };
+    let u16s = data.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes(*b));
+    let floats = data.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b));
     match layout {
+        Layout::RHalf => put(&mut float_pixels(u16s.map(bptc::half), 1)),
+        Layout::RgHalf => put(&mut float_pixels(u16s.map(bptc::half), 2)),
+        Layout::RgbaHalf => put(&mut float_pixels(u16s.map(bptc::half), 4)),
+        Layout::RFloat => put(&mut float_pixels(floats, 1)),
+        Layout::RgFloat => put(&mut float_pixels(floats, 2)),
+        Layout::RgbaFloat => put(&mut float_pixels(floats, 4)),
         Layout::Alpha8 => put(&mut data.iter().map(|a| [255, 255, 255, *a])),
         Layout::R8 => put(&mut data.iter().map(|r| [*r, *r, *r, 255])),
         Layout::Rgb24 => put(&mut data.as_chunks::<3>().0.iter().map(|[r, g, b]| [*r, *g, *b, 255])),
         Layout::Rgba32 => put(&mut data.as_chunks::<4>().0.iter().copied()),
         Layout::Argb32 => put(&mut data.as_chunks::<4>().0.iter().map(|[a, r, g, b]| [*r, *g, *b, *a])),
         Layout::Bgra32 => put(&mut data.as_chunks::<4>().0.iter().map(|[b, g, r, a]| [*r, *g, *b, *a])),
-        Layout::Rgb565 => put(&mut u16s(data).into_iter().map(rgb565)),
-        Layout::Rgba4444 => put(&mut u16s(data).into_iter().map(|v| nibbles(v, [12, 8, 4, 0]))),
-        Layout::Argb4444 => put(&mut u16s(data).into_iter().map(|v| nibbles(v, [8, 4, 0, 12]))),
+        Layout::Rgb565 => put(&mut u16s.map(rgb565)),
+        Layout::Rgba4444 => put(&mut u16s.map(|v| nibbles(v, [12, 8, 4, 0]))),
+        Layout::Argb4444 => put(&mut u16s.map(|v| nibbles(v, [8, 4, 0, 12]))),
         Layout::Dxt1 => blocks(&mut out, w, h, data.as_chunks::<8>().0.iter().map(|b| dxt_texels(b, true))),
         Layout::Dxt5 => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(dxt5)),
         Layout::Bc4 => blocks(&mut out, w, h, data.as_chunks::<8>().0.iter().map(bc4)),

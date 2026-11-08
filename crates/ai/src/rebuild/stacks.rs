@@ -37,33 +37,7 @@ pub struct Stack {
     pub site: bool,
 }
 
-/// How a project builds and tests itself, whatever it's written in.
-#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Deserialize)]
-pub struct Toolchain {
-    pub name: String,
-    /// The files that name it, matched like [`Stack::found_by`].
-    pub found_by: Vec<String>,
-    /// The program that builds it and its arguments, run in the project's folder.
-    #[serde(default)]
-    pub build: Vec<String>,
-    /// The same for its tests.
-    #[serde(default)]
-    pub test: Vec<String>,
-    /// What its output says when no tests ran, which isn't a failure.
-    #[serde(default)]
-    pub no_tests: Vec<String>,
-    /// The package.json script that is its tests. Whether there are any is then read from that
-    /// file, as what a script prints can be about one it runs, and `no_tests` are whole scripts
-    /// that are only placeholders.
-    #[serde(default)]
-    pub test_script: Option<String>,
-    /// The project's own copies of the program, used first when one's there (`.venv/bin/python`).
-    #[serde(default)]
-    pub local_programs: Vec<String>,
-    /// The program's name on Windows, where it differs (`python`).
-    #[serde(default)]
-    pub windows_program: Option<String>,
-}
+pub use craft_anything_engine::toolchains::{Toolchain, found_in as toolchain_in};
 
 /// The stack that leaves the choice to the builder (a website's default); [`used_in`] then
 /// records the one it used.
@@ -89,8 +63,6 @@ struct Table {
     stack: Vec<Stack>,
     #[serde(default)]
     library: Vec<Library>,
-    #[serde(default)]
-    toolchain: Vec<Toolchain>,
 }
 
 /// The built-in table. A table that doesn't parse (a broken edit) leaves it empty, so every
@@ -146,11 +118,6 @@ pub fn found_in(dir: &std::path::Path) -> Option<&'static Stack> {
     deps.extend(craft_anything_engine::outputs::cargo_dependencies(dir));
     let by_deps = || catalogue().iter().find(|s| s.uses.iter().any(|d| deps.contains(d)) && s.needs.iter().all(|d| deps.contains(d)));
     by_file(true).or_else(by_deps).or_else(|| by_file(false))
-}
-
-/// How the project in `dir` builds and tests itself: the first toolchain a file there names.
-pub fn toolchain_in(dir: &std::path::Path) -> Option<&'static Toolchain> {
-    table().toolchain.iter().find(|t| t.found_by.iter().any(|f| has_file(dir, f)))
 }
 
 fn has_file(dir: &std::path::Path, name: &str) -> bool {
@@ -227,6 +194,7 @@ mod tests {
         assert_eq!(found(&[("notes.md", "")]), None);
     }
 
+    /// Verify file-based toolchain detection and that every shared row has build/test commands.
     #[test]
     fn a_folder_says_how_it_builds_and_tests_itself() {
         let tool = |file: &str| {
@@ -244,7 +212,7 @@ mod tests {
         assert_eq!(tool("build.gradle.kts"), Some("Gradle"));
         assert_eq!(tool("Makefile"), Some("Make"));
         assert_eq!(tool("notes.md"), None);
-        for t in &table().toolchain {
+        for t in craft_anything_engine::toolchains::catalogue() {
             assert!(!t.found_by.is_empty() && !t.build.is_empty() && !t.test.is_empty(), "{}", t.name);
         }
     }

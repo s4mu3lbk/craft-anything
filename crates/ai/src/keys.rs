@@ -37,6 +37,16 @@ pub fn asset_keys(store: &KeyStore, providers: &AssetProviders) -> AssetKeys {
     )
 }
 
+/// After a key changed: keys a run already loaded into `session` follow, so a removed one stops being
+/// spent at once. A session with none loaded stays that way. Reads the keychain, so call it off the UI
+/// thread; a tool passes the session it holds, because locking it again would wait forever.
+pub fn refresh_loaded(session: &mut craft_anything_engine::Session, store: &KeyStore) {
+    if session.ext.get::<AssetKeys>().is_some() {
+        let providers = session.ext.get::<AssetProviders>().map(|p| p.as_ref().clone()).unwrap_or_default();
+        session.ext.insert(std::sync::Arc::new(asset_keys(store, &providers)));
+    }
+}
+
 /// The fal.ai key for game assets: stored, else fal's environment variable.
 pub fn fal_key(store: &KeyStore) -> Option<String> {
     asset_key(store, &craft_anything_engines::assets::fal::Fal::default())
@@ -141,6 +151,12 @@ impl KeyStore {
         if t.remove(backend).is_some() {
             self.write_file(&t)?;
         }
+        // A locked or busy keychain may have refused, and it's read first, so the key would still
+        // work. Reading back, not the delete's result: with no keychain at all the delete fails too.
+        if self.use_keychain && keychain::get(backend).is_some() {
+            return Err(ToolError::new(ErrorCode::NoPermission, "The system keychain still has this key, so it wasn't removed.")
+                .with_remediation("Unlock the keychain and try again, or delete the entry from your keychain app."));
+        }
         Ok(())
     }
 }
@@ -225,6 +241,55 @@ mod tests {
         s.delete(&asset_key_name("other")).unwrap();
         assert_eq!(asset_keys(&s, &providers).get("other"), None);
         assert_eq!(fal_key(&s).as_deref(), Some("f-1"));
+    }
+
+    /// #923: a key removed in Settings must stop being spent, in a run that already loaded it too.
+    #[test]
+    fn keys_loaded_by_a_run_follow_a_change_and_none_appear_otherwise() {
+        let d = tempfile::tempdir().unwrap();
+        let s = KeyStore::file_only(d.path().join("keys.toml"));
+        let mut providers = AssetProviders::built_in();
+        providers.register(std::sync::Arc::new(Other));
+        s.set(&asset_key_name("other"), "o-1").unwrap();
+        let mut session = craft_anything_engine::testing::session();
+        session.ext.insert(std::sync::Arc::new(providers));
+        refresh_loaded(&mut session, &s);
+        assert!(session.ext.get::<AssetKeys>().is_none(), "no run loaded any");
+
+        session.ext.insert(std::sync::Arc::new(AssetKeys([("other".to_string(), "old".to_string())].into())));
+        refresh_loaded(&mut session, &s);
+        assert_eq!(session.ext.get::<AssetKeys>().unwrap().get("other"), Some("o-1"), "a changed key");
+        s.delete(&asset_key_name("other")).unwrap();
+        refresh_loaded(&mut session, &s);
+        assert_eq!(session.ext.get::<AssetKeys>().unwrap().get("other"), None, "a removed key");
+    }
+
+    /// Its key can't be removed: the AI stays in the list, so removing it can be tried again.
+    #[test]
+    fn an_ai_whose_key_cannot_be_removed_stays_to_try_again() {
+        let d = tempfile::tempdir().unwrap();
+        let file = d.path().join("keys.toml");
+        let engine = std::sync::Arc::new(craft_anything_engine::Engine::new(craft_anything_engine::testing::session()));
+        let hub = crate::AiHub::with_stores(engine, d.path().join("settings.toml"), KeyStore::file_only(file.clone()));
+        let mut cfg = hub.config();
+        cfg.upsert(crate::BackendEntry {
+            config: crate::BackendConfig {
+                name: "Mine".into(),
+                kind: BackendKind::Openrouter,
+                model: "m".into(),
+                base_url: None,
+                ssh_host: None,
+                enabled: true,
+            },
+            options: Default::default(),
+        });
+        hub.engine.session().settings.ai = cfg.to_table().unwrap();
+        std::fs::write(&file, "not [ toml").unwrap();
+        assert!(hub.remove_backend("Mine").is_err());
+        assert!(hub.config().get("Mine").is_some(), "it can still be picked to try again");
+        std::fs::remove_file(&file).unwrap();
+        assert!(hub.remove_backend("Mine").unwrap());
+        assert!(hub.config().get("Mine").is_none());
     }
 
     /// #262: a key file that can't be read is left as it is, with every other key in it.

@@ -1444,6 +1444,24 @@ Zoom	Zvětšit
 Bring all to front	Vše do popředí
 Drag to give the plan more or less room; double-click to reset	Přetažením dáte plánu víc nebo míň místa; dvojklikem vrátíte výchozí výšku
 Copy the message	Zkopírovat zprávu
+Choose what the builder's approvals get	Vybrat, jak se naloží se schvalováním sestavovacího agenta
+Reading the web	Čtení webu
+Other commands	Ostatní příkazy
+Files outside the project	Soubory mimo projekt
+Pushing and publishing	Push a publikování
+Deleting outside the project	Mazání mimo projekt
+System changes	Změny systému
+Other tools	Ostatní nástroje
+Allow	Povolit
+Ask	Zeptat se
+Refuse	Odmítnout
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	Za /approvals napište druh a allow, ask, refuse nebo default, například /approvals publish ask. Druhy: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	Druh {name} neexistuje. Druhy: {kinds}.
+Approvals	Schvalování
+In this project, {kind}: {choice}.	V tomto projektu {kind}: {choice}.
+Couldn't change the approvals:	Schvalování nešlo změnit:
+What the builder may do without asking you, in this project.	Co smí sestavovací agent v tomto projektu dělat, aniž by se vás ptal.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	Výchozí se řídí automatickým režimem: když je zapnutý, co lze vrátit, proběhne, a zbytek se odmítne; když je vypnutý, sestavovací agent se ptá.
 Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Režim Čistá místnost nikdy nečte kód, soubory ani zdrojový kód stránek originálu: vychází z toho, co vidíte. Hloubkový režim je čte všemi nástroji a také pomocí IDA nebo Ghidra, pokud je nainstalováno. Každé zjištění zaznamenává použitý režim.
 Deep decompiler	Hloubkový dekompilátor
 Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automatika upřednostní IDA, potom Ghidra. Můžete také vybrat přímo.

@@ -13,9 +13,9 @@ ignore = [
     { id = "RUSTSEC-2023-0071", reason = "public-key signature verification only; no private-key operations" },
     # zbus_names / zvariant / zvariant_derive are unmaintained (not vulnerable). They come only from
     # Linux-only dependencies: keyring's secret-service backend and accesskit's AT-SPI bridge.
-    { id = "RUSTSEC-2026-0370", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R0.3" },
-    { id = "RUSTSEC-2026-0371", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R0.3" },
-    { id = "RUSTSEC-2026-0372", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R0.3" },
+    { id = "RUSTSEC-2026-0370", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R5.2" },
+    { id = "RUSTSEC-2026-0371", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R5.2" },
+    { id = "RUSTSEC-2026-0372", reason = "unmaintained, Linux-only via keyring and accesskit; tracked in ROADMAP R5.2" },
 ]
 
 [licenses]

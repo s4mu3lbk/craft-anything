@@ -78,17 +78,36 @@ pub fn probe(port: u16) -> Option<Value> {
 mod tests {
     use super::*;
     use std::io::Write;
-    use std::net::TcpListener;
+    use std::net::{TcpListener, TcpStream};
+    use std::sync::mpsc;
 
     /// A stand-in session: answers one request with `body` and hands back the request line.
     fn stand_in(body: &'static str) -> (u16, std::thread::JoinHandle<String>) {
+        stand_in_observing_reads(body, None)
+    }
+
+    fn stand_in_observing_reads(body: &'static str, waiting_for_read: Option<mpsc::Sender<usize>>) -> (u16, std::thread::JoinHandle<String>) {
         let l = TcpListener::bind("127.0.0.1:0").unwrap();
         let port = l.local_addr().unwrap().port();
         let h = std::thread::spawn(move || {
             let (mut s, _) = l.accept().unwrap();
+            s.set_write_timeout(Some(Duration::from_secs(3))).unwrap();
+            let deadline = std::time::Instant::now() + Duration::from_secs(3);
             let mut buf = [0u8; 4096];
-            let n = s.read(&mut buf).unwrap();
-            let req = String::from_utf8_lossy(&buf[..n]).lines().next().unwrap_or("").to_string();
+            let mut head = Vec::new();
+            while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+                let left = deadline.saturating_duration_since(std::time::Instant::now());
+                assert!(!left.is_zero(), "the fixture request did not complete in time");
+                s.set_read_timeout(Some(left)).unwrap();
+                if let Some(waiting) = &waiting_for_read {
+                    waiting.send(head.len()).unwrap();
+                }
+                let n = s.read(&mut buf).unwrap();
+                assert_ne!(n, 0, "the request ended before its headers were complete");
+                head.extend_from_slice(&buf[..n]);
+                assert!(head.len() <= 16 * 1024, "the fixture request exceeded its header limit");
+            }
+            let req = String::from_utf8_lossy(&head).lines().next().unwrap_or("").to_string();
             write!(s, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
             req
         });
@@ -105,14 +124,40 @@ mod tests {
     }
 
     #[test]
+    fn waits_for_fragmented_request_headers_before_answering() {
+        let (waiting_tx, waiting_rx) = mpsc::channel();
+        let (port, h) = stand_in_observing_reads("ok", Some(waiting_tx));
+        let mut client = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        client.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        client.set_write_timeout(Some(Duration::from_secs(3))).unwrap();
+        let partial = b"GET /cmd/ij HTTP/1.1\r\nHost: 127.0.0.1\r\n\r";
+        client.write_all(partial).unwrap();
+
+        // Withhold the final byte until the server has consumed the fragment and needs another read.
+        // A single-read fixture closes the observer channel without reaching this state.
+        loop {
+            let consumed = waiting_rx.recv_timeout(Duration::from_secs(3)).expect("the fixture must read again after the partial header");
+            assert!(consumed <= partial.len());
+            if consumed == partial.len() {
+                break;
+            }
+        }
+        client.write_all(b"\n").unwrap();
+
+        let mut response = String::new();
+        client.read_to_string(&mut response).unwrap();
+        assert_eq!(h.join().unwrap(), "GET /cmd/ij HTTP/1.1");
+        assert_eq!(response, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+    }
+
+    #[test]
     fn probe_reads_what_is_open() {
         let (port, h) = stand_in(r#"{"core":{"file":"C:\\a\\app.exe","format":"pe64"},"bin":{"arch":"x86","bits":64}}"#);
         let v = probe(port).unwrap();
         h.join().unwrap();
         assert_eq!(v["file"], "C:\\a\\app.exe");
         assert_eq!(v["bits"], 64);
-        // Nothing listening: a closed port.
-        let free = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
-        assert!(probe(free).is_none());
+        // Port zero cannot be reassigned to another fixture's listener.
+        assert!(probe(0).is_none());
     }
 }

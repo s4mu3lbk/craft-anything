@@ -2,9 +2,10 @@
 //! Each test gives the binary its own config, home and `PATH`, so the person's settings and the
 //! agents installed on the machine don't decide the result.
 //!
-//! The command stops when it opens `--continue-in`'s empty folder, right after the builder check:
-//! the test sees exactly the choice `rebuild` made before doing any work. An invalid command is
-//! refused before that check, so it cannot add an agent either.
+//! A run with no `--backend`, or an enabled one, stops when it opens `--continue-in`'s empty
+//! folder, right after the builder check: the test sees exactly the choice `rebuild` made before
+//! doing any work. An invalid command, an unknown name or a switched-off backend is refused before
+//! that, so it cannot add an agent or leave a new project folder behind.
 #![cfg(unix)]
 
 use craft_anything_platform::process::{Output, Process};
@@ -34,10 +35,32 @@ fn fake_claude(bin: &Path) -> PathBuf {
     program
 }
 
+/// A stand-in builder that answers one turn and exits, so a run that really starts finishes.
+fn fake_builder(bin: &Path) -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let program = bin.join("claude");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 'fake-claude 1.0'; exit 0; fi\nif [ \"$1\" = \"--help\" ]; then echo '--output-format stream-json'; exit 0; fi\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"system\",\"subtype\":\"init\",\"session_id\":\"fake\"}'\nprintf '%s\\n' '{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"Built it.\"}]}}'\nprintf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"num_turns\":1}'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    program
+}
+
 fn api_config(config: &Path) {
     std::fs::write(
         config.join("config.toml"),
         "[[ai.backends]]\nname = \"API\"\nkind = \"openai_compatible\"\nmodel = \"test-model\"\nbase_url = \"http://127.0.0.1:9/v1\"\nenabled = true\n",
+    )
+    .unwrap();
+}
+
+/// A configured backend that is switched off, plus an enabled one for the default path.
+fn disabled_config(config: &Path) {
+    std::fs::write(
+        config.join("config.toml"),
+        "[[ai.backends]]\nname = \"Off\"\nkind = \"anthropic\"\nmodel = \"claude-test\"\nenabled = false\n\n[[ai.backends]]\nname = \"API\"\nkind = \"openai_compatible\"\nmodel = \"test-model\"\nbase_url = \"http://127.0.0.1:9/v1\"\nenabled = true\n",
     )
     .unwrap();
 }
@@ -123,9 +146,10 @@ fn a_named_installed_agent_is_added_when_missing() {
     assert!(saved.contains("agent_cli") && saved.contains("name = \"Claude Code\""), "the named agent must be saved:\n{saved}");
 }
 
-/// An unknown name must not add a different agent that happens to be installed.
+/// An unknown name is named in the error, and must not add a different agent that happens to be
+/// installed or blame a missing setup.
 #[test]
-fn an_unknown_backend_does_not_add_an_agent() {
+fn an_unknown_backend_is_named_and_does_not_add_an_agent() {
     let config = tempfile::tempdir().unwrap();
     let home = tempfile::tempdir().unwrap();
     let bin = tempfile::tempdir().unwrap();
@@ -136,11 +160,51 @@ fn an_unknown_backend_does_not_add_an_agent() {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = cli(&refs, config.path(), home.path(), bin.path());
     let log = out.stderr_text();
-    assert!(!out.success, "the empty project folder must stop the run:\n{log}");
-    assert!(log.contains("craft.json"), "the run must stop at the missing project, before any build:\n{log}");
+    assert!(!out.success, "an unknown backend must stop the run:\n{log}");
+    assert!(log.contains("No AI backend named") && log.contains("No Such AI"), "the error must name the name:\n{log}");
+    assert!(!log.contains("Building needs a coding agent"), "the error must not blame the setup:\n{log}");
     assert!(!log.contains("Using "), "an unknown name must not pick an installed agent:\n{log}");
     let saved = std::fs::read_to_string(config.path().join("config.toml")).unwrap_or_default();
     assert!(!saved.contains("agent_cli"), "an unknown name must not save an agent:\n{saved}");
+}
+
+/// A backend the person switched off must not be used just because it was named: refuse it before
+/// a project is made or opened, and say how to turn it on.
+#[test]
+fn a_disabled_backend_is_refused_before_a_project_is_opened_or_created() {
+    let config = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let bin = tempfile::tempdir().unwrap();
+    let parent = tempfile::tempdir().unwrap();
+    disabled_config(config.path());
+    fake_claude(bin.path());
+
+    let project = parent.path().join("new-project");
+    let out = cli(
+        &["rebuild", "-", "make a small page", "--project-folder", project.to_str().unwrap(), "--backend", "Off", "--rounds", "0", "--unattended"],
+        config.path(),
+        home.path(),
+        bin.path(),
+    );
+    let log = out.stderr_text();
+    assert!(!out.success, "the switched-off backend must stop the run:\n{log}");
+    assert!(log.contains("Off") && log.contains("turned off"), "the error must name the backend and its state:\n{log}");
+    assert!(log.contains("Turn it on"), "the error must say how to fix it:\n{log}");
+    assert!(!log.contains("Project:"), "it must stop before a project is made:\n{log}");
+    assert!(!project.exists(), "a refused command must not leave a project folder:\n{log}");
+
+    // An existing project is refused before it is opened or a build starts.
+    let existing = tempfile::tempdir().unwrap();
+    let out = cli(
+        &["rebuild", "-", "make a small page", "--continue-in", existing.path().to_str().unwrap(), "--backend", "Off", "--rounds", "0", "--unattended"],
+        config.path(),
+        home.path(),
+        bin.path(),
+    );
+    let log = out.stderr_text();
+    assert!(!out.success, "the switched-off backend must stop an existing project too:\n{log}");
+    assert!(log.contains("Off") && log.contains("turned off"), "the error must name the backend and its state:\n{log}");
+    assert!(!log.contains("craft.json") && !log.contains("Couldn't reach"), "it must stop before opening or building:\n{log}");
 }
 
 /// A command refused before any build starts must not change the person's AI settings either.
@@ -184,4 +248,34 @@ fn a_computer_with_no_ai_still_finds_an_agent() {
     assert!(log.contains("Using Claude Code"), "an agent must still be found when no AI is set up:\n{log}");
     let saved = std::fs::read_to_string(config.path().join("config.toml")).unwrap();
     assert!(saved.contains("agent_cli"), "the found agent must still be saved:\n{saved}");
+}
+
+/// A project whose saved builder was switched off: once the run starts, it names the saved AI
+/// and the one building instead.
+#[test]
+fn a_replaced_saved_builder_is_named_once_the_run_starts() {
+    use craft_anything_engine::workspace::{TargetRef, Workspace};
+    let config = tempfile::tempdir().unwrap();
+    let home = tempfile::tempdir().unwrap();
+    let bin = tempfile::tempdir().unwrap();
+    let parent = tempfile::tempdir().unwrap();
+    let script = fake_builder(bin.path());
+    std::fs::write(
+        config.path().join("config.toml"),
+        format!(
+            "[[ai.backends]]\nname = \"Off\"\nkind = \"anthropic\"\nmodel = \"claude-test\"\nenabled = false\n\n[[ai.backends]]\nname = \"Claude\"\nkind = \"agent_cli\"\nmodel = \"claude-code\"\ncommand = \"{}\"\nenabled = true\n",
+            script.display()
+        ),
+    )
+    .unwrap();
+    let mut ws = Workspace::create(parent.path(), "Notes", "A notes app", TargetRef::None).unwrap();
+    ws.set_person(|m| m.builder = Some("Off".into())).unwrap();
+
+    let args = stopped_run(&ws.root, None);
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = cli(&refs, config.path(), home.path(), bin.path());
+    let log = out.stderr_text();
+    assert!(!out.success, "the run must stop at the empty app:\n{log}");
+    assert!(log.contains("Off") && log.contains("Claude") && log.contains("instead"), "the saved builder and its replacement must be named:\n{log}");
+    assert!(!log.contains("Using "), "a replacement is not an added agent:\n{log}");
 }

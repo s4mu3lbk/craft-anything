@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// Folder name under each skills directory.
 pub const SKILL_DIR: &str = "craft-anything";
 /// Bumped whenever the skill text changes.
-pub const SKILL_VERSION: &str = "1";
+pub const SKILL_VERSION: &str = "2";
 /// How an installed SKILL.md identifies itself as ours.
 pub const SKILL_PREFIX: &str = "---\nname: craft-anything\n";
 const REFERENCE_MARKER: &str = "<!-- craft-anything skill reference -->";

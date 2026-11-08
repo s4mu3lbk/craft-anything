@@ -621,7 +621,7 @@ fn clip(s: &str, max: usize) -> (String, bool) {
     if s.len() <= max {
         (s.to_string(), false)
     } else {
-        let cut = s.char_indices().take_while(|(i, _)| *i < max).last().map(|(i, c)| i + c.len_utf8()).unwrap_or(0);
+        let cut = (0..=max).rev().find(|&i| s.is_char_boundary(i)).unwrap_or(0);
         (s.get(..cut).unwrap_or("").to_string(), true)
     }
 }
@@ -1510,5 +1510,13 @@ mod tests {
         assert_eq!(extra_fragment("k", ExtraType::Int, "5").unwrap(), "--ei k 5");
         assert!(extra_fragment("k", ExtraType::Int, "notnum").is_err());
         assert_eq!(extra_fragment("k", ExtraType::String, "a b").unwrap(), "--es k 'a b'");
+    }
+
+    #[test]
+    fn clip_respects_byte_limit_on_multibyte() {
+        assert_eq!(clip("aé", 2), ("a".to_string(), true));
+        assert_eq!(clip("a€b", 2), ("a".to_string(), true));
+        assert_eq!(clip("abc", 2), ("ab".to_string(), true));
+        assert_eq!(clip("abc", 3), ("abc".to_string(), false));
     }
 }

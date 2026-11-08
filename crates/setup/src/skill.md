@@ -2,7 +2,7 @@
 name: craft-anything
 description: Investigate how shipped software works (programs, apps, packages, firmware, web bundles) with evidence-backed answers through the Craft Anything MCP tools, keeping a durable brief, plan, hypotheses, findings and handoff in the project.
 metadata:
-  version: "1"
+  version: "2"
 ---
 
 # Craft Anything: evidence-first investigation
@@ -20,6 +20,14 @@ instead; that is faster and more direct.
 - If the tools are missing or failing to start, run `craft-anything-cli doctor` and then
   `craft-anything-cli setup --dry-run` and show the user the plan before applying anything. After a
   successful setup the user must restart or reconnect their app.
+- **Never run `setup --yes` (or `setup --client …`) on an entry that already lists every tool.**
+  `setup` writes the plain `mcp` command, so it drops an `--all-tools` that is already in the entry
+  and the server falls back to the small core toolset instead of the whole list. `doctor` calls such
+  an entry "a different copy or shape of the command" and then suggests exactly that command, so
+  the warning is not a reason to run it. Read the client's config file first: if the `args` of
+  `craft-anything` end in `--all-tools`, leave the entry alone. `setup --dry-run` only prints the
+  plan and changes nothing, so that one is safe to run. To add a client, write the entry by hand
+  with `--all-tools`.
 - Only a small core toolset is listed at first. Call `list_toolsets` to see the others and
   `enable_toolset` to switch one on (native code, Android, Apple, web, runtime…).
 - In Clean room (Deep mode off, the default) nothing inside a target is read: only the tools that

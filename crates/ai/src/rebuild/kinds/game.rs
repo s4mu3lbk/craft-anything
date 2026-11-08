@@ -8,6 +8,47 @@ use craft_anything_engines::game;
 const ASSETS_NOW_OFF: &str =
     "Generated assets are now off for this project: don't make more with assets_image_generate or assets_model_generate. Keep the ones already in app/.";
 
+/// Whether `at` starts a word, where a hyphen joins it to the word before: "(level editor)", but
+/// not "low-level" or "multilevel".
+fn starts_word(request: &str, at: usize) -> bool {
+    request.get(..at).and_then(|s| s.chars().next_back()).is_none_or(|c| !c.is_alphanumeric() && c != '-')
+}
+
+/// A number of players as its own words: "2-player", "(four players)", but not "MPEG-2 player",
+/// "mp2 player", "12 player" or "two playerctl".
+fn says_player_count(request: &str) -> bool {
+    let ends_word = |rest: &str| rest.strip_prefix('s').unwrap_or(rest).chars().next().is_none_or(|c| !c.is_alphanumeric());
+    ["2", "3", "4", "two", "three", "four"].iter().any(|n| {
+        ["-player", " player"].iter().any(|player| {
+            let phrase = format!("{n}{player}");
+            request.match_indices(&phrase).any(|(at, _)| {
+                starts_word(request, at)
+                    && request.get(..at).and_then(|before| before.split_whitespace().next_back()) != Some("mpeg")
+                    && request.get(at + phrase.len()..).is_some_and(ends_word)
+            })
+        })
+    })
+}
+
+/// Read weaker game cues in their own phrase. A later game cue can still win.
+fn says_play(request: &str) -> bool {
+    let request = request.split_whitespace().collect::<Vec<_>>().join(" ");
+    says_player_count(&request)
+        || request
+            .match_indices("level")
+            .any(|(at, _)| starts_word(&request, at) && !matches!(request.get(..at).and_then(|s| s.split_whitespace().next_back()), Some("low" | "high")))
+        || ["single player", "single-player", "singleplayer"].iter().any(|phrase| {
+            request.match_indices(phrase).any(|(at, _)| {
+                let rest = request.get(at + phrase.len()..).unwrap_or_default();
+                let subject = rest.strip_prefix(" app for ").or_else(|| rest.strip_prefix(" application for "));
+                let medium = subject.and_then(|s| s.split(|c: char| !c.is_alphanumeric()).next());
+                starts_word(&request, at)
+                    && rest.chars().next().is_none_or(|c| !c.is_alphanumeric())
+                    && !matches!(medium, Some("audio" | "video" | "videos" | "music" | "movies" | "films"))
+            })
+        })
+}
+
 pub struct GameKind;
 
 impl GameKind {
@@ -28,12 +69,38 @@ impl TargetKind for GameKind {
         }
     }
 
+    /// A game wins when the stack is a game engine, or when the request says game, gameplay,
+    /// player, or the matching word in another language the catalogues translate.
     fn detect(&self, cx: &DetectCx) -> Option<u32> {
         // Built with a game engine (the person picked a game on Make): a game whatever its words
         // say ("Clone <its title> 1:1" never says "game").
         if game::Builder::from_stack(cx.stack).is_some() {
             Some(200)
-        } else if cx.says(&["game", "gameplay", "steam", "level", "player", "游戏", "遊戲", "玩法", " spiel", "-spiel"]) {
+        // Not plain "player": a video or music player is an app (#953).
+        } else if says_play(&cx.request)
+            || cx.says(&[
+                "game",
+                "gameplay",
+                "steam",
+                "multiplayer",
+                "multi-player",
+                "multi player",
+                "游戏",
+                "遊戲",
+                "玩法",
+                " spiel",
+                "-spiel",
+                "gioco",
+                " trò chơi",
+                " jogo",
+                " oyun ",
+                " oyunu ",
+                " oyunun ",
+                " oyunlar",
+                "เกม",
+            ])
+            || says_game_in_spanish(cx)
+        {
             Some(60)
         } else {
             None
@@ -71,10 +138,12 @@ impl TargetKind for GameKind {
         "a playable game that plays like the original: the same rules, controls, numbers and feel"
     }
 
+    /// Assemble the game's study, screenshot, self-test and optional generated-asset instructions.
+    /// Existing projects keep their own checks; website targets omit native-code study requirements.
     fn brief_sections(&self, cx: &BriefCx) -> Vec<String> {
         let target = &cx.ws.manifest.target;
         if matches!(target, TargetRef::Website { .. }) {
-            return vec![screenshot::SCREENSHOT_CONTRACT.to_string(), self_test::SELF_TEST_CONTRACT.to_string()];
+            return vec![screenshot::contract(), self_test::SELF_TEST_CONTRACT.to_string()];
         }
         // Paid, so only when the person turned it on for this project and a key is set up.
         let generated = cx.assets && cx.ws.manifest.generate_assets;
@@ -85,7 +154,7 @@ impl TargetKind for GameKind {
         if generated {
             s.push(assets_note(cx.ws, cx.image_model));
         }
-        s.push(screenshot::SCREENSHOT_CONTRACT.to_string());
+        s.push(screenshot::contract());
         s.push(self_test::SELF_TEST_CONTRACT.to_string());
         s
     }
@@ -133,6 +202,13 @@ impl Check for CreditsCheck {
 }
 
 /// Whether `app/` credits the original's files and says they're private, with the note.
+/// Spanish for "game" is *juego*, which also names a set: *un juego de herramientas* is a tool set,
+/// not a game. Only the game sense counts, so that phrase is excluded and the rest of *juego* is kept.
+fn says_game_in_spanish(cx: &DetectCx) -> bool {
+    let tool_set = cx.says(&["juego de herramienta"]);
+    (cx.says(&[" juego", " juegos"]) && !tool_set) || cx.says(&["jugabilidad", "videojuego"])
+}
+
 fn credits(app: &Path) -> (bool, String) {
     // Whitespace collapsed, so a wrapped line still counts.
     let read = |name: &str| std::fs::read_to_string(app.join(name)).unwrap_or_default().split_whitespace().collect::<Vec<_>>().join(" ");

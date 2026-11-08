@@ -224,7 +224,9 @@ pub fn conversation(app: &mut CraftApp, ui: &mut Ui, dense: bool) {
     // The history gets exactly what the composer leaves (its height is measured last frame), so
     // a panel never grows to fit us.
     let comp_id = ui.id().with(("composer-h", dense));
-    let comp_h = ui.data(|d| d.get_temp::<f32>(comp_id)).unwrap_or(if dense { 48.0 } else { 70.0 });
+    // Before the first measure, a guess that isn't short: anything left over on that frame grows
+    // the console's panel, and it keeps that size.
+    let comp_h = ui.data(|d| d.get_temp::<f32>(comp_id)).unwrap_or(if dense { 125.0 } else { 70.0 });
     // The item spacing after the history counts too. Anything here that comes out taller than the
     // space given makes the agent console's panel grow by that much every frame, until it reaches
     // its maximum and the top of its tab strip is cut off.
@@ -334,7 +336,7 @@ fn composer(app: &mut CraftApp, ui: &mut Ui, width: f32, dense: bool) {
             crate::prompt_box::PromptBox {
                 name: "Ask a question",
                 hint,
-                rows: (1, if dense { 4 } else { 8 }),
+                rows: if dense { (3, 4) } else { (1, 8) },
                 attach: None,
                 previews: &[],
                 stop_button: answering.then_some("Stop"),

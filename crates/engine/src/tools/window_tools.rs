@@ -12,8 +12,15 @@ use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+mod process_tree;
+
 /// Largest picture kept inline in the evidence (bigger ones are only written to `output`).
 const MAX_INLINE: usize = 8 * 1024 * 1024;
+/// How much longer to look past `wait_secs` for a window that isn't there yet: a busy computer can
+/// make any program late, and one look decides nothing.
+const LATE_WINDOW: Duration = Duration::from_secs(10);
+/// Pause between those looks.
+const LOOK_AGAIN: Duration = Duration::from_millis(250);
 /// Most UI elements saved to `ui_tree`.
 const UI_TREE_NODES: usize = 1000;
 
@@ -39,6 +46,9 @@ pub struct CaptureParams {
     /// Arguments for it.
     #[serde(default)]
     pub args: Vec<String>,
+    /// Working folder for the program (an absolute directory). Defaults to its executable's folder.
+    #[serde(default)]
+    pub working_directory: Option<PathBuf>,
     /// Seconds to let it start and draw before the picture (default 8, at most 120).
     #[serde(default)]
     pub wait_secs: Option<u64>,
@@ -51,6 +61,8 @@ pub struct CaptureParams {
     pub ui_tree: Option<PathBuf>,
 }
 
+/// Validate paths before starting a program, run it in the requested folder, then return window
+/// evidence and optional PNG/UI-tree artifacts. Unsupported hosts never start the program.
 fn native_window_capture(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
     let p: CaptureParams = parse_params(params)?;
     if !p.program.is_absolute() || !p.program.is_file() {
@@ -61,12 +73,16 @@ fn native_window_capture(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput,
     if p.ui_tree.as_ref().is_some_and(|t| !t.is_absolute()) {
         return Err(ToolError::invalid("ui_tree must be an absolute path"));
     }
+    if p.working_directory.as_ref().is_some_and(|d| !d.is_absolute() || !d.is_dir()) {
+        return Err(ToolError::invalid("working_directory must be an existing absolute directory"));
+    }
     // Refused before the program starts where no picture can be taken.
     if !craft_anything_platform::window::SUPPORTED {
         return Err(craft_anything_platform::window::unsupported());
     }
+    craft_anything_platform::window::check_can_see_windows()?;
     let wait = Duration::from_secs(p.wait_secs.unwrap_or(8).clamp(1, 120));
-    let dir = p.program.parent().map(PathBuf::from).unwrap_or_default();
+    let dir = p.working_directory.unwrap_or_else(|| p.program.parent().map(PathBuf::from).unwrap_or_default());
     let cancel = ctx.cancel.clone();
     ctx.report(None, format!("Starting {} for {} s…", p.program.display(), wait.as_secs()));
     let mut running = Process::new(&p.program)
@@ -89,15 +105,37 @@ fn native_window_capture(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput,
         std::thread::sleep(Duration::from_millis(200));
     }
     let name = p.program.file_stem().map(|s| s.to_string_lossy().into_owned());
-    let shot = craft_anything_platform::window::capture_window(running.pid(), name.as_deref());
+    let pid = running.pid();
+    let late_until = Instant::now() + LATE_WINDOW;
+    let shot = process_tree::keep_looking(
+        || {
+            process_tree::capture(
+                pid,
+                || process_tree::snapshot(&ctx.cancel),
+                |pid| {
+                    if ctx.cancel.is_cancelled() {
+                        return Err(ToolError::cancelled());
+                    }
+                    craft_anything_platform::window::capture_window(pid, None)
+                },
+            )
+        },
+        || Instant::now() < late_until && !ctx.cancel.is_cancelled() && !running.is_finished(),
+        LOOK_AGAIN,
+    )
+    // A launcher hands over to a program that isn't its child: last, its name finds the window.
+    .or_else(|e| match e.code {
+        ErrorCode::NotFound => craft_anything_platform::window::capture_window(running.pid(), name.as_deref()).map(|shot| (running.pid(), shot)),
+        _ => Err(e),
+    });
     // Read while it still runs; a tree that can't be read is only left out.
-    let tree = p.ui_tree.as_ref().map(|_| super::apple_runtime::ui_tree(ctx, running.pid(), UI_TREE_NODES));
+    let tree = shot.as_ref().ok().and_then(|(pid, _)| p.ui_tree.as_ref().map(|_| super::apple_runtime::ui_tree(ctx, *pid, UI_TREE_NODES)));
     // Always closed again, picture or not, and confirmed before we return (a caller such as the
     // CLI may exit right after, before a background kill would happen).
     if !running.kill_and_wait(Duration::from_secs(10)) {
         log::warn!("{} may still be running", p.program.display());
     }
-    let shot = shot?;
+    let (_, shot) = shot?;
     let png = encode_png(&Image { width: shot.width, height: shot.height, rgba: shot.rgba })?;
     if let Some(out) = &p.output {
         if !out.is_absolute() {
@@ -128,7 +166,7 @@ fn native_window_capture(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput,
     }
     let mut b =
         EvidenceBuilder::new("native_window_capture", Subject { kind: "program".into(), sha256: None, name: name.clone() }, super::artifact_tools::env(ctx))
-            .params(json!({"program": p.program.display().to_string(), "args": p.args, "wait_secs": wait.as_secs()}))
+            .params(json!({"program": p.program.display().to_string(), "args": p.args, "working_directory": dir, "wait_secs": wait.as_secs()}))
             .result(result)
             .summary(format!("Pictured \"{}\" ({}×{}) after {} s.", shot.title, shot.width, shot.height, started.elapsed().as_secs()))
             .confidence(Confidence::Observed)
@@ -145,6 +183,7 @@ mod tests {
     use super::*;
     use crate::{CallOptions, Caller, Consent, Engine};
 
+    /// Reject missing consent, invalid paths and unsupported hosts before launching any program.
     #[test]
     fn it_needs_consent_and_a_real_program() {
         let e = Engine::new(crate::testing::session());
@@ -158,6 +197,17 @@ mod tests {
             e.call("native_window_capture", relative, CallOptions::new(Caller::Mcp).with_consent(Consent::Granted)).unwrap_err().message.contains("ui_tree"),
             "checked before anything starts"
         );
+        let dir = tempfile::tempdir().unwrap();
+        for invalid in [PathBuf::from("relative"), dir.path().join("missing")] {
+            let params = json!({"program": exe, "working_directory": invalid});
+            assert!(
+                e.call("native_window_capture", params, CallOptions::new(Caller::Mcp).with_consent(Consent::Granted))
+                    .unwrap_err()
+                    .message
+                    .contains("working_directory"),
+                "checked before anything starts"
+            );
+        }
         // Where windows can't be pictured, nothing is started.
         if !craft_anything_platform::window::SUPPORTED {
             let err = e.call("native_window_capture", json!({"program": exe}), CallOptions::new(Caller::Mcp).with_consent(Consent::Granted)).unwrap_err();

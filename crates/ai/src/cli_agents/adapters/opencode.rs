@@ -15,16 +15,38 @@ impl AgentAdapter for OpenCode {
         true
     }
 
-    /// Native model selection cannot yet carry this run's Craft Anything MCP server.
-    fn check_native_options(&self, options: &BackendOptions) -> Result<(), ToolError> {
-        if options.cli_model.is_some() || options.cli_thinking.is_some() {
-            return Err(ToolError::new(
-                ErrorCode::BadSettings,
-                "OpenCode's native model/thinking selection cannot yet connect this run's Craft Anything tools.",
-            )
-            .with_remediation("For a local OpenCode run, clear the model and thinking selection and enable ACP, or choose another AI. Native MCP configuration is not implemented yet."));
+    fn check_tool_server(&self, stop: &CancelToken) -> Result<(), ToolError> {
+        cli_can_start(craft_anything_platform::self_cli_path().as_deref(), stop)
+    }
+
+    /// `opencode run` takes no MCP flag, and V2 ignores `OPENCODE_CONFIG_CONTENT`: the server
+    /// goes in a config file named by `OPENCODE_CONFIG`, which the private (`--standalone`)
+    /// server merges over the person's own settings. The background service never sees it.
+    fn mcp_env(&self, mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
+        let content = config_content(mcp);
+        let path = std::env::temp_dir().join(config_name(&content));
+        craft_anything_platform::fs::write_atomic_private(&path, content.as_bytes())?;
+        Ok(Some(("OPENCODE_CONFIG", path.to_string_lossy().into_owned())))
+    }
+
+    /// The remote helper is the same `craft-anything-cli` the local check starts; a build must
+    /// not spend hours then find the remote helper missing. A missing program stops with the fix.
+    fn check_remote_tool_server(&self, host: &str, stop: &CancelToken) -> Result<(), ToolError> {
+        remote_check(host, Some(stop))
+    }
+
+    /// The config file is written on the remote host itself: one `ssh` invocation checks the
+    /// helper, writes the file atomically and keeps it private (piped `printf`, octal-escaped,
+    /// no interactive stdin). The private (`--standalone`) server reads it there.
+    fn remote_tool_server(&self, host: &str, mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
+        let content = config_content(mcp);
+        let name = config_name(&content);
+        let line = remote_prepare_line(&name, &content);
+        let output = ssh_run(host, &line, Duration::from_secs(30), None)?;
+        if !output.success {
+            return Err(remote_failure(host, &output));
         }
-        Ok(())
+        Ok(Some(("OPENCODE_CONFIG", format!("~/.cache/craft-anything/{name}"))))
     }
 
     /// Discover enabled chat models and thinking variants from the selected local or SSH installation.
@@ -53,7 +75,8 @@ impl AgentAdapter for OpenCode {
 
     /// Build native `run` arguments, encoding an optional thinking depth as `provider/model#variant`.
     fn args(&self, cx: &ArgsCx) -> Vec<String> {
-        let mut a = vec!["run".to_string()];
+        // A private server reads this run's `OPENCODE_CONFIG`; the background service would not.
+        let mut a = vec!["run".to_string(), "--standalone".to_string()];
         // A builder works unattended and must use OpenCode's editing agent, not a saved plan default.
         if cx.builder {
             a.push("--auto".into());
@@ -72,7 +95,7 @@ impl AgentAdapter for OpenCode {
     }
 
     fn required_flags(&self) -> (&'static [&'static str], &'static [&'static str]) {
-        (&["run", "--help"], &["--format"])
+        (&["run", "--help"], &["--format", "--standalone"])
     }
 
     fn plain_fallback(&self) -> bool {
@@ -94,9 +117,9 @@ impl AgentAdapter for OpenCode {
                 }
             }
             Some("tool_use") => {
-                if let (Some(id), Some(name), Some(state)) =
-                    (part.get("callID").and_then(Value::as_str), part.get("tool").and_then(Value::as_str), part.get("state"))
-                {
+                // V1 names the call `callID` (its `id` is the part's); V2 names it `id` (beside `partID`).
+                let call = part.get("callID").or_else(|| part.get("id"));
+                if let (Some(id), Some(name), Some(state)) = (call.and_then(Value::as_str), part.get("tool").and_then(Value::as_str), part.get("state")) {
                     if !p.tool_names.contains_key(id) {
                         events.push(p.started(id, name, state.get("input").cloned().unwrap_or_else(|| json!({}))));
                     }
@@ -134,6 +157,79 @@ impl AgentAdapter for OpenCode {
         }
         events
     }
+}
+
+/// Our tool server's config for `mcp`: the bytes of the `OPENCODE_CONFIG` file (both local and
+/// remote runs use the same content).
+fn config_content(mcp: &McpCommand) -> String {
+    let command: Vec<&str> = std::iter::once(mcp.command.as_str()).chain(mcp.args.iter().map(String::as_str)).collect();
+    json!({"mcp": {MCP_NAME: {"type": "local", "command": command, "enabled": true}}}).to_string()
+}
+
+/// Named by its content, so runs with the same server share one file and none is left half-written.
+fn config_name(content: &str) -> String {
+    let mut hash = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(content, &mut hash);
+    format!("craft-anything-opencode-{:016x}.json", std::hash::Hasher::finish(&hash))
+}
+
+/// Every byte as an octal escape for a POSIX `printf` format string, so no byte in `bytes` can
+/// end the quoted string; safe for any path in any locale.
+fn octal_escape(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() * 4);
+    for b in bytes {
+        out.push('\\');
+        out.push((((b / 64) & 7) + b'0') as char);
+        out.push((((b / 8) & 7) + b'0') as char);
+        out.push(((b & 7) + b'0') as char);
+    }
+    out
+}
+
+/// One `ssh` run for a remote set-up step. Never interactive (`BatchMode`, stdin closed).
+fn ssh_run(host: &str, line: &str, timeout: std::time::Duration, stop: Option<&CancelToken>) -> Result<craft_anything_platform::Output, ToolError> {
+    let argv = crate::ssh::ssh_line_args(host, line.to_string());
+    let mut proc = craft_anything_platform::process::Process::new("ssh").args(&argv).timeout(timeout).stdout_cap(64 * 1024);
+    if let Some(stop) = stop {
+        let stop = stop.clone();
+        proc = proc.cancel_when(move || stop.is_cancelled());
+    }
+    proc.run()
+}
+
+/// The remote helper is on PATH, checked before a build starts (the remote server runs it).
+fn remote_check(host: &str, stop: Option<&CancelToken>) -> Result<(), ToolError> {
+    let out = ssh_run(host, "command -v craft-anything-cli >/dev/null", std::time::Duration::from_secs(15), stop)?;
+    if out.success {
+        return Ok(());
+    }
+    Err(remote_failure(host, &out))
+}
+
+/// The remote shell line: the helper is on PATH, then the config file goes in atomically and
+/// private (`printf` with octal escapes; no byte ends the quoted string). One line, no input.
+fn remote_prepare_line(name: &str, content: &str) -> String {
+    let escaped = octal_escape(content.as_bytes());
+    format!(
+        "command -v craft-anything-cli >/dev/null && mkdir -p \"$HOME/.cache/craft-anything\" && printf '{escaped}' > \"$HOME/.cache/craft-anything/{name}.tmp.$$\" && chmod 600 \"$HOME/.cache/craft-anything/{name}.tmp.$$\" && mv \"$HOME/.cache/craft-anything/{name}.tmp.$$\" \"$HOME/.cache/craft-anything/{name}\""
+    )
+}
+
+/// Map the remote failure onto the fix, reusing the ssh failure wording other remote runs use.
+fn remote_failure(host: &str, out: &craft_anything_platform::Output) -> ToolError {
+    if let Some(failure) = crate::ssh::diagnose(host, "craft-anything-cli", crate::ssh::is_git_server(host), out.code, out.stderr_text().as_str()) {
+        return ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything can't set up its tools on {host}: {}.", failure.what))
+            .with_remediation(failure.fix);
+    }
+    let stderr = out.stderr_text();
+    let snippet: String = stderr.trim().chars().take(200).collect();
+    let exit = out.code.map_or_else(|| "it was stopped".to_string(), |code| format!("exit {code}"));
+    ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything couldn't set up its tools on {host}: ssh didn't come back as expected ({exit})."))
+        .with_remediation(if snippet.is_empty() {
+            "Check that craft-anything-cli is on the PATH this ssh session uses, and that the host lets you run programs over ssh.".to_string()
+        } else {
+            format!("ssh said: {snippet}")
+        })
 }
 
 /// OpenCode's JSON error carries the provider status and its own retry decision. In particular,
@@ -180,11 +276,14 @@ mod tests {
 
     #[test]
     fn the_prompt_goes_to_run_after_the_flags() {
-        assert_eq!(args(false, &BackendOptions::default()), ["run", "--format", "json", "PRE make a game"]);
-        assert_eq!(args(true, &BackendOptions::default()), ["run", "--auto", "--agent", "build", "--format", "json", "PRE make a game"]);
+        assert_eq!(args(false, &BackendOptions::default()), ["run", "--standalone", "--format", "json", "PRE make a game"]);
+        assert_eq!(args(true, &BackendOptions::default()), ["run", "--standalone", "--auto", "--agent", "build", "--format", "json", "PRE make a game"]);
         let options =
             BackendOptions { cli_model: Some("anthropic/claude-sonnet-4-5".into()), args: vec!["--agent".into(), "plan".into()], ..Default::default() };
-        assert_eq!(args(true, &options), ["run", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "plan", "--format", "json", "PRE make a game"]);
+        assert_eq!(
+            args(true, &options),
+            ["run", "--standalone", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "plan", "--format", "json", "PRE make a game"]
+        );
         assert!(AgentAdapters::built_in().for_agent("opencode").ids().contains(&"opencode"), "registered, not the plain adapter");
     }
 
@@ -262,6 +361,122 @@ mod tests {
         assert_eq!(zero.cost_usd, Some(0.0), "an explicit zero is a known cost");
     }
 
+    #[test]
+    fn native_runs_get_the_tool_server_from_a_config_file() {
+        let mcp = McpCommand { command: "craft-anything-cli".into(), args: vec!["mcp".into()], notes: None };
+        let (var, path) = OpenCode.mcp_env(&mcp).unwrap().unwrap();
+        assert_eq!(var, "OPENCODE_CONFIG");
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(v["mcp"][MCP_NAME]["command"], json!(["craft-anything-cli", "mcp"]));
+        let options = BackendOptions { cli_model: Some("test/model".into()), ..Default::default() };
+        assert!(OpenCode.check_native_options(&options).is_ok());
+    }
+
+    #[test]
+    fn the_tool_server_config_and_name_are_stable() {
+        let mcp = McpCommand { command: "craft-anything-cli".into(), args: vec!["mcp".into(), "--clean-room".into()], notes: None };
+        let content = config_content(&mcp);
+        assert_eq!(content, config_content(&mcp));
+        assert!(content.contains("craft-anything-cli"));
+        assert!(content.contains("--clean-room"));
+        assert_eq!(config_name(&content), config_name(&content));
+        let other = config_content(&McpCommand { command: "other".into(), args: vec![], notes: None });
+        assert_ne!(config_name(&content), config_name(&other));
+    }
+
+    #[test]
+    fn octal_escapes_every_byte() {
+        assert_eq!(octal_escape(&[]), "");
+        assert_eq!(octal_escape(&[0x41]), "\\101");
+        assert_eq!(octal_escape(&[0x00, 0x27, 0x5C]), "\\000\\047\\134");
+    }
+
+    /// Check private config creation and refusal without writes when the remote helper is absent.
+    #[test]
+    #[cfg(unix)]
+    fn the_remote_line_runs_on_a_posix_shell() {
+        use craft_anything_platform::process::Process;
+        use std::os::unix::fs::{PermissionsExt, symlink};
+
+        let root = tempfile::tempdir().unwrap();
+        let bin = root.path().join("bin");
+        let missing_bin = root.path().join("missing-bin");
+        std::fs::create_dir(&bin).unwrap();
+        std::fs::create_dir(&missing_bin).unwrap();
+        // A fake helper on PATH, so `command -v craft-anything-cli` succeeds or fails on purpose.
+        std::fs::write(bin.join("craft-anything-cli"), "#!/bin/sh\nexit 0\n").unwrap();
+        std::fs::set_permissions(bin.join("craft-anything-cli"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        // Keep both paths isolated from any real helper installed on the test machine.
+        for utility in ["mkdir", "chmod", "mv"] {
+            let installed = craft_anything_platform::which(utility).unwrap();
+            let executable = installed.canonicalize().unwrap();
+            symlink(&executable, bin.join(utility)).unwrap();
+            symlink(&executable, missing_bin.join(utility)).unwrap();
+        }
+
+        let home = root.path().join("home");
+        let mcp = McpCommand { command: "craft-anything-cli".into(), args: vec!["mcp".into(), "--clean-room".into()], notes: None };
+        let content = config_content(&mcp);
+        let name = config_name(&content);
+        let line = remote_prepare_line(&name, &content);
+
+        let run = |path: &Path, home: &Path| {
+            Process::new("/bin/sh")
+                .args(["-c", &line])
+                .env_clear()
+                .env("HOME", home)
+                .env("PATH", path)
+                .timeout(Duration::from_secs(5))
+                .idle_timeout(Duration::from_secs(5))
+                .stdout_cap(4096)
+                .stderr_cap(4096)
+                .run()
+                .unwrap()
+        };
+        let ok = run(&bin, &home);
+        assert!(ok.success, "{}", ok.stderr_text());
+        let target = home.join(".cache/craft-anything").join(&name);
+        assert_eq!(std::fs::read(&target).unwrap(), content.as_bytes());
+        assert_eq!(std::fs::metadata(&target).unwrap().permissions().mode() & 0o777, 0o600);
+
+        // POSIX requires a nonzero lookup status, but shells differ on its exact value.
+        // A fresh home proves the failed lookup stops before any config directory or file is written.
+        let missing_home = root.path().join("missing-home");
+        let missing = run(&missing_bin, &missing_home);
+        assert!(!missing.success, "a missing helper must refuse setup");
+        assert!(missing.code.is_some(), "the shell must exit normally");
+        assert!(!missing_home.exists(), "a missing helper must not write anything");
+    }
+
+    #[test]
+    fn the_remote_line_needs_no_input_and_checks_the_helper_first() {
+        let mcp = McpCommand { command: "craft-anything-cli".into(), args: vec!["mcp".into()], notes: None };
+        let content = config_content(&mcp);
+        let name = config_name(&content);
+        let line = remote_prepare_line(&name, &content);
+        assert!(line.starts_with("command -v craft-anything-cli "), "{line}");
+        assert!(line.contains("mkdir -p \"$HOME/.cache/craft-anything\""), "{line}");
+        assert!(line.contains(&format!("\"$HOME/.cache/craft-anything/{name}\"")), "{line}");
+        assert!(line.contains("chmod 600"), "{line}");
+        assert!(!line.contains('\n'), "{line}");
+        // No byte in the content can end the printf format string: every octet is escaped.
+        let full_escaped = octal_escape(content.as_bytes());
+        assert_eq!(octal_escape("{}".as_bytes()), "\\173\\175");
+        assert!(line.contains(&format!("printf '{full_escaped}'")), "{line}");
+    }
+
+    /// OpenCode V2 (2.2.5) names the call `id`, beside a `partID`; V1 named it `callID`.
+    #[test]
+    fn v2_tool_events_reach_the_feed() {
+        let mut p = StreamParser::new(Arc::new(OpenCode));
+        let line = json!({"type":"tool_use","part":{"partID":"prt_1","type":"tool","id":"call_1","tool":"shell","state":{"status":"completed","input":{"command":"echo one"},"output":"one"}}});
+        let events = p.line(&line.to_string());
+        assert!(
+            matches!(events.as_slice(), [AgentEvent::ToolStarted { tool, .. }, AgentEvent::ToolFinished { ok: true, .. }] if tool == "shell"),
+            "{events:?}"
+        );
+    }
+
     /// Every supported depth reaches native chat and builder runs in the selected model reference.
     #[test]
     fn thinking_depth_is_part_of_the_selected_model_reference() {
@@ -294,7 +509,7 @@ mod tests {
                 BackendOptions { command: Some("missing-test-opencode".into()), args: extra.iter().map(|s| s.to_string()).collect(), ..Default::default() };
             assert!(OpenCode.validate_model(&config, &options, None, &Stop::default()).is_ok());
             let argv = args(false, &options);
-            assert_eq!(argv.get(1..1 + extra.len()).unwrap(), extra.as_slice());
+            assert_eq!(argv.get(2..2 + extra.len()).unwrap(), extra.as_slice());
             for (model, thinking) in [(Some("test/selected"), None), (None, Some(crate::Effort::High)), (Some("test/selected"), Some(crate::Effort::High))] {
                 let selected = BackendOptions { cli_model: model.map(str::to_string), cli_thinking: thinking, ..options.clone() };
                 let error = OpenCode.validate_model(&config, &selected, None, &Stop::default()).unwrap_err();

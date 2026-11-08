@@ -3,10 +3,17 @@
 Craft Anything can run OpenCode V2 locally or on an SSH host. OpenCode owns its provider
 connections and sign-in. Set these up in OpenCode on the computer where it will run.
 
-Model and thinking choices can be discovered, validated and saved. Running with an explicit
-selection is currently refused: our ACP transport cannot select it, and our native adapter
-does not yet supply the run's Craft Anything MCP server. For local runs, clear both choices
-and enable ACP, or use another AI. Native MCP integration remains pending in roadmap R2.2.
+Model and thinking choices can be discovered, validated and saved. A run with an explicit
+selection goes through the native adapter (`opencode run --standalone`), which hands a local run
+the Craft Anything MCP server in a config file named by `OPENCODE_CONFIG`; the person's own
+settings stay unchanged. Over SSH the native run has no Craft Anything tools yet.
+selection goes through the native adapter (`opencode run --standalone`), which hands the run
+the Craft Anything MCP server in a config file named by `OPENCODE_CONFIG`; the person's own
+settings stay unchanged. Over SSH one `ssh` run checks that `craft-anything-cli` is on the
+remote PATH and writes the file on the host itself (`~/.cache/craft-anything/`, named by its
+content, kept private), so the remote run gets the same tools. The host needs
+`craft-anything-cli` on its PATH — install Craft Anything there (the app keeps the helper
+next to it). If the check fails, the turn stops before any work with the fix.
 
 ## Desktop
 
@@ -95,8 +102,14 @@ the sidecar is removed after recovery or a successful full exit save that supers
 It uses the existing settings schema and migrations; unreadable or newer files are not overwritten
 by recovery.
 The current ACP transport cannot select models or variants. An explicit choice bypasses ACP
-even if `acp = true` was previously set, but native preflight and execution reject it until
-the run's MCP server can be supplied. The refusal completes the turn without starting OpenCode.
+even if `acp = true` was previously set and runs natively. OpenCode V2 ignores
+`OPENCODE_CONFIG_CONTENT`, and plain `opencode run` hands the turn to the background service,
+which never sees the run's environment; so the adapter writes the server to a temp config file
+and starts a private server with `--standalone`. V2 names a tool call `id` (V1: `callID`); both
+which never sees the run's environment; so the adapter writes the server to a config file
+and starts a private server with `--standalone` (locally in this computer's temporary
+folder, over SSH on the host itself). V2 names a tool call `id` (V1: `callID`); both
+are read, so tool calls reach the feed while the turn runs.
 
 Model discovery uses `opencode api model.list --param location[directory]=...` (the V2
 `GET /api/model` operation). This keeps credentials and configuration resolution inside OpenCode.

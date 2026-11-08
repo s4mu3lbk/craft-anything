@@ -22,11 +22,8 @@ fn run_in(app: &Path, prog: &Path, args: &[String], minutes: u64, stop: &CancelT
 
 /// Run one of a toolchain's commands in `app`.
 fn run_tool(app: &Path, tool: &stacks::Toolchain, command: &[String], minutes: u64, stop: &CancelToken) -> Result<(bool, String), String> {
-    let Some((program, args)) = command.split_first() else { return Err(format!("{} has no such command.", tool.name)) };
-    let here = |p: &&String| cfg!(windows) == [".bat", ".cmd", ".exe"].iter().any(|e| p.ends_with(e));
-    let local = tool.local_programs.iter().filter(here).map(|p| app.join(p)).find(|p| p.is_file());
-    let system = tool.windows_program.as_ref().filter(|_| cfg!(windows)).unwrap_or(program);
-    run_in(app, local.as_deref().unwrap_or(Path::new(system)), args, minutes, stop)
+    let Some((program, args)) = tool.command(app, command) else { return Err(format!("{} has no such command.", tool.name)) };
+    run_in(app, &program, &args, minutes, stop)
 }
 
 /// What a Unity without a licence prints, and what to tell the person.
@@ -162,7 +159,18 @@ pub(super) fn build_check(app: &Path, place: &str, stack: &str, editor: Option<&
         }
         _ if app.join("Cargo.toml").is_file() => run(Path::new("cargo"), &["build".into(), "--quiet".into()], 2 * 60),
         _ if app.join("package.json").is_file() => run(Path::new(if cfg!(windows) { "npm.cmd" } else { "npm" }), &["run".into(), "build".into()], 2 * 60),
-        (None, _) if static_site(app) => return (true, "Nothing to build: a static site.".into()),
+        (None, _) => {
+            return stacks::toolchain_in(app).map_or_else(
+                || {
+                    if static_site(app) {
+                        (true, "Nothing to build: a static site.".into())
+                    } else {
+                        (false, missing(app, place, format!("No project to build found in {place} yet.")))
+                    }
+                },
+                |tool| own_build(app, tool, stop),
+            );
+        }
         _ => return (false, missing(app, place, format!("No project to build found in {place} yet."))),
     };
     match result {
@@ -179,7 +187,7 @@ fn engine_for(stack: &str, app: &Path) -> Option<game::Builder> {
     if static_site(app) {
         return None;
     }
-    let own_project = app.join("Cargo.toml").is_file() || app.join("package.json").is_file();
+    let own_project = stacks::toolchain_in(app).is_some();
     game::Builder::from_stack(stack).filter(|b| !own_project || engine_project(*b, app))
 }
 

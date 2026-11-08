@@ -42,7 +42,7 @@ pub fn specs() -> Vec<ToolSpec> {
         spec(
             "build_files_list",
             "List project files",
-            "List files and folders in the project being built (default: app/), a few levels deep. Paths are relative to the project folder; build output and dependencies (node_modules, target, dist…) are skipped.",
+            "List files and folders in the app: app/ usually, or the project folder when the app is edited in place. A few levels deep; paths are relative to the project folder; build output and dependencies (node_modules, target, vendor, dist…) are skipped.",
             "Shows the files being built.",
             Effects::READ_ONLY,
             schema_of::<ListParams>,
@@ -99,7 +99,8 @@ pub fn specs() -> Vec<ToolSpec> {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ListParams {
-    /// A folder relative to the project (default `app`).
+    /// A folder relative to the project (default: the app folder; for a project edited in
+    /// place, the project folder itself).
     #[serde(default)]
     pub path: Option<String>,
     /// How many levels down (default 4, at most 8).
@@ -207,7 +208,9 @@ fn in_project(ws: &Workspace, rel: &str) -> Result<PathBuf, ToolError> {
 }
 
 fn shown(ws: &Workspace, p: &Path) -> String {
-    p.strip_prefix(&ws.root).unwrap_or(p).to_string_lossy().replace('\\', "/")
+    let root = resolve(&ws.root, ".").unwrap_or_else(|| ws.root.clone());
+    let rel = p.strip_prefix(&root).unwrap_or(p);
+    if rel.as_os_str().is_empty() { ".".to_string() } else { rel.to_string_lossy().replace('\\', "/") }
 }
 
 fn refused(why: String) -> ToolError {
@@ -217,9 +220,13 @@ fn refused(why: String) -> ToolError {
 fn build_files_list(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
     let p: ListParams = parse_params(params)?;
     let ws = workspace(ctx)?;
-    let root = in_project(&ws, p.path.as_deref().unwrap_or("app"))?;
+    let default = if ws.manifest.app_in_root { "." } else { "app" };
+    let root = in_project(&ws, p.path.as_deref().unwrap_or(default))?;
+    // Our records are hidden from a listing of the project, but a listing of one of them (the
+    // builder is told to read capture/ and reference/) shows what is in it.
+    let listing_own = ws.is_own_record(&root);
     let depth = p.depth.unwrap_or(4).min(8);
-    const SKIP: [&str; 8] = ["node_modules", "target", "dist", "build", ".git", "Library", "Temp", "Intermediate"];
+    const SKIP: [&str; 9] = ["node_modules", "target", "vendor", "dist", "build", ".git", "Library", "Temp", "Intermediate"];
     let mut entries = Vec::new();
     let mut stack = vec![(root.clone(), 0usize)];
     let mut truncated = false;
@@ -232,6 +239,11 @@ fn build_files_list(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Tool
                 break;
             }
             let path = e.path();
+            // Craft Anything's own records are not the app, even when the app is the project
+            // folder; the brief names them and the builder must leave them alone.
+            if !listing_own && ws.is_own_record(&path) {
+                continue;
+            }
             let name = e.file_name().to_string_lossy().into_owned();
             // A link is listed but never followed: it may lead out of the project.
             if e.file_type().is_ok_and(|t| t.is_symlink()) {
@@ -329,6 +341,8 @@ fn build_command_run(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Too
     approve(ctx, "Bash", &json!({"command": p.command}))?.map_err(refused)?;
     let app = ws.app_dir();
     std::fs::create_dir_all(&app).map_err(|e| ToolError::io(app.display(), e))?;
+    let inner = app.join("app");
+    let had_inner = inner.is_dir();
     let (shell, flag) = if cfg!(windows) { ("cmd", "/C") } else { ("sh", "-c") };
     let cancel = ctx.cancel.clone();
     ctx.report(None, format!("Running {}", p.command.chars().take(120).collect::<String>()));
@@ -349,20 +363,33 @@ fn build_command_run(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Too
         }
         s.get(start..).unwrap_or_default().to_string()
     };
-    Ok(ToolOutput::Value(json!({
+    let mut v = json!({
         "command": p.command,
+        "ran_in": ws.app_place(),
         "exit_code": out.code,
         "succeeded": out.success,
         "stdout": tail(out.stdout_text()),
         "stderr": tail(out.stderr_text()),
-    })))
+    });
+    // A model that reads file paths and commands from one base starts with `cd app`, or makes its
+    // project with `cargo new app`, from inside app/.
+    let first = p.command.split(['&', ';', '\n']).next().unwrap_or_default().trim().replace('\\', "/");
+    if ["cd app", "cd app/", "cd ./app", "cd ./app/"].contains(&first.as_str()) && !inner.is_dir() {
+        v["note"] = json!(format!("Commands already run in {}: leave out `cd app`.", ws.app_place()));
+    } else if !had_inner && app != ws.root && ["Cargo.toml", "package.json"].iter().any(|m| inner.join(m).is_file()) {
+        // Only a project: a folder named app is fine there (Next.js keeps its routes in one).
+        v["note"] = json!(
+            "This made a project in app/app/: commands already run in app/, so the app's project goes in app/ itself (app/Cargo.toml, app/package.json)."
+        );
+    }
+    Ok(ToolOutput::Value(v))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::inbox::InboxDir;
-    use crate::workspace::TargetRef;
+    use crate::workspace::{ExistingFiles, TargetRef};
     use crate::{CallOptions, Caller, Consent, Engine};
     use std::sync::Arc;
 
@@ -387,6 +414,7 @@ mod tests {
         call(&e, "build_file_edit", json!({"path": "app/src/main.rs", "old_text": "\"hi\"", "new_text": "\"hello\""})).unwrap();
         assert!(std::fs::read_to_string(ws.app_dir().join("src/main.rs")).unwrap().contains("hello"));
         let list = call(&e, "build_files_list", json!({})).unwrap();
+        assert_eq!(list["root"], "app");
         assert!(list["entries"].to_string().contains("app/src/main.rs"), "{list}");
         let page = call(&e, "build_file_read", json!({"path": "app/src/main.rs", "offset": 1, "limit": 1})).unwrap();
         assert_eq!(page["text"], "    println!(\"hello\");\n");
@@ -395,6 +423,87 @@ mod tests {
         assert!(call(&e, "build_file_edit", json!({"path": "app/src/main.rs", "old_text": "nope", "new_text": "x"})).is_err());
         assert!(call(&e, "build_file_read", json!({"path": "../../etc/passwd"})).is_err());
         assert!(call(&e, "build_file_write", json!({"path": "../outside.txt", "content": "x"})).is_err());
+    }
+
+    /// "Work on my project" keeps the app in the project root: the default listing must be that
+    /// root, not a missing or nested `app/`, and not Craft Anything's own records.
+    #[test]
+    fn a_project_edited_in_place_is_listed_from_its_own_folder() {
+        let d = tempfile::tempdir().unwrap();
+        std::fs::write(d.path().join("main.py"), "print('hi')\n").unwrap();
+        std::fs::create_dir_all(d.path().join("src")).unwrap();
+        std::fs::write(d.path().join("src/app.py"), "x = 1\n").unwrap();
+        // A nested app/ would be the wrong default: the app itself is the root.
+        std::fs::create_dir_all(d.path().join("app")).unwrap();
+        std::fs::write(d.path().join("app/other.txt"), "not the app\n").unwrap();
+        let mut s = crate::testing::session();
+        let ws = Workspace::create_at(d.path(), "Mine", "Add a page", TargetRef::None, Some(ExistingFiles::Edit)).unwrap();
+        // checks/ isn't a Craft Anything record the builder must avoid: it keeps its own notes there.
+        std::fs::create_dir_all(d.path().join("checks")).unwrap();
+        std::fs::write(d.path().join("checks/notes.md"), "note\n").unwrap();
+        // capture/ is an own record in the root listing, but the brief tells the builder to read it.
+        std::fs::create_dir_all(d.path().join("capture/pages")).unwrap();
+        std::fs::write(d.path().join("capture/README.md"), "evidence\n").unwrap();
+        std::fs::write(d.path().join("capture/pages/index.html"), "<p>evidence</p>\n").unwrap();
+        // A dependency tree bigger than the entry cap must not crowd out the app's own files.
+        std::fs::create_dir_all(d.path().join("vendor")).unwrap();
+        for i in 0..MAX_ENTRIES + 10 {
+            std::fs::write(d.path().join("vendor").join(format!("f{i:04}.txt")), b"x").unwrap();
+        }
+        s.ext.insert(Arc::new(InboxDir(ws.inbox_dir())));
+        let e = Engine::new(s);
+
+        let list = call(&e, "build_files_list", json!({})).unwrap();
+        assert_eq!(list["root"], ".");
+        let entries = list["entries"].to_string();
+        assert!(entries.contains("main.py") && entries.contains("src/app.py"), "{list}");
+        assert!(entries.contains("app/other.txt"), "a real nested folder is still part of the root: {list}");
+        assert!(entries.contains("checks/notes.md"), "the builder's own check notes stay visible: {list}");
+        assert!(!entries.contains("craft.json"), "Craft Anything's own records are not app files: {list}");
+        assert!(!entries.contains("capture/"), "capture stays out of the default root listing: {list}");
+        assert!(entries.contains("vendor/"), "the dependency folder is listed but not walked: {list}");
+        assert_eq!(list["truncated"], false, "vendor must not consume the entry cap: {list}");
+
+        // The brief tells the builder to read capture/, so an explicit listing is allowed.
+        let capture = call(&e, "build_files_list", json!({"path": "capture"})).unwrap();
+        assert_eq!(capture["root"], "capture");
+        assert!(capture["entries"].to_string().contains("capture/README.md"), "{capture}");
+        assert!(capture["entries"].to_string().contains("capture/pages/"), "{capture}");
+        let pages = call(&e, "build_files_list", json!({"path": "capture/pages"})).unwrap();
+        assert_eq!(pages["root"], "capture/pages");
+        assert!(pages["entries"].to_string().contains("capture/pages/index.html"), "{pages}");
+        std::fs::create_dir_all(d.path().join("reference")).unwrap();
+        std::fs::write(d.path().join("reference/look.png"), "x").unwrap();
+        let reference = call(&e, "build_files_list", json!({"path": "reference"})).unwrap();
+        assert!(reference["entries"].to_string().contains("reference/look.png"), "{reference}");
+
+        // An explicit nested folder is still listed by that path.
+        let nested = call(&e, "build_files_list", json!({"path": "app"})).unwrap();
+        assert_eq!(nested["root"], "app");
+        assert!(nested["entries"].to_string().contains("app/other.txt"), "{nested}");
+    }
+
+    /// A project path with `..` must not make listing paths absolute or hide an explicit capture.
+    #[test]
+    fn an_explicit_capture_listing_handles_a_project_path_with_dot_dot() {
+        let base = tempfile::tempdir().unwrap();
+        let project = base.path().join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        let dotted = project.join("..").join("project");
+        let mut s = crate::testing::session();
+        let ws = Workspace::create_at(&dotted, "Mine", "Look at the evidence", TargetRef::None, None).unwrap();
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        std::fs::write(ws.capture_dir().join("README.md"), "evidence\n").unwrap();
+        assert!(ws.is_own_record(&ws.capture_dir().join("README.md")), "capture is an own record");
+        s.ext.insert(Arc::new(InboxDir(ws.inbox_dir())));
+        let e = Engine::new(s);
+
+        let capture = call(&e, "build_files_list", json!({"path": "capture"})).unwrap();
+        assert_eq!(capture["root"], "capture");
+        let entries = capture["entries"].to_string();
+        assert!(entries.contains("capture/README.md"), "{capture}");
+        let absolute = base.path().to_string_lossy().into_owned();
+        assert!(!entries.contains(&absolute), "paths stay relative: {capture}");
     }
 
     /// A link to a folder; false where this system won't let a test make one.
@@ -477,6 +586,30 @@ mod tests {
         // Dev servers never exit: refused before anything runs.
         let err = call(&e, "build_command_run", json!({"command": "npm run dev"})).unwrap_err();
         assert!(err.message.contains("dev servers"), "{}", err.message);
+    }
+
+    /// R5.4: a local model ran `cd app && cargo build` from inside app/, reading file paths and
+    /// commands from one base.
+    #[test]
+    fn a_command_says_where_it_ran() {
+        let (_d, _ws, e) = building();
+        let ok = call(&e, "build_command_run", json!({"command": "echo built"})).unwrap();
+        assert_eq!((ok["ran_in"].as_str(), ok["succeeded"].as_bool(), ok.get("note")), (Some("app/"), Some(true), None));
+        let lost = call(&e, "build_command_run", json!({"command": "cd app && echo built"})).unwrap();
+        assert_eq!(lost["succeeded"], false, "{lost}");
+        assert!(lost["note"].as_str().is_some_and(|n| n.contains("already run in app/")), "{lost}");
+        let lines = call(&e, "build_command_run", json!({"command": "cd app\necho built"})).unwrap();
+        assert!(lines["note"].as_str().is_some_and(|n| n.contains("already run in app/")), "{lines}");
+        // Live, its first command was `cargo new app`, which made a project in app/app/.
+        let nested = call(&e, "build_command_run", json!({"command": "mkdir app && cd app && echo [package]> Cargo.toml"})).unwrap();
+        assert!(nested["note"].as_str().is_some_and(|n| n.contains("This made a project in app/app/")), "{nested}");
+        // Once there, it's a folder of the app's own: going into it is left alone.
+        let inner = call(&e, "build_command_run", json!({"command": "cd app && echo built"})).unwrap();
+        assert_eq!((inner["succeeded"].as_bool(), inner.get("note")), (Some(true), None));
+        // A folder named app with no project in it is fine (Next.js keeps its routes in one).
+        let (_d, _ws, e) = building();
+        let routes = call(&e, "build_command_run", json!({"command": "mkdir app"})).unwrap();
+        assert_eq!(routes.get("note"), None, "{routes}");
     }
 
     #[test]

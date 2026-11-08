@@ -35,6 +35,7 @@ pub struct Footer {
     /// The key's GUID (all zero when the default key, or none, is used), from version 7.
     pub encryption_key_guid: Option<String>,
     /// Compression method names by index (index 0 means "none"; these are 1, 2, …), from version 8.
+    /// Empty slots before a later name stay in place; unused trailing slots are omitted.
     pub compression_methods: Vec<String>,
     /// How many method name slots the footer has: 4 in the first version-8 paks (Unreal 4.22),
     /// whose entries store the method index in one byte, else 5.
@@ -128,10 +129,18 @@ impl<'a> Cur<'a> {
         if chars > MAX_STRING {
             return Err(FormatError::Malformed(format!("{what} is {chars} characters long")));
         }
+        let no_terminator = || FormatError::Malformed(format!("{what} has no terminating NUL"));
         let s = if n >= 0 {
-            String::from_utf8_lossy(self.take(chars, what)?).into_owned()
+            let b = self.take(chars, what)?;
+            if chars != 0 && b.last() != Some(&0) {
+                return Err(no_terminator());
+            }
+            String::from_utf8_lossy(b).into_owned()
         } else {
             let b = self.take(chars * 2, what)?;
+            if !b.ends_with(&[0, 0]) {
+                return Err(no_terminator());
+            }
             String::from_utf16_lossy(&b.as_chunks::<2>().0.iter().map(|c| u16::from_le_bytes(*c)).collect::<Vec<_>>())
         };
         Ok(s.trim_end_matches('\0').to_string())
@@ -170,6 +179,7 @@ pub fn footer(tail: &[u8], file_len: u64) -> Result<Footer, FormatError> {
                 method_slots += 1;
                 let name = String::from_utf8_lossy(name).trim_end_matches('\0').to_string();
                 if !name.is_empty() {
+                    compression_methods.resize_with(method_slots - 1, String::new);
                     compression_methods.push(name);
                 }
             }
@@ -199,7 +209,7 @@ fn record_size(footer: &Footer, compressed: bool, blocks: usize) -> u64 {
 fn method_name(footer: &Footer, index: u32) -> String {
     match index {
         0 => "none".into(),
-        n => footer.compression_methods.get(n as usize - 1).cloned().unwrap_or_else(|| format!("method {n}")),
+        n => footer.compression_methods.get(n as usize - 1).filter(|name| !name.is_empty()).cloned().unwrap_or_else(|| format!("method {n}")),
     }
 }
 

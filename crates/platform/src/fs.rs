@@ -25,12 +25,9 @@ fn write_impl(path: &Path, bytes: &[u8], private: bool) -> Result<(), ToolError>
         None => return Err(ToolError::invalid(format!("{} has no parent folder", path.display()))),
     };
     std::fs::create_dir_all(&dir).map_err(|e| ToolError::io(dir.display(), e))?;
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "file".into());
-    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    let tmp = dir.join(format!(".{name}.tmp-{}-{n}", std::process::id()));
     let existing_perms = std::fs::metadata(path).ok().map(|m| m.permissions());
+    let (tmp, mut f) = create_temp(&dir, path, private, &COUNTER)?;
     let result = (|| {
-        let mut f = std::fs::File::create(&tmp).map_err(|e| ToolError::io(tmp.display(), e))?;
         if private {
             set_private(&tmp)?;
         } else if let Some(p) = existing_perms {
@@ -45,6 +42,39 @@ fn write_impl(path: &Path, bytes: &[u8], private: bool) -> Result<(), ToolError>
         let _ = std::fs::remove_file(&tmp);
     }
     result
+}
+
+/// Reserve a short, new temporary file before entering the cleanup scope. A collision belongs to
+/// another write, so it must never be truncated or removed by this call.
+fn create_temp(dir: &Path, destination: &Path, private: bool, counter: &AtomicU64) -> Result<(std::path::PathBuf, std::fs::File), ToolError> {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        if private {
+            options.mode(0o600);
+        }
+    }
+    #[cfg(not(unix))]
+    let _ = private;
+    let destination_name = destination.file_name().and_then(|name| name.to_str());
+    for _ in 0..64 {
+        let n = counter.fetch_add(1, Ordering::Relaxed);
+        let name = format!(".craft-anything.tmp-{}-{n}", std::process::id());
+        // Conservatively exclude case-insensitive and Windows trailing-dot/space aliases.
+        if destination_name.is_some_and(|destination| destination.trim_end_matches(['.', ' ']).eq_ignore_ascii_case(&name)) {
+            continue;
+        }
+        let tmp = dir.join(name);
+        match options.open(&tmp) {
+            Ok(file) => return Ok((tmp, file)),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(ToolError::io(tmp.display(), error)),
+        }
+    }
+    let error = std::io::Error::new(std::io::ErrorKind::AlreadyExists, "could not reserve an unused temporary file");
+    Err(ToolError::io(dir.display(), error))
 }
 
 /// On Windows a file another program has open for a moment (an antivirus scan, the search
@@ -112,6 +142,44 @@ mod tests {
         }
         // no temp files left behind
         assert_eq!(std::fs::read_dir(dir.path().join("sub")).unwrap().count(), 1);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn temporary_file_creation_permissions_respect_private_flag() {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let dir = tempfile::tempdir().unwrap();
+        let counter = AtomicU64::new(0);
+        let destination = dir.path().join("settings.json");
+        let (_, private) = create_temp(dir.path(), &destination, true, &counter).unwrap();
+        // Observe the new file directly, before write_impl can call set_private.
+        assert_eq!(private.metadata().unwrap().permissions().mode() & 0o077, 0);
+
+        let regular = std::fs::File::create(dir.path().join("regular")).unwrap();
+        let (_, non_private) = create_temp(dir.path(), &destination, false, &counter).unwrap();
+        assert_eq!(non_private.metadata().unwrap().permissions().mode() & 0o777, regular.metadata().unwrap().permissions().mode() & 0o777);
+    }
+
+    #[test]
+    fn temporary_candidates_exclude_destination_aliases() {
+        let name = format!(".craft-anything.tmp-{}-0", std::process::id());
+        for (component, next_counter) in [
+            (name.clone(), 2),
+            (name.to_ascii_uppercase(), 2),
+            (format!("{name}. "), 2),
+            (format!("{}. ", name.to_ascii_uppercase()), 2),
+            ("settings.json".into(), 1),
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let counter = AtomicU64::new(0);
+            let destination = dir.path().join(".").join(component);
+            let (temporary, file) = create_temp(dir.path(), &destination, false, &counter).unwrap();
+            assert!(!destination.exists());
+            assert_eq!(counter.load(Ordering::Relaxed), next_counter);
+            assert_eq!(temporary, dir.path().join(format!(".craft-anything.tmp-{}-{}", std::process::id(), next_counter - 1)));
+            assert_eq!(file.metadata().unwrap().len(), 0);
+        }
     }
 
     #[test]

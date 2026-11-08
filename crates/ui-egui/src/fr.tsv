@@ -877,5 +877,593 @@ Close window	Fermer la fenêtre
 Full screen	Plein écran
 Zoom	Réduire/agrandir
 Bring all to front	Tout ramener au premier plan
+{} {said}	{} {said}
+{}: {e}	{}: {e}
+{}h {:02}m	{}h {:02}m
+{c} · {size}	{c} · {size}
+{scenes} {}	{scenes} {}
+{mb} MB	{mb} MB
+Build	Build
+Studio	Studio
+{} {then}	{} {then}
+{k}: {s}	{k}: {s}
+{}m {:02}s	{}m {:02}s
+{tool}: {}	{tool}: {}
+Ghidra	Ghidra
+{} {name}	{} {name}
+ · ssh {h}	 · ssh {h}
+Craft Anything	Craft Anything
+SHA-256	SHA-256
+{} {v}	{} {v}
+{:.1} GB	{:.1} GB
+ GB	 GB
+/btw {}	/btw {}
+{}: {some}{more}.	{}: {some}{more}.
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+ · ${c:.2}	 · ${c:.2}
+{id} · {summary}	{id} · {summary}
+Standard	Standard
+{text}, {}	{text}, {}
+{title} {id}	{title} {id}
+{}: {state}	{}: {state}
+, ${c:.4}	, ${c:.4}
+ {ascii}	 {ascii}
+Markdown	Markdown
+Unreal IoStore	Unreal IoStore
+Screenshot	Capture d'écran
+Websites	Sites web
+{lbl}  {}	{lbl}  {}
+{} GB	{} GB
+OpenCode default	Valeur par défaut d'OpenCode
+Model default	Modèle par défaut
+Thinking depth	Profondeur de réflexion
+OpenCode model	Modèle OpenCode
+Remote program	Programme distant
+Reload models	Recharger les modèles
+Apply	Appliquer
+No chat models are visible in {agent}. Check its setup, then reload.	Aucun modèle de chat n'est visible dans {agent}. Il faut vérifier sa configuration, puis recharger.
+The saved model is no longer visible. Choose another model or the {agent} default.	Le modèle enregistré n'est plus visible. Il faut choisir un autre modèle ou la valeur par défaut de {agent}.
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode n'a aucun modèle de chat visible. Il faut connecter un fournisseur dans OpenCode, puis recharger.
+The saved model is no longer visible. Choose another model or the OpenCode default.	Le modèle enregistré n'est plus visible. Il faut choisir un autre modèle ou la valeur par défaut d'OpenCode.
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	La profondeur de réflexion enregistrée n'est pas disponible pour ce modèle. Il faut choisir sa valeur par défaut ou une profondeur proposée.
+List an agent's models	Lister les modèles d'un agent
+Choose an agent's model and thinking	Choisir le modèle et la profondeur de réflexion d'un agent
+.NET application graph	Graphe d'application .NET
+.NET apps	Applications .NET
+.NET assembly overview	Aperçu des assemblages .NET
+.NET native calls	Appels natifs .NET
+.NET types and methods	Types et méthodes .NET
+A .NET program (C#, F# or VB)	Un programme .NET (C#, F# ou VB)
+A DOS program	Un programme DOS
+A Java program	Un programme Java
+A Linux (or Unix) program	Un programme Linux (ou Unix)
+A Mac or iPhone program	Un programme Mac ou iPhone
+A SQLite database (how an app stores its data)	Une base de données SQLite (la manière dont une application stocke ses données)
+A WebAssembly module (code that runs in a browser)	Un module WebAssembly (du code qui s'exécute dans un navigateur)
+A Windows program	Un programme Windows
+A ZIP archive	Une archive ZIP
+A bundle of ready-made code that many programs share.	Un ensemble de code prêt à l'emploi que de nombreux programmes partagent.
+A file of machine code that a computer can run directly, like an .exe or an app.	Un fichier de code machine qu'un ordinateur peut exécuter directement, comme un .exe ou une application.
+A file that a computer can run as a program.	Un fichier qu'un ordinateur peut exécuter comme un programme.
+A file that links packed web code back to the original, readable source files.	Un fichier qui relie du code web compacté aux fichiers sources d'origine, lisibles.
+A file we don't recognise yet	Un fichier que nous ne reconnaissons pas encore
+A folder	Un dossier
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	Un outil gratuit de rétro-ingénierie de la NSA. Le mode Deep l'utilise pour obtenir plus de détails ; le mode Clean room ne l'utilise jamais.
+A locked room for running a program so it can't touch the rest of your computer.	Une pièce verrouillée pour exécuter un programme sans qu'il puisse toucher au reste de l'ordinateur.
+A map of which functions call which other functions.	Une carte indiquant quelles fonctions appellent quelles autres fonctions.
+A name the program's author gave to a function or variable that survived in the file.	Un nom que l'auteur du programme a donné à une fonction ou à une variable et qui a été conservé dans le fichier.
+A named piece of a program that does one job, like "add two numbers" or "save the file".	Une partie nommée d'un programme qui accomplit une tâche, comme « additionner deux nombres » ou « enregistrer le fichier ».
+A number that says where something is in a program's memory, like a house number.	Un nombre qui indique où se trouve un élément dans la mémoire d'un programme, comme un numéro de rue.
+A piece of text stored inside a program, like a message, a web address or a file name.	Un texte stocké dans un programme, par exemple un message, une adresse web ou un nom de fichier.
+A recording of network traffic	Un enregistrement du trafic réseau
+A region of a program as it sits in memory while running.	Une zone d'un programme telle qu'elle se trouve en mémoire pendant l'exécution.
+A region of a program file with one purpose: code, text, pictures, settings.	Une zone d'un fichier de programme ayant une fonction précise : code, texte, images, réglages.
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	Une règle empirique. Souvent juste, parfois fausse : le résultat est donc présenté comme une meilleure estimation.
+A saved, checkable record of something we found, with how sure we are and where we found it.	Un enregistrement sauvegardé et vérifiable de ce qui a été trouvé, avec le degré de certitude et l'endroit où cela a été trouvé.
+A script or web page	Un script ou une page web
+A set of commands a program offers to other programs.	Un ensemble de commandes qu'un programme propose à d'autres programmes.
+A small download (under 200 MB). Free, no account needed.	Un petit téléchargement (moins de 200 Mo). Gratuit, aucun compte requis.
+A small file that lists what an app is called, what it needs and what it's allowed to do.	Un petit fichier qui indique le nom d'une application, ce dont elle a besoin et ce qu'elle a le droit de faire.
+A smart contract (EVM bytecode)	Un contrat intelligent (bytecode EVM)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	Une manière d'écrire les octets sous forme de codes à deux caractères (00 à FF). L'affichage le plus brut d'un fichier.
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	Un moyen de créer des applications de bureau à partir de pages web. L'application est en fait un site web doté de son propre navigateur.
+AI model file	Fichier de modèle d'IA
+AI name	Nom de l'IA
+API boundary	Frontière d'API
+API key	Clé d'API
+API key, if it needs one	Clé d'API, si nécessaire
+About 10 GB. Free for personal use with a Unity account.	Environ 10 Go. Gratuit pour un usage personnel avec un compte Unity.
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	Environ 60 Go, un compte Epic Games et les outils C++ de Visual Studio.
+Add an AI by its address	Ajouter une IA par son adresse
+Add another	En ajouter un autre
+Add it again, to choose another account's folder for it.	Il faut l'ajouter à nouveau pour choisir le dossier d'un autre compte.
+Add to a running build	Ajouter à une construction en cours
+Address to file offset	Adresse vers décalage de fichier
+An Android app	Une application Android
+An Android app package: the file you install on a phone.	Un paquet d'application Android : le fichier à installer sur un téléphone.
+An Apple settings file (plist)	Un fichier de réglages Apple (plist)
+Analyse a JavaScript app	Analyser une application JavaScript
+Analyse a page's JavaScript	Analyser le JavaScript d'une page
+Android app code (DEX)	Code d'application Android (DEX)
+Android app components	Composants d'une application Android
+Android app package	Paquet d'application Android
+Android apps	Applications Android
+Android class	Classe Android
+Android method bytecode	Bytecode d'une méthode Android
+Android resources	Ressources Android
+Annotate function	Annoter la fonction
+Answer a project's question	Répondre à la question d'un projet
+App details on device	Détails de l'application sur l'appareil
+Apple apps	Applications Apple
+Apply model options	Appliquer les options du modèle
+Approve an agent action	Approuver une action d'un agent
+Architectures	Architectures
+Ask about a build	Poser une question sur une construction
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	Demander une modification, par ex. "boutons plus grands" ou "ajouter un mode sombre"
+Ask for a change, e.g. "make it faster" or "add a high-score table"	Demander une modification, par ex. "le rendre plus rapide" ou "ajouter un tableau des meilleurs scores"
+Ask the person	Demander à la personne
+Asking for its models…	Interrogation sur ses modèles…
+Asset catalog	Catalogue de ressources
+Best guess	Meilleure estimation
+Binary layout	Structure binaire
+Blocked	Bloqué
+Bookmark	Signet
+Bug report	Rapport de bogue
+Build a rebuild ledger	Créer un registre de reconstruction
+Build a stand-in backend	Construire un backend de substitution
+Building	Construction en cours
+Call graph	Graphe d'appels
+Call path	Chemin d'appel
+Call the build done	Déclarer la construction terminée
+Called done. A new message carries on from here.	Déclarée terminée. Un nouveau message reprend à partir d'ici.
+Capture a website for rebuilding	Capturer un site web pour le reconstruire
+Capture inventories	Capturer les inventaires
+Capture menus, dialogs and tabs	Capturer les menus, boîtes de dialogue et onglets
+Change a setting	Modifier un réglage
+Change an AI's model	Modifier le modèle d'une IA
+Change how hard an AI thinks	Modifier le niveau de réflexion d'une IA
+Check	Vérifier
+Check .NET native calls	Vérifier les appels natifs .NET
+Check a rebuild claim	Vérifier une affirmation de reconstruction
+Check a scripted web session	Vérifier une session web scriptée
+Check an answer	Vérifier une réponse
+Check decompiled C#	Vérifier le C# décompilé
+Check my build	Vérifier ma construction
+Check the JEB connection	Vérifier la connexion à JEB
+Check the setup	Vérifier la configuration
+Checking	Vérification en cours
+Claude Code folder (CLAUDE_CONFIG_DIR)	Dossier de Claude Code (CLAUDE_CONFIG_DIR)
+Close a Frida session	Fermer une session Frida
+Close a GDB session	Fermer une session GDB
+Close a Rizin debug session	Fermer une session de débogage Rizin
+Close the website	Fermer le site web
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	Code reconstruit à partir d'un programme qui ressemble au langage C. Proche de ce que fait le programme, mais pas son code source d'origine.
+Code signature	Signature du code
+Commands:	Commandes :
+Compare WebAssembly interfaces	Comparer des interfaces WebAssembly
+Compare module exports	Comparer les exportations de modules
+Compare two .NET builds	Comparer deux builds .NET
+Compare two app versions	Comparer deux versions d'une application
+Compare two artifacts	Comparer deux artefacts
+Compare two evidence bundles	Comparer deux lots de preuves
+Compare two functions	Comparer deux fonctions
+Compare two page captures	Comparer deux captures de page
+Compare two runs	Comparer deux exécutions
+Compare two screenshots	Comparer deux captures d'écran
+Comparing and rebuilding	Comparer et reconstruire
+Compiled Python file	Fichier Python compilé
+Connect agent apps	Connecter des applications d'agent
+Connect to a browser	Se connecter à un navigateur
+Connected devices	Appareils connectés
+Connected phone	Téléphone connecté
+Context window	Fenêtre de contexte
+Contradicted	Contredit
+Control-flow graph: a map of every path a function can take, like a flowchart.	Graphe de flot de contrôle : une carte de tous les chemins qu'une fonction peut emprunter, comme un organigramme.
+Copy a file off the phone	Copier un fichier depuis le téléphone
+Copy a file to the phone	Copier un fichier vers le téléphone
+Copy an app off the phone	Copier une application depuis le téléphone
+Couldn't open {}: {}	Impossible d'ouvrir {} : {}
+Couldn't start a worker thread: {e}	Impossible de démarrer un thread de travail : {e}
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything lit le code, les fichiers et le code source des pages de l'original avec tous les outils dont il dispose, et avec Ghidra s'il est installé.
+Craft Anything report.md	Rapport Craft Anything report.md
+Crash dump	Image mémoire après plantage
+Critical	Critique
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	Référence croisée : un endroit du programme qui utilise ou appelle l'élément observé.
+Cross-references	Références croisées
+Cross-references: the places in the program that use or call the thing you're looking at.	Références croisées : les endroits du programme qui utilisent ou appellent l'élément observé.
+Current document	Document actuel
+Cursor address	Adresse du curseur
+Cursor function	Fonction du curseur
+Cutter command	Commande de découpe
+DOS load image	Image de chargement DOS
+Databases	Bases de données
+Decode a radio recording	Décoder un enregistrement radio
+Decompile	Décompiler
+Decompile Java with Vineflower	Décompiler du Java avec Vineflower
+Decompile many	Décompiler en masse
+Decompile with JEB	Décompiler avec JEB
+Default	Par défaut
+Delete a project	Supprimer un projet
+Deliberately scrambled to make it hard to read, without changing what it does.	Volontairement brouillé pour être difficile à lire, sans changer ce qu'il fait.
+Demangle Swift symbols	Démangler les symboles Swift
+Device details	Détails de l'appareil
+Device features	Fonctionnalités de l'appareil
+Device folder	Dossier de l'appareil
+Device log	Journal de l'appareil
+Disassemble sBPF code	Désassembler du code sBPF
+Disconnect agent apps	Déconnecter les applications d'agent
+Dispatch metadata	Métadonnées de Dispatch
+Display info	Informations d'affichage
+Drive an app's screen	Piloter l'écran d'une application
+Duplicate a project	Dupliquer un projet
+Edit a project file	Modifier un fichier de projet
+Effort:	Effort :
+Electron and JavaScript	Electron et JavaScript
+Electron fuses	Fuses d'Electron
+Engines and settings	Moteurs et réglages
+Essentials	L'essentiel
+Evidence so far	Preuves à ce stade
+Explain a function	Expliquer une fonction
+Export captured scripts	Exporter les scripts capturés
+Export evidence	Exporter les preuves
+Extended	Étendu
+Extract an archive	Extraire une archive
+Extract firmware	Extraire un micrologiciel
+File formats	Formats de fichier
+Files packed inside a file	Fichiers contenus dans un fichier
+Find Android classes	Trouver des classes Android
+Find Java classes	Trouver des classes Java
+Find a call path	Trouver un chemin d'appel
+Find an app	Trouver une application
+Find in-page MCP tools	Trouver les outils MCP dans la page
+Find it automatically	Trouver automatiquement
+Find the original source line	Trouver la ligne source d'origine
+Firmware regions	Régions du micrologiciel
+Force-stop an app	Forcer l'arrêt d'une application
+Found {} AI option(s) on this computer	{} option(s) d'IA trouvée(s) sur cet ordinateur
+Frida devices	Appareils Frida
+Frida instrumentation	Instrumentation Frida
+Frida processes	Processus Frida
+Frida session status	État de la session Frida
+Function address	Adresse de la fonction
+Function assembly	Assembleur de la fonction
+Function dossier	Dossier de la fonction
+Function info	Infos sur la fonction
+Function instructions	Instructions de la fonction
+Function references	Références de la fonction
+GDB command	Commande GDB
+GDB session status	État de la session GDB
+Generate a 3D model	Générer un modèle 3D
+Generate a picture	Générer une image
+Go program details	Détails du programme Go
+Go to address	Aller à l'adresse
+High	Élevé
+How complete is the rebuild	Degré d'achèvement de la reconstruction
+How does the % key work?	Comment fonctionne la touche % ?
+ILSpy decompile	Décompilation ILSpy
+Identify a Flutter build	Identifier un build Flutter
+Import a source folder	Importer un dossier source
+Import evidence	Importer des preuves
+Inspect a Dart AOT snapshot	Examiner un instantané AOT Dart
+Inspect a network recording	Examiner un enregistrement réseau
+Inspect a web page	Examiner une page web
+Inspect an Electron page	Examiner une page Electron
+Inspect data	Examiner des données
+Inspect instruction	Examiner l'instruction
+Install an app	Installer une application
+Install an engine	Installer un moteur
+Installed apps	Applications installées
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	Communication interprocessus : manière dont deux parties d'une application (ou deux applications) s'envoient des messages.
+Interface Builder documents	Documents Interface Builder
+Inventory an archive or app bundle	Inventorier une archive ou un bundle d'application
+Investigating	Investigation en cours
+Investigation so far	Investigation jusqu'ici
+Is Apktool available?	Apktool est-il disponible ?
+Is adb available?	adb est-il disponible ?
+Is an asset key set up?	Une clé d'assets est-elle configurée ?
+It's done	C'est terminé
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	Connexion, réglages et conversations propres : un autre dossier correspond à un autre compte. Vide : son dossier habituel.
+Java archive overview	Aperçu de l'archive Java
+Java class	Classe Java
+Java method bytecode and pseudo-Java	Bytecode de méthode Java et pseudo-Java
+Java program code (one class)	Code de programme Java (une classe)
+Java programs	Programmes Java
+Jobs ({n})	Tâches ({n})
+Keep the build as it is and stop offering to carry on.	Conserver le build tel quel et ne plus proposer de continuer.
+Keyed archive	Archive à clés
+Launch an app	Lancer une application
+Let a project generate assets	Laisser un projet générer des assets
+Library resolution	Résolution des bibliothèques
+Line up code and behaviour	Aligner le code et le comportement
+Line up source with the bundle	Aligner la source sur le bundle
+List Electron pages	Lister les pages Electron
+List JEB units	Lister les unités JEB
+List JS runtime targets	Lister les cibles d'exécution JS
+List a Unity assets file	Lister un fichier d'assets Unity
+List a Unity bundle	Lister un bundle Unity
+List a game's archives	Lister les archives d'un jeu
+List a node's event listeners	Lister les écouteurs d'événements d'un nœud
+List an AI's models	Lister les modèles d'une IA
+List an Unreal IoStore container	Lister un conteneur Unreal IoStore
+List an Unreal pak	Lister un pak Unreal
+List bookmarks	Lister les signets
+List browser pages	Lister les pages du navigateur
+List documents	Lister les documents
+List engines	Lister les moteurs
+List functions	Lister les fonctions
+List names	Lister les noms
+List open targets	Lister les cibles ouvertes
+List pinned builds	Lister les builds épinglés
+List plugins	Lister les plugins
+List project files	Lister les fichiers du projet
+List projects	Lister les projets
+List questions about a build	Lister les questions sur un build
+List radio decoders	Lister les décodeurs radio
+List segments	Lister les segments
+List shared Cutter sessions	Lister les sessions Cutter partagées
+List strings	Lister les chaînes
+Load model options	Charger les options de modèle
+Low	Faible
+Mach-O structure	Structure Mach-O
+Many source files packed into one big file so an app or web page loads faster.	De nombreux fichiers source regroupés en un seul gros fichier pour qu'une application ou une page web se charge plus vite.
+Map a HarmonyOS app	Cartographier une application HarmonyOS
+Map a page's module graph	Cartographier le graphe de modules d'une page
+Map an Android app	Cartographier une application Android
+Map an Apple app	Cartographier une application Apple
+Match functions between two builds	Faire correspondre les fonctions entre deux builds
+Match static code to what ran	Faire correspondre le code statique à ce qui s'est exécuté
+Measure which code ran	Mesurer quel code s'est exécuté
+Medium	Moyen
+Model	Modèle
+Model options	Options de modèle
+Model: {model}	Modèle : {model}
+Name an address	Nommer une adresse
+Name at address	Nom à l'adresse
+Name many addresses	Nommer plusieurs adresses
+Names the program's author gave to functions or variables that survived in the file.	Noms que l'auteur du programme a donnés à des fonctions ou à des variables et qui ont été conservés dans le fichier.
+New	Nouveau
+Next address	Adresse suivante
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	Rien n'est lu à l'intérieur de l'original : ni son code, ni ses fichiers, ni la source de sa page. Craft Anything travaille à partir de ce qui est visible : des images, la page telle qu'un visiteur la voit, et l'observation de son exécution.
+Objective-C classes	Classes Objective-C
+Objective-C protocols	Protocoles Objective-C
+Observe a JS runtime	Observer un environnement d'exécution JS
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Ollama ou LM Studio sur un autre ordinateur, ou tout service compatible avec l'API OpenAI.
+One-shot instrumentation	Instrumentation ponctuelle
+Open a file in JEB	Ouvrir un fichier dans JEB
+Open a project's folder	Ouvrir le dossier d'un projet
+Open a website	Ouvrir un site web
+Open an engine's app	Ouvrir l'application d'un moteur
+Open the app	Ouvrir l'application
+Open the website	Ouvrir le site web
+Opened {}	{} ouvert
+Overview	Vue d'ensemble
+Packet capture overview	Vue d'ensemble de la capture de paquets
+Packet fields	Champs des paquets
+Page through evidence	Parcourir les preuves page par page
+Picture a program's window	Représenter la fenêtre d'un programme en image
+Pieces of text stored inside a program, like messages, web addresses or file names.	Morceaux de texte stockés dans un programme, comme des messages, des adresses web ou des noms de fichiers.
+Pin a project's build	Épingler le build d'un projet
+Plan connecting agent apps	Planifier la connexion des applications d'agent
+Play a project's result	Lire le résultat d'un projet
+Play the game	Jouer au jeu
+Preview a project's website	Afficher l'aperçu du site web d'un projet
+Previous address	Adresse précédente
+Program: found automatically	Programme : trouvé automatiquement
+Program: {path}	Programme : {path}
+Programs (native code)	Programmes (code natif)
+Property list	Liste de propriétés
+Raw machine code	Code machine brut
+Read a Unity game's IL2CPP metadata	Lire les métadonnées IL2CPP d'un jeu Unity
+Read a project file	Lire un fichier de projet
+Read a setting	Lire un réglage
+Read an app's screen	Lire l'écran d'une application
+Read bytes	Lire des octets
+Read comment	Lire le commentaire
+Read inline comment	Lire le commentaire en ligne
+Read the journal	Lire le journal
+Reasoning	Raisonnement
+Rebuild status	État de la reconstruction
+Record a finding	Consigner une constatation
+Record a hypothesis	Consigner une hypothèse
+Record an open question	Consigner une question ouverte
+Recover readable sources	Récupérer des sources lisibles
+Recreate this website	Recréer ce site web
+References to a name	Références à un nom
+Refresh plugins	Actualiser les plugins
+Regions of a program file, each with one purpose: code, text, pictures, settings.	Zones d'un fichier de programme, chacune ayant une fonction : code, texte, images, réglages.
+Remove a pinned build	Retirer un build épinglé
+Remove an app	Retirer une application
+Remove an asset key	Retirer une clé d'asset
+Remove bookmark	Retirer le signet
+Rename a pinned build	Renommer un build épinglé
+Rename a project	Renommer un projet
+Resolve a call	Résoudre un appel
+Resolved	Résolu
+Resume a Frida session	Reprendre une session Frida
+Rizin command	Commande Rizin
+Rizin debug command	Commande de débogage Rizin
+Rizin debug session status	État de la session de débogage Rizin
+Run a Frida script	Exécuter un script Frida
+Run a build command	Exécuter une commande de build
+Run a scripted Electron session	Exécuter une session Electron scriptée
+Run a scripted web session	Exécuter une session web scriptée
+Run and watch a program	Exécuter et observer un programme
+Running processes	Processus en cours d'exécution
+Running programs	Programmes en cours d'exécution
+Rust program details	Détails du programme Rust
+SQLite database contents	Contenu de la base de données SQLite
+Save a report	Enregistrer un rapport
+Save an asset key	Enregistrer une clé d'asset
+Screenshot a page	Capturer une page
+Search for bytes	Rechercher des octets
+Search functions	Rechercher des fonctions
+Search strings	Rechercher des chaînes
+See what a stand-in was asked	Voir ce qui a été demandé à un substitut
+Seen it	Vu
+Server address	Adresse du serveur
+Session status	État de la session
+Set a project's asset budget	Définir le budget d'assets d'un projet
+Set an AI's folder	Définir le dossier d'une IA
+Set an AI's program	Définir le programme d'une IA
+Set model options	Définir les options du modèle
+Show a build's activity	Afficher l'activité d'un build
+Show a project	Afficher un projet
+Show folder	Afficher le dossier
+Show model options	Afficher les options du modèle
+Show settings	Afficher les réglages
+Show the folder	Afficher le dossier
+Smart contract interface	Interface de contrat intelligent
+Solana program (sBPF)	Programme Solana (sBPF)
+Something a program borrows from the operating system or a library, like "open a file".	Ce qu'un programme emprunte au système d'exploitation ou à une bibliothèque, comme « ouvrir un fichier ».
+Something a program or library offers for other programs to use.	Ce qu'un programme ou une bibliothèque met à la disposition d'autres programmes.
+Start a Frida session	Démarrer une session Frida
+Start a GDB session	Démarrer une session GDB
+Start a Rizin debug session	Démarrer une session de débogage Rizin
+Start a rebuild	Démarrer une reconstruction
+Start a stand-in backend	Démarrer un backend de remplacement
+Start an activity	Démarrer une activité
+Stop a pinned build	Arrêter une construction épinglée
+Stop a rebuild	Arrêter une reconstruction
+Stop a stand-in backend	Arrêter un backend de remplacement
+Studio (dark)	Studio (sombre)
+Studio Light	Studio clair
+Study	Étudier
+Studying	Étude en cours
+Summarise what changed	Résumer ce qui a changé
+Swift types	Types Swift
+Switch target	Changer de cible
+System services	Services système
+Take a texture out of an Unreal game	Extraire une texture d'un jeu Unreal
+Take an asset out of a Unity game	Extraire une ressource d'un jeu Unity
+Take back a note	Retirer une note
+Take files out of an Unreal pak	Extraire des fichiers d'un pak Unreal
+Take out packed files	Extraire les fichiers empaquetés
+The Rust toolchain (rustup.rs).	La chaîne d'outils Rust (rustup.rs).
+The code format Android apps use.	Le format de code utilisé par les applications Android.
+The first instruction a program runs when it starts.	La première instruction qu'un programme exécute au démarrage.
+The lowest-level human-readable form of machine code: one small instruction per line.	La forme de code machine la plus basique lisible par un humain : une petite instruction par ligne.
+The names were removed from the program before it was shipped, so we have to work them out.	Les noms ont été supprimés du programme avant sa diffusion, il faut donc les déduire.
+The packed contents of an Electron app (a website inside a desktop app)	Le contenu empaqueté d'une application Electron (un site web dans une application de bureau)
+The program's machine code written out as one tiny instruction per line.	Le code machine du programme écrit sous la forme d'une minuscule instruction par ligne.
+The smallest unit of data in a file: a number from 0 to 255.	La plus petite unité de données d'un fichier : un nombre de 0 à 255.
+The smallest units of data in a file: numbers from 0 to 255.	Les plus petites unités de données d'un fichier : des nombres de 0 à 255.
+The {name} view isn't available yet in this build.	La vue {name} n'est pas encore disponible dans cette version.
+The {} view isn't available yet in this build.	La vue {} n'est pas encore disponible dans cette version.
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	Ce qu'un programme emprunte au système d'exploitation ou aux bibliothèques, comme « ouvrir un fichier » ou « dessiner une fenêtre ».
+Things a program or library offers for other programs to use.	Ce qu'un programme ou une bibliothèque met à la disposition d'autres programmes.
+Trace a UI action	Tracer une action de l'interface
+Trace a feature	Tracer une fonctionnalité
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	Retransformer le code machine d'un programme en quelque chose qui se lit comme du code source. Il s'agit d'une reconstruction, pas de l'original.
+Unity assets	Ressources Unity
+Unity bundle	Bundle Unity
+Unknown	Inconnu
+Unload a Frida script	Décharger un script Frida
+Unreal pak	Pak Unreal
+Update a finding	Mettre à jour une conclusion
+Update a hypothesis	Mettre à jour une hypothèse
+Update an open question	Mettre à jour une question ouverte
+Update the checklist	Mettre à jour la liste de contrôle
+Update the plan	Mettre à jour le plan
+Value flow	Parcours des valeurs
+Watch a Mac app's calls	Observer les appels d'une application Mac
+Watch a page over time	Observer une page au fil du temps
+WebAssembly module	Module WebAssembly
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly : du code compilé rapide qui s'exécute dans les navigateurs web.
+What a program exports	Ce qu'un programme exporte
+What a program imports	Ce qu'un programme importe
+What is this?	De quoi s'agit-il ?
+What it calls	Ce qu'il appelle
+What's at this address	Ce qui se trouve à cette adresse
+Where am I	Où l'on se trouve
+Where is the program?	Où se trouve le programme ?
+Which function is this in	Dans quelle fonction on se trouve
+Who calls it	Qui l'appelle
+Who signed this Windows program	Qui a signé ce programme Windows
+Who uses this Android class?	Qui utilise cette classe Android ?
+Who uses this Java class?	Qui utilise cette classe Java ?
+Window / focus info	Infos sur la fenêtre et le focus
+Windows resources	Ressources Windows
+Wireshark tools check	Vérification des outils Wireshark
+Work out what an installed app is built on	Déterminer sur quoi repose une application installée
+Worked it out	Déduit
+Write a project file	Écrire un fichier de projet
+Write a readable report	Écrire un rapport lisible
+Write comment	Écrire un commentaire
+Write inline comment	Écrire un commentaire en ligne
+Write pseudo-C to a folder	Écrire du pseudo-C dans un dossier
+Write the brief	Rédiger le brief
+Write the handoff	Rédiger la passation
+Wrote {what} to {}	{what} écrit dans {}
+Your app is ready	Votre application est prête
+Your game is ready	Votre jeu est prêt
+Your website is ready	Votre site web est prêt
+address, e.g. http://192.168.1.20:11434/v1	adresse, p. ex. http://192.168.1.20:11434/v1
+call graph	graphe d'appels
+clean room	clean room
+deep mode	mode approfondi
+entry point	point d'entrée
+files	fichiers
+findings	découvertes
+first run	premier lancement
+job result	résultat de la tâche
+job {title} panicked: {what}	La tâche {title} a planté : {what}
+managed	géré
+model (optional)	modèle (facultatif)
+name, e.g. Studio box	nom, p. ex. Boîte du studio
+number	nombre
+objdump output	sortie d'objdump
+pinned builds couldn't be read: {}	Impossible de lire les builds épinglés : {}
+scene	scène
+scenes	scènes
+source map	source map
+start page	page de démarrage
+the prompt box changed height	la zone de saisie a changé de hauteur
+title bar	barre de titre
+under $0.01	moins de $0.01
+yesterday	hier
+{:.1}M	{:.1} M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend} : {input_tokens} en entrée / {output_tokens} en sortie{cost}
+{name} isn't available yet in this build.	{name} n'est pas encore disponible dans cette version.
+{name} key	Clé {name}
+{n} item(s)	{n} élément(s)
+{n} · ${spent:.2} of ${budget:.2}	{n} · ${spent:.2} sur ${budget:.2}
+{n} · ${spent} of ${budget}	{n} · ${spent} sur ${budget}
+{title} hit a bug and stopped safely. ({what})	{title} a rencontré un bug et s'est arrêté en toute sécurité. ({what})
+{title} · {:.0}%	{title} · {:.0} %
+{what} panicked: {msg}	{what} a planté : {msg}
+{} isn't available yet in this build.	{} n'est pas encore disponible dans cette version.
+{} item(s)	{} élément(s)
+{} key	Clé {}
+{} report.md	rapport {}.md
+… {n} more	… {n} de plus
+… {n} older	… {n} plus anciens
+… {} more	… {} de plus
+… {} older	… {} plus anciens
 Drag to give the plan more or less room; double-click to reset	Faites glisser pour donner plus ou moins de place au plan ; double-cliquez pour rétablir
 Copy the message	Copier le message
+Choose what the builder's approvals get	Choisir ce que reçoivent les autorisations du constructeur
+Reading the web	Lecture du web
+Other commands	Autres commandes
+Files outside the project	Fichiers hors du projet
+Pushing and publishing	Push et publication
+Deleting outside the project	Suppressions hors du projet
+System changes	Modifications du système
+Other tools	Autres outils
+Allow	Autoriser
+Ask	Demander
+Refuse	Refuser
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	Après /approvals, tapez un type et allow, ask, refuse ou default, par exemple /approvals publish ask. Types : {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	Il n'y a pas de type {name}. Types : {kinds}.
+Approvals	Autorisations
+In this project, {kind}: {choice}.	Dans ce projet, {kind} : {choice}.
+Couldn't change the approvals:	Impossible de modifier les autorisations :
+What the builder may do without asking you, in this project.	Ce que le constructeur peut faire sans vous demander, dans ce projet.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	Par défaut suit le mode automatique : activé, ce qui peut être annulé se fait et le reste est refusé ; désactivé, le constructeur demande.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Clean room ne lit jamais le code, les fichiers ou le source de l'original : il utilise uniquement ce que vous voyez. Deep les lit avec tous les outils, et avec IDA ou Ghidra si l'un est installé. Chaque découverte indique ce qui a été utilisé.
+Deep decompiler	Décompilateur Deep
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automatique préfère IDA, puis Ghidra. Vous pouvez aussi en choisir un directement.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep : nous lisons son code, ses fichiers et le source avec tous nos outils, et avec un décompilateur externe s'il est installé. Cliquez pour changer.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} n'est pas installé, le décompilateur intégré prend le relais. Choisissez un moteur dans Paramètres → Moteurs.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} n'est pas encore sur cet ordinateur, le décompilateur intégré prend le relais.

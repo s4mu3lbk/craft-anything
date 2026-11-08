@@ -19,7 +19,8 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 /// The person's key for each asset provider (by provider id), put in the session by the tool
-/// server (read from the keychain; a key never travels on a command line or into a log).
+/// server or a build's run (read from the keychain; a key never travels on a command line or into a
+/// log).
 #[derive(Default)]
 pub struct AssetKeys(pub std::collections::BTreeMap<String, String>);
 
@@ -127,15 +128,16 @@ struct Job {
 }
 
 fn job(ctx: &Ctx<'_>) -> Result<Job, ToolError> {
+    // First: outside a project no keys are loaded, so "no key" would be wrong for a saved one (#923).
+    let not_project = || ToolError::new(ErrorCode::FeatureMissing, "Assets can only be generated inside a Craft Anything project.");
+    let inbox = inbox(ctx).ok_or_else(not_project)?;
+    let ws = workspace_of(&inbox).ok_or_else(not_project)?;
     let keys = ctx.session.ext.get::<AssetKeys>().unwrap_or_default();
     // A session can bring its own providers (a fork, a test); otherwise the built-in ones.
     let providers = ctx.session.ext.get::<AssetProviders>().map(|p| p.as_ref().clone()).unwrap_or_default();
     if !providers.ids().iter().any(|id| keys.get(id).is_some()) {
         return Err(no_key("fal.ai"));
     }
-    let not_project = || ToolError::new(ErrorCode::FeatureMissing, "Assets can only be generated inside a Craft Anything project.");
-    let inbox = inbox(ctx).ok_or_else(not_project)?;
-    let ws = workspace_of(&inbox).ok_or_else(not_project)?;
     if !ws.manifest.generate_assets {
         return Err(ToolError::new(ErrorCode::NoPermission, "The person hasn't turned on generated assets for this project.").with_remediation(
             "Make these assets with simple shapes and colours instead, and tell the person they can turn on generated assets for this game in the app.",
@@ -455,6 +457,16 @@ mod tests {
         fn generate(&self, _key: &str, _req: &AssetRequest) -> Result<Generated, ToolError> {
             Err(ToolError::invalid("not here"))
         }
+    }
+
+    /// #923: the CLI and a plain tool server load no keys, and "no key" sent people to add one they had.
+    #[test]
+    fn outside_a_project_it_says_so_and_not_that_there_is_no_key() {
+        let e = crate::Engine::new(crate::testing::session());
+        let err =
+            e.call("assets_image_generate", json!({"prompt": "a crate", "save_as": "crate.png"}), crate::CallOptions::new(crate::Caller::Cli)).err().unwrap();
+        assert_eq!(err.code, ErrorCode::FeatureMissing);
+        assert!(err.message.contains("inside a Craft Anything project"), "{}", err.message);
     }
 
     #[test]

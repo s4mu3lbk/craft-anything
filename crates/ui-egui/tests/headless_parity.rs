@@ -69,6 +69,7 @@ const ACTIONS: &[Action] = &[
     a("play",                "play the built game or start the built app",     Tool(&["project_play"])),
     a("ask_about_build",     "a question about the build, answered without building", Tool(&["rebuild_question_ask"])),
     a("set_questions",       "ask me, or let the builder decide its questions", Tool(&["project_questions_set"])),
+    a("set_approval",        "what one kind of builder action gets: allow, ask or refuse", Tool(&["project_approvals_set"])),
     a("ask_pin",             "pin a build, frozen or light (its size first)",  Tool(&["project_pin_create"])),
     a("refresh_pins",        "the sidebar's pinned builds, and which run",     Tool(&["project_pins_list"])),
     a("open_pin",            "open a pinned build (or another copy)",          Tool(&["project_pin_open"])),

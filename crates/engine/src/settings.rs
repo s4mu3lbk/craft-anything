@@ -517,6 +517,12 @@ impl Settings {
             craft_anything_engines::locate(id, &self.engines.tools, &self.engine_store_dir())
         }
     }
+
+    /// Why an engine wasn't found and what to do about it, as (reason, remediation).
+    pub fn engine_not_found(&self, id: &str) -> (String, String) {
+        use craft_anything_engines::ToolPathLookup;
+        craft_anything_engines::not_found_help(id, self.engines.tools.override_for(id).as_deref(), craft_anything_platform::in_flatpak())
+    }
 }
 
 #[cfg(test)]

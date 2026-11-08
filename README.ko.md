@@ -14,7 +14,7 @@
 <h1 align="center">Craft Anything</h1>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh.md">简体中文</a> · <b>한국어</b>
+  <a href="README.md">English</a> · <a href="README.ja.md">日本語</a> · <a href="README.zh.md">简体中文</a> · <a href="README.zh-hant.md">繁體中文</a> · <b>한국어</b> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.vi.md">Tiếng Việt</a> · <a href="README.pt.md">Português</a>
 </p>
 
 <p align="center">
@@ -309,13 +309,14 @@ RISC-V(riscv64): `craft-anything-<ver>-linux-riscv64.tar.gz`, tarball만 제공�
 | <img src="https://raw.githubusercontent.com/storytold/cadcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.cadcraft.png" alt="" width="32" height="32">                         | **CADCraft**       | 컴퓨터 지원 설계(CAD)                                    | [GitHub](https://github.com/storytold/cadcraft)       | [웹사이트](https://getartcraft.com/apps/cadcraft)       |
 | <img src="https://raw.githubusercontent.com/storytold/gridcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.gridcraft.png" alt="" width="32" height="32">                       | **GridCraft**      | 스프레드시트와 데이터                                    | [GitHub](https://github.com/storytold/gridcraft)      | [웹사이트](https://getartcraft.com/apps/gridcraft)      |
 | <img src="https://raw.githubusercontent.com/storytold/texturecraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.texturecraft.png" alt="" width="32" height="32">                 | **TextureCraft**   | 3D 텍스처 페인팅                                         | [GitHub](https://github.com/storytold/texturecraft)   | [웹사이트](https://getartcraft.com/apps/texturecraft)   |
+| <img src="https://raw.githubusercontent.com/storytold/materialcraft/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.materialcraft.png" alt="" width="32" height="32">               | **MaterialCraft**  | 노드 기반 절차적 재질                                       | [GitHub](https://github.com/storytold/materialcraft)  | [웹사이트](https://getartcraft.com/apps/materialcraft)  |
 | <img src="https://raw.githubusercontent.com/storytold/craft-anything/main/assets/app-icon/hicolor/64x64/apps/ai.storyteller.craft-anything.png" alt="" width="32" height="32">             | **Craft Anything** | 원하는 소프트웨어를 분석하고, 나만의 작품을 만들어 보세요 | [GitHub](https://github.com/storytold/craft-anything) | [웹사이트](https://getartcraft.com/apps/craft-anything) |
 | <img src="https://raw.githubusercontent.com/tangency-labs/solidcraft/main/assets/icons/app/linux/exports/hicolor/64x64/apps/io.tangencylabs.solidcraft.png" alt="" width="32" height="32"> | **SolidCraft**     | Tangency Labs의 파라메트릭 3D CAD(커뮤니티 앱)           | [GitHub](https://github.com/tangency-labs/solidcraft) |                                                         |
 
 ## <a id="license-and-credits"></a>라이선스와 크레딧
 
 Craft Anything은 [MIT](LICENSE-MIT) 또는 [Apache-2.0](LICENSE-APACHE) 듀얼 라이선스이며, 원하는 쪽을 선택할 수 있습니다.
-Copyright (c) 2026 ArtCraft Team and the Craft Anything contributors. 필수 고지는 [NOTICE](NOTICE)에 있습니다.
+Copyright (c) 2026 ArtCraft Team and the Craft Anything contributors ([CONTRIBUTORS.md](CONTRIBUTORS.md)). 필수 고지는 [NOTICE](NOTICE)에 있습니다.
 
 동봉된 폰트, 아이콘, 이미지 및 기타 에셋은 각자의 오픈 라이선스를 유지합니다. 각 항목의 작성자, 출처, 라이선스는 [ATTRIBUTION.md](ATTRIBUTION.md)에 나와 있습니다.
 

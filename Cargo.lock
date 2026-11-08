@@ -1122,7 +1122,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-ai",
  "craft-anything-engine",
@@ -1138,7 +1138,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-ai"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-engine",
  "craft-anything-engines",
@@ -1159,7 +1159,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-analysis"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-disasm",
  "craft-anything-evidence",
@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "clap",
  "craft-anything-ai",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-disasm"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-formats",
  "craft-anything-testkit",
@@ -1206,7 +1206,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-engine"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.2",
@@ -1237,7 +1237,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-engines"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "craft-anything-evidence",
@@ -1259,7 +1259,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-evidence"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "hex",
  "serde",
@@ -1270,7 +1270,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-formats"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "bzip2-rs",
  "craft-anything-testkit",
@@ -1293,7 +1293,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-js"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-testkit",
  "hex",
@@ -1313,7 +1313,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-mcp"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-engine",
  "craft-anything-evidence",
@@ -1326,7 +1326,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-platform"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-evidence",
  "hex",
@@ -1346,7 +1346,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-setup"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-engine",
  "craft-anything-engines",
@@ -1365,7 +1365,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-testkit"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "miniz_oxide 0.8.9",
  "p256",
@@ -1378,7 +1378,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-ui-egui"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "arboard",
  "craft-anything-ai",
@@ -1403,7 +1403,7 @@ dependencies = [
 
 [[package]]
 name = "craft-anything-web"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-analysis",
  "craft-anything-evidence",
@@ -8022,7 +8022,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "craft-anything-engine",
  "proc-macro2",

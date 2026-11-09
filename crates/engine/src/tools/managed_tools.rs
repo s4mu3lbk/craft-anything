@@ -3,7 +3,7 @@
 //! verification against native exports, checking decompiled C# against metadata, and an
 //! application graph.
 
-use super::artifact_tools::{WalkOptions, is_path_input, resolve_evidence_input, walk_dir};
+use super::artifact_tools::{WalkOptions, evidence_input_schema, evidence_list_schema, is_path_input, resolve_evidence_input, walk_dir};
 use super::native_common::{page, spec};
 use super::static_input::{Input, builder, format_err, load, load_path};
 use crate::tool::{Ctx, Effects, Requires, ToolOutput, ToolSpec, Toolset, parse_params, schema_of};
@@ -163,8 +163,10 @@ pub struct CompareParams {
 #[serde(deny_unknown_fields)]
 pub struct VerifyParams {
     /// The managed side: managed_native_calls_list evidence or an absolute assembly path.
+    #[schemars(schema_with = "evidence_input_schema")]
     pub managed: Value,
     /// Native libraries: native_layout_show evidence or absolute paths (ELF, PE or Mach-O).
+    #[schemars(schema_with = "evidence_list_schema")]
     pub native: Vec<Value>,
 }
 
@@ -1029,6 +1031,14 @@ mod tests {
     use crate::Engine;
     use craft_anything_testkit::managed as fx;
     use serde_json::{Value, json};
+
+    #[test]
+    fn native_verification_inputs_have_finite_schemas() {
+        let expected = json!({"anyOf": [{"type": "object"}, {"type": "string"}]});
+        let schema = super::schema_of::<super::VerifyParams>();
+        assert_eq!(schema["properties"]["managed"]["anyOf"], expected["anyOf"]);
+        assert_eq!(schema["properties"]["native"]["items"], expected);
+    }
 
     fn retained(v: &Value) -> Value {
         json!({"kind": "saved", "evidence_id": v["id"]})

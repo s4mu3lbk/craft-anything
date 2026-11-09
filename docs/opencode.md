@@ -110,7 +110,9 @@ older `--standalone` flag, so the adapter does not add it; an older installation
 it can receive it through extra arguments. V2 names a tool call `id` (V1: `callID`); both are
 read, so tool calls reach the feed while the turn runs. For Moonshot's stricter schema validation,
 `core_evidence_browse` uses inline source/show variants, an object schema for inline evidence, and
-finite scalar/list schemas for row filters. Its runtime filtering and evidence records are unchanged.
+finite scalar/list schemas for row filters. `ai_model_set` exposes its seven depths plus null as one
+flat enum, and evidence inputs use finite object-or-reference schemas. The MCP server also inlines
+local schema references with cycle and expansion protection. Runtime tool behavior is unchanged.
 
 Model discovery uses `opencode api model.list --param location[directory]=...` (the V2
 `GET /api/model` operation). This keeps credentials and configuration resolution inside OpenCode.

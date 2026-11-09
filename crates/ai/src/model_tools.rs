@@ -47,11 +47,17 @@ struct ListParams {
     limit: Option<usize>,
 }
 
+fn optional_thinking_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    let values: Vec<Value> = Effort::CLI_ALL.into_iter().map(|depth| json!(depth.as_str())).chain([Value::Null]).collect();
+    schemars::json_schema!({"type": ["string", "null"], "enum": values})
+}
+
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct SetParams {
     name: String,
     model: Option<String>,
+    #[schemars(schema_with = "optional_thinking_schema")]
     thinking: Option<Effort>,
 }
 
@@ -93,6 +99,17 @@ fn ai_model_set(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolErro
 mod tests {
     use super::*;
     use craft_anything_engine::{CallOptions, Caller, Engine};
+
+    #[test]
+    fn thinking_has_a_flat_complete_schema() {
+        let schema = schema_of::<SetParams>();
+        let thinking = &schema["properties"]["thinking"];
+        assert!(thinking.get("anyOf").is_none());
+        assert!(thinking.get("$ref").is_none());
+        assert_eq!(thinking["type"], json!(["string", "null"]));
+        let values: Vec<Value> = Effort::CLI_ALL.into_iter().map(|depth| json!(depth.as_str())).chain([Value::Null]).collect();
+        assert_eq!(thinking["enum"], json!(values));
+    }
 
     /// Build hub and tool clients sharing an isolated settings file and an explicit saved selection.
     fn selection_clients() -> (crate::AiHub, std::path::PathBuf) {

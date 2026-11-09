@@ -544,10 +544,11 @@ with the run's own local server, check flags against the installed CLI, and conf
 server (`mcp connected server=craft-anything` in OpenCode's log), not just that it started. V2 names a tool
 call `id` (V1: `callID`); read both so tool calls reach the feed.
 
-**A schema other providers accepted.** Moonshot rejected `core_evidence_browse` before the first
-builder turn: nested `$ref` schemas and unconstrained JSON were reported as infinite recursion.
-Describe finite input shapes, inline the variants, and validate with the strict provider; a schema
-that other models accept is not proof that every builder can start.
+**A schema other providers accepted.** Moonshot rejected nested `$ref` schemas and unconstrained
+JSON as infinite recursion, then rejected a simple enum reference and an evidence array whose items
+were `true`. Describe finite input shapes, inline local references at the MCP boundary with cycle and
+expansion protection, and validate every advertised tool with the strict provider; fixing only the
+schema in the current error merely exposes the next one.
 
 **Keywords that only some code paths honour.** "…in Rust" picked Rust for apps but not for games, so
 a headless game rebuild stopped at once for want of Unity. It was found only by a live run. Run the

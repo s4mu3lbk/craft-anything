@@ -199,6 +199,15 @@ pub(crate) fn walk_dir(root: &Path, opts: &WalkOptions<'_>, cancel: &CancelToken
     Ok(out)
 }
 
+pub(crate) fn evidence_input_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"anyOf": [{"type": "object"}, {"type": "string"}]})
+}
+
+pub(crate) fn evidence_list_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    let items = evidence_input_schema(generator);
+    schemars::json_schema!({"type": "array", "items": items})
+}
+
 /// Evidence passed inline, as `{"kind":"saved","evidence_id":…}`, or as a bare id.
 pub(crate) fn resolve_evidence_input(ctx: &Ctx<'_>, v: &Value, expected: &[&str]) -> Result<Evidence, ToolError> {
     let ev = if let Some(id) = v.as_str() {

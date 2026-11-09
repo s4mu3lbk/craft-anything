@@ -138,6 +138,31 @@ fn progressive_toolsets() {
 }
 
 #[test]
+fn advertised_tool_schemas_are_self_contained() {
+    let out = run_with(ServerOptions { all_tools: true, ..Default::default() }, &[req(1, "tools/list", json!({}))]);
+    let tools = response(&out, 1)["result"]["tools"].as_array().unwrap().clone();
+    for tool in tools {
+        assert!(!has_local_refs(&tool["inputSchema"]), "{} still has a local reference", tool["name"]);
+        if tool["name"] == "native_call_path_find" {
+            assert!(tool["inputSchema"]["properties"]["direction"].get("enum").is_some());
+        }
+    }
+}
+
+#[test]
+fn schema_inlining_preserves_cycles_and_ref_siblings() {
+    let mut schema = json!({
+        "$defs": {"Node": {"type": "object", "properties": {"next": {"$ref": "#/$defs/Node"}}}},
+        "type": "object",
+        "properties": {"node": {"$ref": "#/$defs/Node", "description": "nested"}}
+    });
+    inline_schema_refs(&mut schema);
+    assert_eq!(schema["properties"]["node"]["description"], "nested");
+    assert!(schema.get("$defs").is_some(), "a real cycle keeps its definitions");
+    assert!(has_local_refs(&schema));
+}
+
+#[test]
 fn tool_call_success_and_error_shapes() {
     let out = run(&[
         req(1, "tools/call", json!({"name": "core_session_show", "arguments": {}})),

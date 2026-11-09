@@ -1848,7 +1848,7 @@ mod picking_up_a_build {
         b.hub.engine.session().settings.ai = config.to_table().unwrap();
         let agent = b._dir.path().join("agent.sh");
         let script = std::fs::read_to_string(&agent).unwrap();
-        let script = script.replacen("#!/bin/sh\n", "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi\n", 1);
+        let script = script.replacen("#!/bin/sh\n", "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format'; exit 0; fi\n", 1);
         let error = json!({"type":"error","error":{"name":"APIError","data":{"message":"fixture sign in needed","statusCode":401,"isRetryable":false}}});
         std::fs::write(&agent, script.replace("echo Done.", &format!("printf '%s\\n' '{error}'\nexit 1"))).unwrap();
         let (ok, feed) = try_it(&b, &ws);

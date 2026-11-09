@@ -713,6 +713,9 @@ Owner: open · Status: in progress
       plan default produced only plans and left app/ empty. Argument tests and a live file-writing
       run passed
       — claimed: Kimi Code, branch bugfix/r2.2-opencode-build-agent
+- [ ] OpenCode 1.19.5 rejects `--standalone` before the model starts; use the local server its
+      current `run` command starts by default while keeping each run's MCP configuration isolated
+      — claimed: Kimi Code, branch bugfix/r2.2-opencode-standalone-compatibility
 - [x] Aider has no adapter, so the plain one hands it the prompt as a file name, and it can open a
       browser sign-in nobody agreed to (#72). Give it an adapter, or stop offering it — claimed: Afloat16, branch bugfix/r2.2-aider-recommendations-20261103
 - [x] Add a non-interactive Aider adapter before recommending it again; detection currently leaves it out.

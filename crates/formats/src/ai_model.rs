@@ -162,18 +162,21 @@ pub fn parse(prefix: &[u8], file_size: u64) -> Result<ModelReport, FormatError> 
 
 /// A count in plain words: "7.2 billion".
 pub fn plain_count(n: u64) -> String {
-    let f = n as f64;
-    if n >= 1_000_000_000_000 {
-        format!("{:.1} trillion", f / 1e12)
-    } else if n >= 1_000_000_000 {
-        format!("{:.1} billion", f / 1e9)
-    } else if n >= 1_000_000 {
-        format!("{:.1} million", f / 1e6)
-    } else if n >= 1_000 {
-        format!("{:.1} thousand", f / 1e3)
-    } else {
-        n.to_string()
+    const UNITS: [(u64, &str); 4] = [(1_000_000_000_000, "trillion"), (1_000_000_000, "billion"), (1_000_000, "million"), (1_000, "thousand")];
+    // A value that rounds up to 1000.0 of a unit is shown in the next unit up.
+    for (i, (size, name)) in UNITS.iter().enumerate() {
+        if n < *size {
+            continue;
+        }
+        let tenths = (n as f64 / *size as f64 * 10.0).round();
+        if tenths >= 10_000.0
+            && let Some((_, up)) = i.checked_sub(1).and_then(|j| UNITS.get(j))
+        {
+            return format!("1.0 {up}");
+        }
+        return format!("{:.1} {name}", n as f64 / *size as f64);
     }
+    n.to_string()
 }
 
 fn shorten(s: String) -> (String, bool) {
@@ -530,18 +533,23 @@ fn parse_gguf(prefix: &[u8], file_size: u64) -> Result<ModelReport, FormatError>
 // ---------------------------------------------------------------------------------------------
 // safetensors
 
-fn safetensors_element_bytes(dtype: &str) -> Option<u64> {
+fn safetensors_element_bits(dtype: &str) -> Option<u64> {
     match dtype {
-        "BOOL" | "U8" | "I8" => Some(1),
-        "U16" | "I16" | "F16" | "BF16" => Some(2),
-        "U32" | "I32" | "F32" => Some(4),
-        "U64" | "I64" | "F64" | "C64" => Some(8),
+        "F4" => Some(4),
+        "F6_E2M3" | "F6_E3M2" => Some(6),
+        "BOOL" | "U8" | "I8" | "F8_E5M2" | "F8_E4M3" | "F8_E8M0" | "F8_E4M3FNUZ" | "F8_E5M2FNUZ" => Some(8),
+        "U16" | "I16" | "F16" | "BF16" => Some(16),
+        "U32" | "I32" | "F32" => Some(32),
+        "U64" | "I64" | "F64" | "C64" => Some(64),
         _ => None,
     }
 }
 
 fn parse_safetensors(prefix: &[u8], file_size: u64) -> Result<ModelReport, FormatError> {
     let declared = safetensors_header_len(prefix).ok_or_else(|| FormatError::Malformed("not a safetensors header".into()))?;
+    if declared > 100_000_000 {
+        return Err(FormatError::TooLarge("the safetensors header exceeds its 100 MB limit".into()));
+    }
     let end = declared.checked_add(8).ok_or_else(|| FormatError::Malformed("the header length overflows".into()))?;
     if end > file_size {
         return Err(FormatError::Malformed(format!("the header claims {declared} bytes, more than the file holds")));
@@ -558,6 +566,7 @@ fn parse_safetensors(prefix: &[u8], file_size: u64) -> Result<ModelReport, Forma
     r.declared_tensors = obj.keys().filter(|k| k.as_str() != "__metadata__").count() as u64;
     let data_room = file_size - end;
     let mut bad = 0u64;
+    let mut ranges = Vec::new();
     for (key, v) in obj {
         if key == "__metadata__" {
             let Some(m) = v.as_object() else {
@@ -566,17 +575,20 @@ fn parse_safetensors(prefix: &[u8], file_size: u64) -> Result<ModelReport, Forma
             };
             r.declared_metadata = m.len() as u64;
             for (mk, mv) in m {
+                let Some(text) = mv.as_str() else {
+                    r.warn(format!("metadata field {mk} is not a string"));
+                    continue;
+                };
                 r.metadata_read = r.metadata_read.saturating_add(1);
                 if r.metadata.len() >= MAX_METADATA {
                     continue;
                 }
-                let text = mv.as_str().map_or_else(|| mv.to_string(), str::to_string);
+                let (shown, shortened) = shorten(text.to_owned());
                 match mk.as_str() {
-                    "architecture" | "modelspec.architecture" if r.architecture.is_none() => r.architecture = Some(text.clone()),
-                    "name" | "modelspec.title" if r.name.is_none() => r.name = Some(text.clone()),
+                    "architecture" | "modelspec.architecture" if r.architecture.is_none() => r.architecture = Some(shown.clone()),
+                    "name" | "modelspec.title" if r.name.is_none() => r.name = Some(shown.clone()),
                     _ => {}
                 }
-                let (shown, shortened) = shorten(text);
                 r.metadata.push(ModelMetadata { key: mk.clone(), value_type: "string".into(), value: json!(shown), count: None, shortened });
             }
             continue;
@@ -597,8 +609,9 @@ fn parse_safetensors(prefix: &[u8], file_size: u64) -> Result<ModelReport, Forma
         match data_bytes {
             None => r.warn(format!("{key}: its data ends before it starts")),
             Some(n) => {
-                if let Some(size) = safetensors_element_bytes(dtype)
-                    && parameters.checked_mul(size) != Some(n)
+                ranges.push((from, to));
+                if let Some(bits) = safetensors_element_bits(dtype)
+                    && u128::from(parameters) * u128::from(bits) != u128::from(n) * 8
                 {
                     r.warn(format!("{key}: its shape and type don't fit the {n} bytes it says it holds"));
                 }
@@ -609,6 +622,26 @@ fn parse_safetensors(prefix: &[u8], file_size: u64) -> Result<ModelReport, Forma
         }
         let (name, _) = shorten(key.clone());
         r.add_tensor(ModelTensor { name, dtype: dtype.to_string(), shape, parameters, data_offset: from, data_bytes });
+    }
+    // Check all records, including those beyond the display cap. Empty tensors come
+    // before a nonempty range with the same start.
+    ranges.sort_unstable();
+    let mut cursor = 0;
+    let mut overlap = false;
+    let mut gap = false;
+    for (from, to) in ranges {
+        overlap |= from < cursor;
+        gap |= from > cursor;
+        cursor = cursor.max(to);
+    }
+    if overlap {
+        r.warn("Tensor data ranges overlap.".into());
+    }
+    if gap {
+        r.warn("There is an unclaimed gap between tensor data offsets.".into());
+    }
+    if cursor < data_room {
+        r.warn("The file has unclaimed bytes after the last tensor.".into());
     }
     r.tensors.sort_by_key(|t| t.data_offset);
     if r.tensors_past_end > 0 {

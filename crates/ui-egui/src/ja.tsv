@@ -906,3 +906,50 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	自動は 
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: あらゆるツールでコード、ファイル、ページのソースを読み、外部デコンパイラーがインストールされていればそれも使います。クリックで切り替えます。
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} がインストールされていないため、内蔵デコンパイラーを使います。設定 → エンジンでエンジンを選んでください。
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} はまだこのコンピューターにないため、内蔵デコンパイラーを使います。
+Add an AI by its address	アドレスで AI を追加
+Add it again, to choose another account's folder for it.	もう一度追加すると、別のアカウントのフォルダを選べます。
+Asking for its models…	モデルを問い合わせています…
+Call the build done	ビルドを完了にする
+Called done. A new message carries on from here.	完了にしました。次のメッセージから続きを進めます。
+Change an AI's model	AI のモデルを変更
+Change how hard an AI thinks	AI の思考の深さを変更
+Claude Code folder (CLAUDE_CONFIG_DIR)	Claude Code のフォルダ (CLAUDE_CONFIG_DIR)
+Commands:	コマンド:
+Context window	コンテキストウィンドウ
+Default	既定
+Effort:	思考の深さ:
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	サインイン・設定・会話を別に持ちます。別のフォルダは別のアカウントです。空欄なら通常のフォルダ。
+Jobs ({n})	ジョブ ({n})
+Keep the build as it is and stop offering to carry on.	ビルドをこのままにして、続行の提案を止める。
+List an AI's models	AI のモデル一覧を取得
+Load model options	モデルの選択肢を読み込む
+Model default	モデルの既定値
+Model: {model}	モデル: {model}
+No chat models are visible in {agent}. Check its setup, then reload.	{agent} にチャット用モデルが見えません。設定を確認してから再読み込みしてください。
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	別のコンピュータの Ollama / LM Studio、または OpenAI API 互換のサービス。
+OpenCode default	OpenCode の既定
+Program: found automatically	プログラム: 自動で検出
+Program: {path}	プログラム: {path}
+Remote program	リモートのプログラム
+Set an AI's folder	AI のフォルダを設定
+Set an AI's program	AI のプログラムを設定
+Set model options	モデルの選択肢を設定
+Show folder	フォルダを開く
+Show the folder	フォルダを開く
+The saved model is no longer visible. Choose another model or the {agent} default.	保存されたモデルが見つかりません。別のモデルか {agent} の既定を選んでください。
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	保存された思考の深さはこのモデルでは使えません。既定か、選べる深さを選んでください。
+The {name} view isn't available yet in this build.	{name} ビューはこのビルドではまだ使えません。
+Thinking depth	思考の深さ
+Where is the program?	プログラムはどこですか?
+files	ファイル
+findings	検出項目
+start page	開始ページ
+under $0.01	$0.01 未満
+yesterday	昨日
+{name} isn't available yet in this build.	{name} はこのビルドではまだ使えません。
+{name} key	{name} のキー
+{n} item(s)	{n} 件
+{n} · ${spent} of ${budget}	{n} · ${spent} / ${budget}
+… {n} more	… ほか {n} 件
+… {n} older	… 古いもの {n} 件
+Connecting to {name}… {seconds} s	{name} に接続中… {seconds} 秒

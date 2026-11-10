@@ -167,7 +167,8 @@ impl TargetKind for WebsiteKind {
             "網站",
             "网页",
             "網頁",
-        ]) {
+        ]) || says_site_in_estonian(cx)
+        {
             Some(50)
         } else if matches!(cx.target, TargetRef::None) && stacks::get(cx.stack).is_some_and(|s| s.site) {
             // Built as a site with nothing to recreate: "add a contact form" never says website.
@@ -214,10 +215,16 @@ impl TargetKind for WebsiteKind {
         if matches!(ws.manifest.target, TargetRef::Website { .. }) { vec![Box::new(WebVisualCheck)] } else { vec![Box::new(BuildCheck)] }
     }
 
-    fn refine(&self, check: &CheckResult) -> String {
+    fn refine(&self, check: &CheckResult, sees_pictures: bool) -> String {
         match check.similarity {
-            Some(s) => format!(
+            Some(s) if sees_pictures => format!(
                 "Check {}: compared with the original, your build looks {s:.0}% alike ({}). Your screenshots are in checks/round-{}/ (screenshot-<width>.png for each width, and routes/<page>/ for other pages) with the layout measured at each width in its capture.json; the original's are in capture/. Open each pair with the Read tool, fix the biggest visible differences first (layout and section order, spacing, sizes, colours, fonts, missing parts), fix the padding, items per row, sizes, colours and fonts the check names at each width with the exact values it gives, add any missing headings or words it lists, build it again, and reply with 1-2 plain sentences on what you changed.",
+                check.round, check.note, check.round
+            ),
+            // The likeness is measured from the screenshots, but the same measurements are in
+            // text: the build's capture.json beside the original's.
+            Some(s) => format!(
+                "Check {}: compared with the original, your build looks {s:.0}% alike ({}). The check measured your build at each width the same way as the original: compare checks/round-{}/capture.json (and routes/<page>/capture.json for other pages) with capture/capture.json, fix the layout and section order and anything missing first, then the padding, items per row, sizes, colours and fonts the check names at each width with the exact values it gives, add any missing headings or words it lists, build it again, and reply with 1-2 plain sentences on what you changed.",
                 check.round, check.note, check.round
             ),
             None => format!(
@@ -511,6 +518,12 @@ fn rgba(c: &str) -> Option<[u8; 4]> {
         8 => Some([byte(0)?, byte(2)?, byte(4)?, byte(6)?]),
         _ => None,
     }
+}
+
+/// Whether the request names a website in Estonian. `DetectCx::words` turns punctuation and
+/// newlines into spaces, so a cue after them still counts.
+fn says_site_in_estonian(cx: &DetectCx) -> bool {
+    cx.words.split_whitespace().any(is_site_word)
 }
 
 /// The same colour to the eye: each channel within 3 (rounding in the browser), or the same text.

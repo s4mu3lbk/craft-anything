@@ -10,6 +10,8 @@ use std::collections::HashSet;
 
 const MAX_PROJECT_DEPTH: usize = 96;
 const MAX_PROJECT_NODES: usize = 500_000;
+/// Space for text and base64 copied through UID references, separate from the node limit.
+const MAX_REFERENCED_BYTES: usize = 64 << 20;
 
 #[derive(Debug, Clone)]
 pub struct KeyedArchive {
@@ -34,7 +36,7 @@ pub struct ObjectRow {
 
 /// True when a parsed plist is a keyed archive.
 pub fn is_keyed_archive(v: &Value) -> bool {
-    v.get("$objects").and_then(Value::as_array).is_some() && v.get("$top").is_some()
+    v.get("$objects").and_then(Value::as_array).is_some() && matches!(v.get("$top"), Some(Value::Dict(_)))
 }
 
 /// Read the archive structure from a parsed plist.
@@ -89,9 +91,13 @@ impl KeyedArchive {
 
     /// The class name of an object (`$class` → `$classname`).
     pub fn class_of(&self, idx: u64) -> Option<String> {
+        self.class_name(idx).map(str::to_owned)
+    }
+
+    fn class_name(&self, idx: u64) -> Option<&str> {
         let o = self.object(idx)?;
         let c = o.get("$class").and_then(uid_of)?;
-        self.object(c)?.get("$classname").and_then(Value::as_str).map(str::to_string)
+        self.object(c)?.get("$classname").and_then(Value::as_str)
     }
 
     /// The table of objects.
@@ -100,17 +106,14 @@ impl KeyedArchive {
             .iter()
             .enumerate()
             .map(|(i, o)| {
-                let (keys, references) = match o {
-                    Value::Dict(d) => {
-                        let mut refs = Vec::new();
-                        for (_, v) in d {
-                            collect_uids(v, &mut refs, 0);
-                        }
-                        (d.iter().map(|(k, _)| k.clone()).collect(), refs)
-                    }
-                    _ => (Vec::new(), Vec::new()),
+                let mut references = Vec::new();
+                collect_uids(o, &mut references, 0);
+                let keys = match o {
+                    Value::Dict(d) if uid_of(o).is_none() => d.iter().map(|(k, _)| k.clone()).collect(),
+                    _ => Vec::new(),
                 };
-                ObjectRow { index: i, class: self.class_of(i as u64), kind: kind_of(o), keys, references }
+                let kind = if uid_of(o).is_some() { "uid" } else { kind_of(o) };
+                ObjectRow { index: i, class: self.class_of(i as u64), kind, keys, references }
             })
             .collect()
     }
@@ -123,9 +126,9 @@ impl KeyedArchive {
         }
     }
 
-    /// Project the object graph below `idx` into JSON.
+    /// Project the object graph below `idx` into JSON. Inline containers beyond the depth limit become `{"$note": "projection limit"}`.
     pub fn project(&self, idx: u64) -> Json {
-        let mut p = Projector { a: self, expanded: HashSet::new(), nodes: 0 };
+        let mut p = Projector { a: self, expanded: HashSet::new(), nodes: 0, bytes_left: MAX_REFERENCED_BYTES };
         p.uid(idx, 0)
     }
 }
@@ -149,13 +152,24 @@ struct Projector<'a> {
     a: &'a KeyedArchive,
     expanded: HashSet<u64>,
     nodes: usize,
+    bytes_left: usize,
 }
 
 impl Projector<'_> {
-    fn reference(&self, idx: u64, why: &str) -> Json {
+    fn spend(&mut self, n: usize) -> bool {
+        if let Some(left) = self.bytes_left.checked_sub(n) {
+            self.bytes_left = left;
+            return true;
+        }
+        false
+    }
+
+    fn reference(&mut self, idx: u64, why: &str) -> Json {
         let mut m = Map::new();
         m.insert("$ref".into(), json!(idx));
-        if let Some(c) = self.a.class_of(idx) {
+        if let Some(c) = self.a.class_name(idx)
+            && self.spend(c.len())
+        {
             m.insert("$class".into(), json!(c));
         }
         if !why.is_empty() {
@@ -169,7 +183,9 @@ impl Projector<'_> {
             return self.uid(u, depth + 1);
         }
         match v {
+            Value::Array(_) | Value::Dict(_) if depth > MAX_PROJECT_DEPTH => json!({"$note": "projection limit"}),
             Value::Array(items) => Json::Array(items.iter().map(|x| self.value(x, depth + 1)).collect()),
+            Value::Dict(entries) => Json::Object(entries.iter().map(|(k, v)| (k.clone(), self.value(v, depth + 1))).collect()),
             other => other.to_json(),
         }
     }
@@ -185,8 +201,18 @@ impl Projector<'_> {
         };
         match obj {
             Value::String(s) if s == "$null" => return Json::Null,
-            Value::Dict(_) => {}
-            other => return other.to_json(),
+            Value::Dict(_) | Value::Array(_) | Value::Uid(_) => {}
+            other => {
+                let copied = match other {
+                    Value::String(s) | Value::Date(plist::DateValue::Text(s)) => s.len(),
+                    Value::Data(b) => b.len().div_ceil(3).saturating_mul(4),
+                    _ => 0,
+                };
+                if !self.spend(copied) {
+                    return self.reference(idx, "projection byte limit");
+                }
+                return other.to_json();
+            }
         }
         if self.expanded.contains(&idx) {
             return self.reference(idx, "");
@@ -195,8 +221,16 @@ impl Projector<'_> {
             return self.reference(idx, "projection limit");
         }
         self.expanded.insert(idx);
-        let class = self.a.class_of(idx);
-        let c = class.as_deref().unwrap_or("");
+        if !matches!(obj, Value::Dict(_)) || uid_of(obj).is_some() {
+            return self.value(obj, depth);
+        }
+        let class = self.a.class_name(idx);
+        if let Some(name) = class
+            && !self.spend(name.len())
+        {
+            return self.reference(idx, "projection byte limit");
+        }
+        let c = class.unwrap_or("");
         match c {
             "NSArray" | "NSMutableArray" | "NSSet" | "NSMutableSet" | "NSOrderedSet" | "NSMutableOrderedSet" => {
                 let items = self.list(obj.get("NS.objects"), depth);
@@ -236,7 +270,7 @@ impl Projector<'_> {
             _ => {}
         }
         let mut m = Map::new();
-        if let Some(c) = &class {
+        if let Some(c) = class {
             m.insert("$class".into(), json!(c));
         }
         m.insert("$index".into(), json!(idx));
@@ -277,6 +311,77 @@ mod tests {
         let xml = fx::to_xml(&fx::keyed_archive_value());
         let b = parse(xml.as_bytes()).unwrap();
         assert_eq!(b.project(b.root(None).unwrap().1)["title"], "Groceries");
+    }
+
+    #[test]
+    fn non_dictionary_tops_are_not_detected_as_archives() {
+        let invalid = Value::Dict(vec![("$objects".into(), Value::Array(vec![])), ("$top".into(), Value::Bool(true))]);
+        assert!(!is_keyed_archive(&invalid));
+        assert!(from_plist(&invalid).is_err());
+    }
+
+    #[test]
+    fn projects_and_lists_references_through_arrays_inline_dictionaries_and_aliases() {
+        let xml_uid = Value::Dict(vec![("CF$UID".into(), Value::Integer(2))]);
+        let a = KeyedArchive {
+            archiver: "NSKeyedArchiver".into(),
+            version: None,
+            top: vec![("root".into(), 1)],
+            objects: vec![
+                Value::String("$null".into()),
+                Value::Array(vec![Value::Dict(vec![("nested".into(), Value::Uid(3))]), Value::Uid(1)]),
+                Value::String("leaf".into()),
+                xml_uid,
+                Value::Uid(4),
+            ],
+        };
+        let rows = a.rows();
+        assert_eq!(rows[1].references, [3, 1]);
+        assert_eq!(rows[3].references, [2]);
+        assert_eq!(rows[3].kind, "uid");
+        assert!(rows[3].keys.is_empty());
+        assert_eq!(rows[4].references, [4]);
+        let projected = a.project(1);
+        assert_eq!(projected[0]["nested"], "leaf");
+        assert_eq!(projected[1]["$ref"], 1);
+        assert_eq!(a.project(4)["$ref"], 4);
+    }
+
+    #[test]
+    fn projection_limits_inline_containers_and_keeps_sibling_values() {
+        let mut nested = Value::Bool(true);
+        for depth in (1..=MAX_PROJECT_DEPTH + 1).rev() {
+            nested = if depth % 2 == 0 { Value::Dict(vec![("next".into(), nested)]) } else { Value::Array(vec![nested]) };
+        }
+        let a = KeyedArchive { archiver: String::new(), version: None, top: vec![], objects: vec![Value::Array(vec![nested, Value::Bool(false)])] };
+        let out = a.project(0);
+        let mut cursor = &out[0];
+        for depth in 1..=MAX_PROJECT_DEPTH {
+            cursor = if depth % 2 == 0 { &cursor["next"] } else { &cursor[0] };
+        }
+        assert_eq!(cursor, &json!({"$note": "projection limit"}));
+        assert_eq!(out[1], false);
+    }
+
+    #[test]
+    fn repeated_scalar_references_share_a_copy_budget() {
+        let a = KeyedArchive {
+            archiver: "NSKeyedArchiver".into(),
+            version: None,
+            top: vec![],
+            objects: vec![
+                Value::Array(vec![Value::Uid(1), Value::Uid(1), Value::Uid(2), Value::Uid(2), Value::Uid(1)]),
+                Value::String("key".into()),
+                Value::Data(vec![42; 3]),
+            ],
+        };
+        let mut p = Projector { a: &a, expanded: HashSet::new(), nodes: 0, bytes_left: 10 };
+        let out = p.uid(0, 0);
+        assert_eq!(out[0], "key");
+        assert_eq!(out[1], "key");
+        assert_eq!(out[2]["$data"], "Kioq");
+        assert_eq!(out[3]["$ref"], 2);
+        assert_eq!(out[4]["$note"], "projection byte limit");
     }
 
     #[test]

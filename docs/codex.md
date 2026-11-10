@@ -2,6 +2,41 @@
 
 Craft Anything reaches Codex in two ways, and both have to get past Codex's own tool approval.
 
+## Find and check Codex on macOS
+
+An app opened from the Dock does not inherit the terminal's PATH. When PATH has
+no Codex, detection and execution also look for its CLI in known ChatGPT.app and
+Codex.app layouts, first under the user's Applications folder and then the system
+Applications folder. Only executable files are accepted; the desktop GUI program
+is never used as a coding agent. An explicitly selected program and PATH remain
+ahead of the bundle fallback. A saved bare `codex` command gets the same fallback.
+There is no shell-profile edit, global symlink, recursive scan or app launch.
+
+In Settings → AI, add Codex under Found on this computer → Harnesses, then use
+**Check** in its configured row. The check runs the selected program's `--version`
+and `login status` on a worker. `craft-anything-cli ai test <name>` uses the same
+headless API. It sends no prompt, and its `version_only` flag remains true:
+installation and sign-in do not prove model entitlement or remaining usage.
+Unknown or failed status output leaves the version reply unchanged, without a
+signed-in claim. Every configured local agent CLI has the same Check action;
+its adapter determines whether sign-in can be verified, using that backend's
+selected configuration folder where supported.
+
+Codex owns authentication. Run the selected Codex program with `login` in a
+terminal and choose Sign in with ChatGPT, or use Codex's supported API-key login.
+Craft Anything does not read, copy or store Codex's credential files or tokens.
+This is not native ChatGPT OAuth inside Craft Anything and does not change
+Codex's sandbox, approval policy or model selection. A known signed-out state
+and recognized authentication failures include sign-in guidance. Unrelated
+errors such as a failed login shell do not get authentication advice. SSH connection
+tests retain their existing behavior; the Settings action is local-only.
+
+The bundle layouts, executable permissions, root order, login-status parsing,
+selected-CLI connection check and Settings result have isolated regressions.
+Fixtures use fake programs and temporary directories, never real credentials.
+Windows/Linux live-account behavior and model availability are not established
+by these tests.
+
 ## Why a tool can be refused
 
 `codex exec` is non-interactive: it has no one to ask, so its approval policy is `never`. A tool

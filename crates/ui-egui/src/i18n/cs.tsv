@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automatika
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Hloubkový režim: čteme kód, soubory i zdrojový kód stránek všemi nástroji a také externím dekompilátorem, pokud je nainstalován. Kliknutím přepnete režim.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} není nainstalováno, proto je zastupuje vestavěný dekompilátor. Zvolte engine v Nastavení → Enginy.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} v tomto počítači zatím není, proto je zastupuje vestavěný dekompilátor.
+Connecting to {name}… {seconds} s	Připojování k {name}… {seconds} s
+Stopped adding {name}.	Přidávání {name} bylo zastaveno.

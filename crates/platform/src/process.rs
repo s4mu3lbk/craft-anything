@@ -59,6 +59,8 @@ pub const DEFAULT_STDERR_CAP: usize = 1024 * 1024;
 /// How long to wait for the output threads after the child exits (an escaped grandchild may hold
 /// the pipe open; we stop waiting rather than hang).
 const DRAIN_GRACE: Duration = Duration::from_secs(2);
+/// How long a program we stopped gets to be gone before we stop waiting for it.
+const REAP_GRACE: Duration = Duration::from_secs(5);
 /// Longest partial line kept before it is delivered anyway. MCP servers answer `tools/list` as
 /// one JSON-RPC line that can be megabytes (a plugin with many richly described tools), so this
 /// must cover such a whole line: a fragment is not JSON, and the answer would never parse.
@@ -777,13 +779,9 @@ enum Stop {
 impl Supervisor {
     fn run(mut self) -> Result<Output, ToolError> {
         let stop = self.watch();
-        if !matches!(stop, Stop::Exited(_)) {
-            let _ = self.child.start_kill();
-            let _ = self.child.kill();
-        } else {
-            // The leader exited; take any leftover group members with it so they can't hold the pipes.
-            let _ = self.child.kill();
-        }
+        // Stopped, or the leader exited: take any leftover group members with it so they can't
+        // hold the pipes.
+        end(self.child.as_mut(), &self.name);
         self.drain();
         let duration = self.start.elapsed();
         let (stdout, stdout_truncated) = take(&self.out_buf);
@@ -858,6 +856,30 @@ impl Supervisor {
     }
 }
 
+/// Stop a program and whatever it started, waiting only [`REAP_GRACE`] for it to be gone. The
+/// library's own `kill()` waits with no limit: for the process, which can outlive its stop for
+/// as long as a driver holds one of its threads, and on Windows then for a job message the
+/// system doesn't promise to send. That was the one step of a run that neither its time limit
+/// nor a cancel could reach (#1438).
+fn end(child: &mut dyn ChildWrapper, name: &str) {
+    let _ = child.start_kill();
+    let deadline = Instant::now() + REAP_GRACE;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return,
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+            Ok(None) => {
+                log::warn!("{name}: still there {} s after it was stopped; not waiting for it", REAP_GRACE.as_secs());
+                return;
+            }
+            Err(e) => {
+                log::warn!("{name}: couldn't tell whether it ended after it was stopped: {e}");
+                return;
+            }
+        }
+    }
+}
+
 fn take(buf: &Arc<Mutex<Capped>>) -> (Vec<u8>, bool) {
     let mut g = buf.lock().unwrap_or_else(PoisonError::into_inner);
     (std::mem::take(&mut g.data), g.truncated)
@@ -923,6 +945,11 @@ impl Launch {
     /// Write what the program prints (output and errors) to this file, replacing it. A file, not
     /// a pipe: the program keeps running after we exit, and writing to a pipe nobody reads would
     /// fail (or stop it).
+    ///
+    /// The file is opened for the program to append to, and while we are alive it is cut back to
+    /// empty once it passes [`LOG_CAP`](crate::process::LOG_CAP), so a program that prints
+    /// forever cannot fill the disk. Nothing breaks when it is cut: the program's next write lands
+    /// at the new end. Once we have exited the cut stops, and the file grows as it always did.
     pub fn log_to(mut self, file: impl Into<PathBuf>) -> Self {
         self.log = Some(file.into());
         self
@@ -963,7 +990,7 @@ impl Launch {
         use_search_path(&mut cmd);
         match &self.log {
             Some(path) => {
-                let out = std::fs::File::create(path).map_err(|e| ToolError::io(path.display(), e))?;
+                let out = open_log(path).map_err(|e| ToolError::io(path.display(), e))?;
                 let err = out.try_clone().map_err(|e| ToolError::io(path.display(), e))?;
                 cmd.stdout(out).stderr(err);
             }
@@ -995,8 +1022,18 @@ impl Launch {
         // Reap it when it closes. If no thread can be made the child still runs (and `ended`
         // stays unknown); on Unix it stays a zombie until we exit, which is harmless.
         let watched = launched.clone();
+        let log = self.log.clone();
         let _ = std::thread::Builder::new().name(format!("launched-{name}")).spawn(move || {
+            let mut next_cut = Instant::now() + LOG_CUT_EVERY;
             while watched.poll().is_none() {
+                // Keep the log bounded while the program runs; the watch ends with it, so a program
+                // that outlives us is left exactly as it was before.
+                if let Some(path) = &log
+                    && Instant::now() >= next_cut
+                {
+                    cut_log(path);
+                    next_cut = Instant::now() + LOG_CUT_EVERY;
+                }
                 std::thread::sleep(LAUNCH_POLL);
             }
             if let Some(Ended { code: Some(c), .. }) = watched.ended()
@@ -1011,6 +1048,41 @@ impl Launch {
 
 /// How often a launched program is checked for having ended.
 const LAUNCH_POLL: Duration = Duration::from_millis(250);
+
+/// How big a launched program's log may get while we are alive: past this it is cut back to empty.
+/// A run's log is read for its last lines (a build's warnings, a game's crash), so keeping the tail
+/// is what matters and a cap this size holds many screens of it.
+pub const LOG_CAP: u64 = 1024 * 1024;
+
+/// How often the log is measured against [`LOG_CAP`].
+const LOG_CUT_EVERY: Duration = Duration::from_secs(2);
+
+/// Open a launched program's log for it to write to: appended, never truncated by its own writes,
+/// so a cut made from our side leaves nothing for it to trip over.
+fn open_log(path: &std::path::Path) -> std::io::Result<std::fs::File> {
+    // Windows refuses one open that both truncates and appends, so replace the file and then hand
+    // the program a handle that only appends.
+    std::fs::File::create(path)?;
+    std::fs::OpenOptions::new().append(true).open(path)
+}
+
+/// Cut a log back to empty once it has passed [`LOG_CAP`]. The program holding it open appends, so
+/// its next write lands at the new end; if the file can't be cut (someone else holds it), it is
+/// simply left alone until the next look.
+fn cut_log(path: &std::path::Path) {
+    let Ok(size) = std::fs::metadata(path).map(|m| m.len()) else { return };
+    if size <= LOG_CAP {
+        return;
+    }
+    match open_log_for_cut(path) {
+        Ok(()) => log::info!("cut {} at {size} bytes", path.display()),
+        Err(e) => log::warn!("could not cut {} at {size} bytes: {e}", path.display()),
+    }
+
+    fn open_log_for_cut(path: &std::path::Path) -> std::io::Result<()> {
+        std::fs::OpenOptions::new().write(true).open(path)?.set_len(0)
+    }
+}
 
 /// A program started with [`Launch::start_watched`]. Clones share the same program.
 #[derive(Debug, Clone)]
@@ -1283,6 +1355,73 @@ mod launch_tests {
         assert!(text.contains("out-line") && text.contains("err-line"), "{text}");
     }
 
+    /// A program that prints far more than the cap keeps running to the end, and its log is cut
+    /// while it writes: the cut is ours, not something its own writes run into.
+    #[test]
+    fn a_launched_programs_log_is_cut_back_while_it_runs() {
+        let dir = tempfile::tempdir().unwrap();
+        let log = dir.path().join("run.log");
+        std::fs::write(dir.path().join("log-path"), log.display().to_string()).unwrap();
+        std::fs::write(dir.path().join("log-writer"), b"go").unwrap();
+        let l = Launch::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "process::launch_tests::log_writer_stand_in"])
+            .cwd(dir.path())
+            .hide_console()
+            .log_to(&log)
+            .start_watched()
+            .unwrap();
+        let ended = l.wait_timeout(Duration::from_secs(120)).expect("the writer ended");
+        assert_eq!(ended.code, Some(0), "a cut never breaks the program's own writes");
+        let report = std::fs::read_to_string(dir.path().join("wrote")).unwrap();
+        let (wrote, cuts): (u64, u32) = {
+            let mut parts = report.split_whitespace();
+            (parts.next().unwrap().parse().unwrap(), parts.next().unwrap().parse().unwrap())
+        };
+        assert!(wrote > LOG_CAP, "the stand-in printed more than the cap: {wrote}");
+        // The stand-in waits for a cut and writes on past it, so this doesn't depend on how fast
+        // the cuts come: it printed more than the cap, saw the file shrink, and its later writes
+        // were accepted.
+        assert!(cuts >= 1, "the log was cut while the program ran: {report}");
+        let kept = std::fs::metadata(&log).unwrap().len();
+        assert!(kept <= 2 * LOG_CAP, "the log stayed small after {wrote} bytes: {kept}");
+    }
+
+    /// Prints past the cap in chunks, waits to see its own log shrink, writes on to show the cut
+    /// left its writes alone, then says how much it printed and how many cuts it saw. Only runs
+    /// when the test above leaves its guard files in the working directory.
+    #[test]
+    #[ignore = "stand-in invoked by a_launched_programs_log_is_cut_back_while_it_runs"]
+    fn log_writer_stand_in() {
+        use std::io::Write;
+        if std::fs::read("log-writer").is_err() {
+            return;
+        }
+        let log = std::fs::read_to_string("log-path").unwrap().trim().to_string();
+        let chunk = vec![b'x'; 64 * 1024];
+        let mut out = std::io::stdout();
+        let (mut wrote, mut cuts, mut last) = (0u64, 0u32, 0u64);
+        // Enough chunks for a loaded machine: a cut comes every couple of seconds, and this goes on
+        // until it has seen one and written past it.
+        for _ in 0..4096 {
+            out.write_all(&chunk).unwrap();
+            out.write_all(b"\n").unwrap();
+            out.flush().unwrap();
+            wrote += chunk.len() as u64 + 1;
+            let kept = std::fs::metadata(&log).map(|m| m.len()).unwrap_or(0);
+            if kept < last {
+                cuts += 1;
+            }
+            last = kept;
+            // A cut has been seen and the writes after it have filled the file again, which is the
+            // thing worth proving: the cut doesn't get in the program's way.
+            if cuts > 0 && kept > LOG_CAP / 2 {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        std::fs::write("wrote", format!("{wrote} {cuts}")).unwrap();
+    }
+
     #[test]
     fn a_watched_program_can_be_stopped() {
         let script = if cfg!(windows) { "ping -n 30 127.0.0.1 > NUL" } else { "sleep 30" };
@@ -1506,6 +1645,48 @@ mod launch_tests {
 #[cfg(test)]
 mod error_tests {
     use super::*;
+
+    /// A program that is still there after it was stopped, and whose `wait` never returns.
+    #[derive(Debug)]
+    struct Undying {
+        stopped: bool,
+    }
+
+    impl ChildWrapper for Undying {
+        fn inner(&self) -> &dyn ChildWrapper {
+            self
+        }
+        fn inner_mut(&mut self) -> &mut dyn ChildWrapper {
+            self
+        }
+        fn into_inner(self: Box<Self>) -> Box<dyn ChildWrapper> {
+            self
+        }
+        fn start_kill(&mut self) -> std::io::Result<()> {
+            self.stopped = true;
+            Ok(())
+        }
+        fn try_wait(&mut self) -> std::io::Result<Option<std::process::ExitStatus>> {
+            Ok(None)
+        }
+        fn wait(&mut self) -> std::io::Result<std::process::ExitStatus> {
+            loop {
+                std::thread::sleep(Duration::from_secs(60));
+            }
+        }
+    }
+
+    /// #1438: a check sat for hours with Pause dead. Stopping a program waited for it with no
+    /// limit, so one that outlived its stop held the run past every deadline.
+    #[test]
+    fn a_program_that_outlives_its_stop_is_not_waited_for() {
+        let mut child = Undying { stopped: false };
+        let started = Instant::now();
+        end(&mut child, "the program");
+        assert!(child.stopped, "it is still told to stop");
+        let took = started.elapsed();
+        assert!(took >= REAP_GRACE && took < REAP_GRACE + Duration::from_secs(5), "{took:?}");
+    }
 
     /// An npm shim whose Node is missing is a missing program, named, with what to do about it.
     #[test]

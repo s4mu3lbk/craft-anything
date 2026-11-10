@@ -8,6 +8,7 @@ use super::*;
 mod aider;
 mod antigravity;
 mod copilot;
+mod devin;
 mod dsh;
 mod grok;
 mod hermes;
@@ -16,6 +17,7 @@ mod opencode;
 pub use aider::Aider;
 pub use antigravity::Antigravity;
 pub use copilot::Copilot;
+pub use devin::Devin;
 pub use dsh::DeepSeekHarness;
 pub use grok::Grok;
 pub use hermes::Hermes;
@@ -71,7 +73,8 @@ pub trait AgentAdapter: Send + Sync {
     }
     /// Refuse options that the native transport cannot support, before preflight or process I/O.
     /// Saving a model choice and discovering its catalogue do not imply native execution support.
-    fn check_native_options(&self, _options: &BackendOptions) -> Result<(), ToolError> {
+    /// `cwd` is the folder the agent will run in on this computer; none for a run over SSH.
+    fn check_native_options(&self, _options: &BackendOptions, _cwd: Option<&Path>) -> Result<(), ToolError> {
         Ok(())
     }
 
@@ -178,13 +181,13 @@ pub trait AgentAdapter: Send + Sync {
     fn process(&self, program: &str) -> Process {
         Process::new(program)
     }
-    /// Whether it's signed in, checked before a build starts. `None`: can't tell (the run itself
-    /// reports any sign-in problem).
     /// Whether it still names an account it was signed in to, so a sign-in that doesn't work any
     /// more has expired (or was signed out) rather than never happened.
     fn signed_in_before(&self) -> bool {
         false
     }
+    /// Whether it's signed in, checked before a local build or connection test. `None`: can't
+    /// tell; leave version-only results unchanged and let the run report any sign-in problem.
     fn signed_in(&self, _program: &str) -> Option<bool> {
         None
     }
@@ -241,6 +244,19 @@ pub trait AgentAdapter: Send + Sync {
     fn in_folder(&self, _folder: std::path::PathBuf) -> Option<Arc<dyn AgentAdapter>> {
         None
     }
+    /// Remove session `id` that a turn run with `program` left unfinished (stopped, failed or timed
+    /// out), so nothing the agent keeps running in the background picks it up again and goes on
+    /// working after we stopped it (#1115). `host`: the SSH host it ran on, None for this computer.
+    /// Default: this agent leaves nothing that resumes by itself.
+    fn discard_unfinished(&self, _program: &str, _id: &str, _host: Option<&str>) -> Result<(), ToolError> {
+        Ok(())
+    }
+    /// Whether [`discard_unfinished`](Self::discard_unfinished) really deletes sessions. Only then
+    /// is a turn's session recorded for a later sweep, and only then does a sweep take a record's
+    /// session as deleted (the default's `Ok` deletes nothing).
+    fn discards_sessions(&self) -> bool {
+        false
+    }
 }
 
 /// The adapters a run can use.
@@ -262,7 +278,7 @@ impl Default for AgentAdapters {
 }
 
 impl AgentAdapters {
-    /// The built-in coding agents, including the ACP-only Copilot and Grok Build adapters.
+    /// The built-in coding agents, including the ACP-only Copilot and Grok Build adapters and Devin's.
     pub fn built_in() -> AgentAdapters {
         AgentAdapters {
             adapters: vec![
@@ -277,6 +293,7 @@ impl AgentAdapters {
                 Arc::new(Copilot),
                 Arc::new(Grok),
                 Arc::new(DeepSeekHarness),
+                Arc::new(Devin),
             ],
         }
     }
@@ -404,6 +421,10 @@ impl AgentAdapter for ClaudeCode {
         cli_can_start(craft_anything_platform::self_cli_path().as_deref(), stop)
     }
 
+    fn check_remote_tool_server(&self, host: &str, stop: &CancelToken) -> Result<(), ToolError> {
+        remote_check(host, Some(stop))
+    }
+
     fn model_in_use(&self, options: Option<&BackendOptions>) -> Option<String> {
         Some(options.and_then(|options| options.cli_model.clone()).unwrap_or_else(|| crate::anthropic::DEFAULT_MODEL.into()))
     }
@@ -425,7 +446,13 @@ impl AgentAdapter for ClaudeCode {
         if let Some(r) = cx.resume {
             a.extend(["--resume".into(), r.to_string()]);
         }
-        let tools = if cx.builder { "Bash,PowerShell,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,NotebookEdit" } else { "" };
+        // Deep builders keep subagents (#1105): a subagent has only these tools and the session's
+        // permissions. Clean room leaves them out, since its reads must all reach our approval tool.
+        let tools = match (cx.builder, cx.reads_checked) {
+            (true, false) => "Bash,PowerShell,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,NotebookEdit,Agent",
+            (true, true) => "Bash,PowerShell,Read,Write,Edit,MultiEdit,Glob,Grep,TodoWrite,NotebookEdit",
+            (false, _) => "",
+        };
         a.extend(["--tools".into(), tools.into()]);
         if cx.builder {
             // Questions go through our core_person_ask tool, which the app shows as buttons.
@@ -756,6 +783,16 @@ impl AgentAdapter for Codex {
         &["codex"]
     }
 
+    /// Ask the selected CLI, not its auth file or keychain; discard raw status output.
+    fn signed_in(&self, program: &str) -> Option<bool> {
+        let out = Process::new(program).args(["login", "status"]).timeout(Duration::from_secs(10)).stdout_cap(16 * 1024).run().ok()?;
+        codex_login_status(out.success, &out.stdout_text(), &out.stderr_text())
+    }
+
+    fn sign_in_fix(&self) -> Option<String> {
+        Some("Run the selected Codex program with `login` in a terminal, choose Sign in with ChatGPT, then test it again in Settings → AI.".into())
+    }
+
     /// `codex exec -` reads the message from stdin, so a long one can't pass Windows'
     /// command-line limit (os error 206, #528).
     fn prompt_on_stdin(&self) -> bool {
@@ -768,6 +805,10 @@ impl AgentAdapter for Codex {
 
     fn check_tool_server(&self, stop: &CancelToken) -> Result<(), ToolError> {
         cli_can_start(craft_anything_platform::self_cli_path().as_deref(), stop)
+    }
+
+    fn check_remote_tool_server(&self, host: &str, stop: &CancelToken) -> Result<(), ToolError> {
+        remote_check(host, Some(stop))
     }
 
     fn args(&self, cx: &ArgsCx) -> Vec<String> {
@@ -814,6 +855,7 @@ impl AgentAdapter for Codex {
         false
     }
 
+    /// Translate Codex JSON events; only explicit authentication failures get sign-in guidance.
     fn parse(&self, p: &mut StreamParser, v: &Value) -> Vec<AgentEvent> {
         let mut out = Vec::new();
         let t = v.get("type").and_then(Value::as_str).unwrap_or_default();
@@ -855,11 +897,35 @@ impl AgentAdapter for Codex {
             }
             ("turn.failed", _) | ("error", _) => {
                 let m = v.pointer("/error/message").or_else(|| v.get("message")).and_then(Value::as_str).unwrap_or("unknown error");
-                out.push(AgentEvent::Error { message: format!("Codex: {m}"), remediation: None, log: None });
+                let lower = m.to_ascii_lowercase();
+                let auth = [
+                    "unauthorized",
+                    "not logged in",
+                    "authentication expired",
+                    "authentication failed",
+                    "authentication required",
+                    "login required",
+                    "token expired",
+                ]
+                .iter()
+                .any(|phrase| lower.contains(phrase));
+                out.push(AgentEvent::Error { message: format!("Codex: {m}"), remediation: if auth { self.sign_in_fix() } else { None }, log: None });
             }
             _ => {}
         }
         out
+    }
+}
+
+/// Unknown output (including future CLI formats) is not a claim that the account is connected.
+fn codex_login_status(success: bool, stdout: &str, stderr: &str) -> Option<bool> {
+    let text = format!("{stdout}\n{stderr}").to_ascii_lowercase();
+    if text.contains("not logged in") {
+        Some(false)
+    } else if success && text.contains("logged in") {
+        Some(true)
+    } else {
+        None
     }
 }
 
@@ -943,9 +1009,105 @@ impl AgentAdapter for GeminiCli {
                     p.input_tokens = st.get("input_tokens").and_then(Value::as_u64).unwrap_or(0);
                     p.output_tokens = st.get("output_tokens").and_then(Value::as_u64).unwrap_or(0);
                 }
+                // Documented stream-json only ever ends a run with `result` on success (a failure
+                // is its own `error` event instead), but a `status` other than "success" here, if
+                // one is ever sent, must still fail the turn rather than quietly counting as done:
+                // `saw_result` alone now also decides whether a lingering process is treated as
+                // finished (`RESULT_GRACE` in `run_cli`).
+                if let Some(status) = v.get("status").and_then(Value::as_str).filter(|s| *s != "success") {
+                    let why = v.get("error").and_then(Value::as_str).unwrap_or(status);
+                    out.push(AgentEvent::Error { message: format!("Gemini CLI: {why}"), remediation: None, log: None });
+                }
             }
             _ => {}
         }
         out
+    }
+}
+
+/// One `ssh` run for a remote set-up step. Never interactive (`BatchMode`, stdin closed).
+fn ssh_run(host: &str, line: &str, timeout: std::time::Duration, stop: Option<&CancelToken>) -> Result<craft_anything_platform::Output, ToolError> {
+    let argv = crate::ssh::ssh_line_args(host, line.to_string());
+    let mut proc = craft_anything_platform::process::Process::new("ssh").args(&argv).timeout(timeout).stdout_cap(64 * 1024);
+    if let Some(stop) = stop {
+        let stop = stop.clone();
+        proc = proc.cancel_when(move || stop.is_cancelled());
+    }
+    proc.run()
+}
+
+/// `command -v` only promises a nonzero status for a missing program: 127 is the shell's own "not
+/// found", which [`crate::ssh::diagnose`] turns into how to install it or put it on the PATH.
+/// It prints where the helper is, which [`remote_cli_path`] reads.
+pub(super) const REMOTE_CHECK_LINE: &str = "command -v craft-anything-cli || exit 127";
+
+/// Where `craft-anything-cli` is on `host`, as an absolute path. Claude Code starts the tool server
+/// with its own PATH, not the one ssh gave this check: by bare name the server failed on a host
+/// where the check passed ("server status: failed"), and by absolute path it connected. None: the
+/// host didn't say, so the bare name stays and the build's own error explains.
+pub(super) fn remote_cli_path(host: &str) -> Option<String> {
+    let out = ssh_run(host, REMOTE_CHECK_LINE, std::time::Duration::from_secs(15), None).ok().filter(|out| out.success)?;
+    absolute_path_line(&out.stdout_text())
+}
+
+/// The first line of `text` when it is an absolute path; a shell function, alias or banner isn't.
+fn absolute_path_line(text: &str) -> Option<String> {
+    let line = text.lines().map(str::trim).find(|line| !line.is_empty())?;
+    line.starts_with('/').then(|| line.to_string())
+}
+
+#[cfg(test)]
+mod remote_path_tests {
+    use super::absolute_path_line;
+
+    #[test]
+    fn only_an_absolute_path_is_taken_as_the_helper_location() {
+        assert_eq!(absolute_path_line("/home/a/.cargo/bin/craft-anything-cli\n").as_deref(), Some("/home/a/.cargo/bin/craft-anything-cli"));
+        assert_eq!(absolute_path_line("\n  /opt/ca/craft-anything-cli  \n").as_deref(), Some("/opt/ca/craft-anything-cli"));
+        assert_eq!(absolute_path_line("craft-anything-cli"), None);
+        assert_eq!(absolute_path_line("alias craft-anything-cli='x'"), None);
+        assert_eq!(absolute_path_line(""), None);
+    }
+}
+
+/// The remote helper is on PATH, checked before a build starts (the remote server runs it). For
+/// every agent that's handed our tool server over SSH, as the local check is for one here.
+fn remote_check(host: &str, stop: Option<&CancelToken>) -> Result<(), ToolError> {
+    let out = ssh_run(host, REMOTE_CHECK_LINE, std::time::Duration::from_secs(15), stop)?;
+    if out.success {
+        return Ok(());
+    }
+    Err(remote_failure(host, &out))
+}
+
+/// Map the remote failure onto the fix, reusing the ssh failure wording other remote runs use.
+pub(super) fn remote_failure(host: &str, out: &craft_anything_platform::Output) -> ToolError {
+    if let Some(failure) = crate::ssh::diagnose(host, "craft-anything-cli", crate::ssh::is_git_server(host), out.code, out.stderr_text().as_str()) {
+        return ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything can't set up its tools on {host}: {}.", failure.what))
+            .with_remediation(failure.fix);
+    }
+    let stderr = out.stderr_text();
+    let snippet: String = stderr.trim().chars().take(200).collect();
+    let exit = out.code.map_or_else(|| "it was stopped".to_string(), |code| format!("exit {code}"));
+    ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything couldn't set up its tools on {host}: ssh didn't come back as expected ({exit})."))
+        .with_remediation(if snippet.is_empty() {
+            "Check that craft-anything-cli is on the PATH this ssh session uses, and that the host lets you run programs over ssh.".to_string()
+        } else {
+            format!("ssh said: {snippet}")
+        })
+}
+
+#[cfg(test)]
+mod codex_login_tests {
+    use super::codex_login_status;
+
+    #[test]
+    fn login_status_reads_both_streams_without_inferring_success_from_exit_alone() {
+        assert_eq!(codex_login_status(true, "", "Logged in using ChatGPT"), Some(true));
+        assert_eq!(codex_login_status(true, "Logged in using an API key", ""), Some(true));
+        assert_eq!(codex_login_status(false, "", "Not logged in"), Some(false));
+        assert_eq!(codex_login_status(true, "Not logged in", ""), Some(false));
+        assert_eq!(codex_login_status(false, "", "could not read credentials"), None);
+        assert_eq!(codex_login_status(true, "", ""), None);
     }
 }

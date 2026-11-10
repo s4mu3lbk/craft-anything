@@ -245,8 +245,7 @@ pub fn download_to(
     })?;
     let status = resp.status().as_u16();
     if !(200..300).contains(&status) {
-        return Err(ToolError::new(ErrorCode::EngineMissing, format!("The download server answered {status} for {url}."))
-            .with_remediation("The URL may have moved; update the pinned URL."));
+        return Err(status_error(status, url));
     }
     let total = resp.headers().get("content-length").and_then(|v| v.to_str().ok()).and_then(|s| s.parse::<u64>().ok());
     let mut reader = resp.into_body().into_reader().take(max_bytes + 1);
@@ -270,6 +269,17 @@ pub fn download_to(
         progress(got, total);
     }
     Ok(got)
+}
+
+/// A download that answered `status`, and what the person can do about it. A busy or failing
+/// server (#1193: GitHub's 504) clears up by itself; only a file gone from its address needs us.
+fn status_error(status: u16, url: &str) -> ToolError {
+    let remediation = match status {
+        429 | 500..=599 => "The download server is busy or having trouble. Try again in a few minutes.",
+        404 | 410 => "The file isn't at its usual address any more. Please report this so Craft Anything can be updated.",
+        _ => "Try again later. If it keeps happening, please report it.",
+    };
+    ToolError::new(ErrorCode::EngineMissing, format!("The download server answered {status} for {url}.")).with_remediation(remediation)
 }
 
 /// Unpack a verified archive of `format` into `dest`, stripping `strip_prefix` and skipping unsafe
@@ -376,11 +386,18 @@ fn unpack_zip(
 /// Unpack an (uncompressed) tar into `dest`. Only regular files are written: folders are made as
 /// needed, and symlinks, hard links and device nodes are skipped.
 fn unpack_tar(data: &[u8], dest: &Path, strip_prefix: Option<&str>, cancel: Option<&Cancel>, report: &dyn Fn(&str)) -> Result<usize, ToolError> {
-    use craft_anything_formats::tarcpio::{self, MemberKind};
+    use craft_anything_formats::tarcpio::{self, MemberKind, StopReason};
     let listing = tarcpio::tar(data, MAX_ENTRIES).ok_or_else(|| ToolError::new(ErrorCode::GarbledOutput, "The archive is not a tar file."))?;
     if listing.truncated {
         return Err(ToolError::new(ErrorCode::OverLimit, format!("The archive has more than {MAX_ENTRIES} entries."))
             .with_remediation("Install this engine by hand instead."));
+    }
+    if let Some(reason) = listing.stop_reason {
+        let (code, message) = match reason {
+            StopReason::GnuMetadataTooLong => (ErrorCode::OverLimit, "A GNU tar name or link exceeds the supported limit; the archive was not unpacked."),
+            StopReason::GnuMetadataTruncated => (ErrorCode::GarbledOutput, "The tar archive ends inside a GNU name or link record; it was not unpacked."),
+        };
+        return Err(ToolError::new(code, message).with_remediation("Use a complete archive with supported member names, or install this engine by hand."));
     }
     let mut written = 0usize;
     for (i, m) in listing.members.iter().enumerate() {
@@ -442,6 +459,86 @@ fn set_executable(_path: &Path) {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn assert_gnu_metadata_refused_before_writes(kind: u8, cut_short: bool, expected: ErrorCode) {
+        use craft_anything_testkit::firmware as fx;
+        let long = vec![b'n'; 4097];
+        let mut tar = fx::tar_entries(&[("pkg/bin/tool", b'0', b"replacement", ""), ("././@LongLink", kind, &long, ""), ("pkg/later", b'0', b"later", "")]);
+        if cut_short {
+            tar.truncate(3 * 512 + 16);
+        }
+        let listing = craft_anything_formats::tarcpio::tar(&tar, 100).unwrap();
+        assert_eq!(listing.members.len(), 1);
+        assert!(!listing.complete);
+        assert_eq!(craft_anything_formats::tarcpio::member_data(&tar, &listing.members[0]).unwrap(), b"replacement");
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("bin")).unwrap();
+        let installed = dir.path().join("bin/tool");
+        std::fs::write(&installed, b"installed").unwrap();
+        let result = unpack_tar(&tar, dir.path(), Some("pkg/"), None, &|_| {});
+        let retained = std::fs::read(&installed).unwrap();
+        assert!(result.is_err() && retained == b"installed", "{kind:?}, cut short: {cut_short}, result: {result:?}, retained: {retained:?}");
+        assert_eq!(result.unwrap_err().code, expected);
+        assert!(!dir.path().join("later").exists());
+    }
+
+    #[test]
+    fn tar_metadata_guard_refuses_oversized_long_name_before_writes() {
+        assert_gnu_metadata_refused_before_writes(b'L', false, ErrorCode::OverLimit);
+    }
+
+    #[test]
+    fn tar_metadata_guard_refuses_oversized_long_link_before_writes() {
+        assert_gnu_metadata_refused_before_writes(b'K', false, ErrorCode::OverLimit);
+    }
+
+    #[test]
+    fn tar_metadata_guard_refuses_truncated_long_name_before_writes() {
+        assert_gnu_metadata_refused_before_writes(b'L', true, ErrorCode::GarbledOutput);
+    }
+
+    #[test]
+    fn tar_metadata_guard_refuses_truncated_long_link_before_writes() {
+        assert_gnu_metadata_refused_before_writes(b'K', true, ErrorCode::GarbledOutput);
+    }
+
+    #[test]
+    fn tar_metadata_guard_accepts_member_data_without_end_marker() {
+        use craft_anything_testkit::firmware as fx;
+        let mut tar = fx::tar_entries(&[("pkg/bin/tool", b'0', b"tool", "")]);
+        tar.truncate(2 * 512);
+        assert!(!craft_anything_formats::tarcpio::tar(&tar, 100).unwrap().complete);
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(unpack_tar(&tar, dir.path(), Some("pkg/"), None, &|_| {}).unwrap(), 1);
+        assert_eq!(std::fs::read(dir.path().join("bin/tool")).unwrap(), b"tool");
+    }
+
+    #[test]
+    fn tar_metadata_guard_accepts_bounded_long_names() {
+        use craft_anything_testkit::firmware as fx;
+        let mut name = b"pkg/bin/tool\0".to_vec();
+        name.resize(4200, 0);
+        let tar = fx::tar_entries(&[("././@LongLink", b'L', &name, ""), ("fallback", b'0', b"tool", "")]);
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(unpack_tar(&tar, dir.path(), Some("pkg/"), None, &|_| {}).unwrap(), 1);
+        assert_eq!(std::fs::read(dir.path().join("bin/tool")).unwrap(), b"tool");
+    }
+
+    /// A server error says to try later, not to change a pin the person can't change (#1193).
+    #[test]
+    fn a_download_status_says_what_the_person_can_do() {
+        let advice = |s| status_error(s, "https://example.invalid/x").remediation.unwrap_or_default();
+        for s in [504, 500, 503, 429] {
+            assert!(advice(s).contains("Try again in a few minutes"), "{s}");
+        }
+        for s in [404, 410] {
+            assert!(advice(s).contains("report this"), "{s}");
+        }
+        for s in [200, 403, 504, 404] {
+            assert!(!advice(s).contains("pinned URL"), "{s}");
+        }
+        assert_eq!(status_error(504, "https://example.invalid/x").message, "The download server answered 504 for https://example.invalid/x.");
+    }
 
     /// A real install, only where `CRAFT_ANYTHING_TEST_INSTALL` names an engine (it downloads)
     /// and `CRAFT_ANYTHING_TEST_INSTALL_STORE` a folder to install into: the pin downloads,
@@ -526,6 +623,64 @@ mod tests {
         // Not a gzip at all.
         let err = unpack(b"not gzip", ArchiveFormat::TarGz, dir.path(), None, None, &|_| {}).unwrap_err();
         assert_eq!(err.code, ErrorCode::GarbledOutput);
+    }
+
+    fn assert_gnu_record_extent_refused(kind: u8, overflow: bool) {
+        use craft_anything_testkit::firmware as fx;
+        let body = b"next\0";
+        let mut tar = fx::tar_entries(&[("pkg/bin/tool", b'0', b"replacement", ""), ("././@LongLink", kind, body, "")]);
+        if overflow {
+            let header = &mut tar[1024..1536];
+            header[124..136].fill(0);
+            header[124] = 0x80;
+            header[128..136].copy_from_slice(&u64::MAX.to_be_bytes());
+            header[148..156].fill(b' ');
+            let checksum: usize = header.iter().map(|byte| usize::from(*byte)).sum();
+            header[148..156].copy_from_slice(format!("{checksum:06o}\0 ").as_bytes());
+        } else {
+            tar.truncate(1536 + body.len());
+        }
+        let listing = craft_anything_formats::tarcpio::tar(&tar, 100).unwrap();
+        assert_eq!(listing.members.len(), 1);
+        assert!(!listing.complete);
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("bin")).unwrap();
+        let installed = dir.path().join("bin/tool");
+        std::fs::write(&installed, b"installed").unwrap();
+        let result = unpack_tar(&tar, dir.path(), Some("pkg/"), None, &|_| {});
+        let retained = std::fs::read(&installed).unwrap();
+        assert!(result.is_err() && retained == b"installed", "{kind:?}, overflow: {overflow}, result: {result:?}, retained: {retained:?}");
+        assert_eq!(result.unwrap_err().code, ErrorCode::GarbledOutput);
+    }
+
+    #[test]
+    fn tar_metadata_padding_guard_refuses_short_long_name_padding() {
+        assert_gnu_record_extent_refused(b'L', false);
+    }
+
+    #[test]
+    fn tar_metadata_padding_guard_refuses_short_long_link_padding() {
+        assert_gnu_record_extent_refused(b'K', false);
+    }
+
+    #[test]
+    fn tar_metadata_padding_guard_refuses_overflowing_long_name_extent() {
+        assert_gnu_record_extent_refused(b'L', true);
+    }
+
+    #[test]
+    fn tar_metadata_padding_guard_refuses_overflowing_long_link_extent() {
+        assert_gnu_record_extent_refused(b'K', true);
+    }
+
+    #[test]
+    fn tar_metadata_padding_guard_keeps_regular_member_compatibility() {
+        use craft_anything_testkit::firmware as fx;
+        let mut tar = fx::tar_entries(&[("pkg/bin/tool", b'0', b"tool", "")]);
+        tar.truncate(512 + 4);
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(unpack_tar(&tar, dir.path(), Some("pkg/"), None, &|_| {}).unwrap(), 1);
+        assert_eq!(std::fs::read(dir.path().join("bin/tool")).unwrap(), b"tool");
     }
 
     #[test]

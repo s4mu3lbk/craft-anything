@@ -34,7 +34,7 @@ pub fn proof_card(ui: &mut Ui, e: &Evidence, dense: bool, open: bool) {
         });
         ui.add_space(4.0);
         if !e.summary.is_empty() {
-            ui.label(RichText::new(&e.summary).size(if dense { 13.0 } else { 15.0 }));
+            ui.label(RichText::new(&e.summary).size(if dense { theme::SMALL } else { theme::BODY }));
         }
         let id = ui.id().with(("proof", &e.id));
         egui::CollapsingHeader::new(RichText::new(tr("Show me the proof")).color(t.accent_ink).font(theme::medium(theme::SMALL)))
@@ -101,7 +101,7 @@ fn details(ui: &mut Ui, e: &Evidence, t: &Tokens) {
         widgets::caption(ui, "The code");
         egui::Frame::new().fill(t.code_bg).corner_radius(t.r()).inner_margin(Margin::same(10)).show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.label(RichText::new(truncate(code, 4000)).font(theme::mono(12.5)).color(t.text));
+            ui.label(RichText::new(truncate(code, 4000)).font(theme::mono(theme::CAPTION)).color(t.text));
         });
         ui.add_space(6.0);
     }

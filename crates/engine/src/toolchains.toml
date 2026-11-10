@@ -1,5 +1,5 @@
 # Project build/test commands and optional launch recipes, in detection order.
-# Launch recipes match a root file and pass argv directly, never through a shell.
+# Launch recipes match a project file and pass argv directly, never through a shell.
 # {file} is replaced with the matched file; wildcard launch matches must be unique.
 
 [[toolchain]]
@@ -21,6 +21,7 @@ windows_program = "npm.cmd"
 name = "Python"
 found_by = ["pyproject.toml", "requirements.txt", "setup.py"]
 standalone_entrypoints = true
+python_console_script = true
 build = ["python3", "-m", "compileall", "-q", "-f", "-x", '[\\/](\.?venv|node_modules|\.git)[\\/]', "."]
 test = ["python3", "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 no_tests = ["no tests ran", "No module named pytest"]
@@ -30,6 +31,7 @@ launch = [
     { file = "main.py", command = ["python3", "{file}"] },
     { file = "app.py", command = ["python3", "{file}"] },
     { file = "__main__.py", command = ["python3", "."] },
+    { file = "*/__main__.py", command = ["python3", "-m", "{module}"] },
 ]
 
 [[toolchain]]
@@ -52,9 +54,11 @@ launch = [{ file = "*.csproj", command = ["dotnet", "run", "--no-build", "--proj
 [[toolchain]]
 name = "Maven"
 found_by = ["pom.xml"]
-build = ["mvn", "-q", "-B", "compile"]
+# `package` rather than `compile`, so Play starts the jar of this build and not an older one.
+build = ["mvn", "-q", "-B", "package", "-DskipTests"]
 test = ["mvn", "-q", "-B", "test"]
 local_programs = ["mvnw", "mvnw.cmd"]
+launch = [{ file = "target/*.jar", command = ["java", "-jar", "{file}"], runnable_jar = true }]
 
 [[toolchain]]
 name = "Gradle"
@@ -62,6 +66,7 @@ found_by = ["build.gradle", "build.gradle.kts"]
 build = ["gradle", "-q", "assemble"]
 test = ["gradle", "-q", "test"]
 local_programs = ["gradlew", "gradlew.bat"]
+launch = [{ file = "build/libs/*.jar", command = ["java", "-jar", "{file}"], runnable_jar = true }]
 
 [[toolchain]]
 name = "Make"

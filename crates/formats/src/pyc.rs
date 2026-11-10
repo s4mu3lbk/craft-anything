@@ -36,7 +36,10 @@ pub struct Release {
     pub version: &'static str,
     /// Lowest magic number of its development.
     pub first: u16,
-    /// The magic number of the released version.
+    /// Lowest magic number a final release wrote. Python 3.5.0 to 3.5.2 wrote 3350 and 3.5.3 moved
+    /// to 3351; every other line kept one number through all its releases.
+    pub released: u16,
+    /// The magic number of the latest release.
     pub last: u16,
     /// Length of the header in front of the marshal data.
     pub header: usize,
@@ -44,28 +47,35 @@ pub struct Release {
     pub layout: Option<CodeLayout>,
 }
 
-/// Every release line we recognise. Magic numbers below `last` belong to that line's pre-releases,
-/// whose code-object layout may differ, so only `last` is read past the header.
+/// Every release line we recognise. Magic numbers below `released` belong to that line's
+/// pre-releases, whose code-object layout may differ, so only releases are read past the header.
 pub const RELEASES: &[Release] = &[
-    Release { version: "2.5", first: 62071, last: 62131, header: 8, layout: None },
-    Release { version: "2.6", first: 62151, last: 62161, header: 8, layout: None },
-    Release { version: "2.7", first: 62171, last: 62211, header: 8, layout: None },
-    Release { version: "3.0", first: 3000, last: 3131, header: 8, layout: None },
-    Release { version: "3.1", first: 3141, last: 3151, header: 8, layout: None },
-    Release { version: "3.2", first: 3160, last: 3180, header: 8, layout: None },
-    Release { version: "3.3", first: 3190, last: 3230, header: 12, layout: None },
-    Release { version: "3.4", first: 3250, last: 3310, header: 12, layout: None },
-    Release { version: "3.5", first: 3320, last: 3351, header: 12, layout: None },
-    Release { version: "3.6", first: 3360, last: 3379, header: 12, layout: None },
-    Release { version: "3.7", first: 3390, last: 3394, header: 16, layout: None },
-    Release { version: "3.8", first: 3400, last: 3413, header: 16, layout: Some(CodeLayout::Py38) },
-    Release { version: "3.9", first: 3420, last: 3425, header: 16, layout: Some(CodeLayout::Py38) },
-    Release { version: "3.10", first: 3430, last: 3439, header: 16, layout: Some(CodeLayout::Py38) },
-    Release { version: "3.11", first: 3450, last: 3495, header: 16, layout: Some(CodeLayout::Py311) },
-    Release { version: "3.12", first: 3500, last: 3531, header: 16, layout: Some(CodeLayout::Py311) },
-    Release { version: "3.13", first: 3550, last: 3571, header: 16, layout: Some(CodeLayout::Py311) },
-    Release { version: "3.14", first: 3600, last: 3627, header: 16, layout: Some(CodeLayout::Py311) },
+    Release { version: "2.5", first: 62071, released: 62131, last: 62131, header: 8, layout: None },
+    Release { version: "2.6", first: 62151, released: 62161, last: 62161, header: 8, layout: None },
+    Release { version: "2.7", first: 62171, released: 62211, last: 62211, header: 8, layout: None },
+    Release { version: "3.0", first: 3000, released: 3131, last: 3131, header: 8, layout: None },
+    Release { version: "3.1", first: 3141, released: 3151, last: 3151, header: 8, layout: None },
+    Release { version: "3.2", first: 3160, released: 3180, last: 3180, header: 8, layout: None },
+    Release { version: "3.3", first: 3190, released: 3230, last: 3230, header: 12, layout: None },
+    Release { version: "3.4", first: 3250, released: 3310, last: 3310, header: 12, layout: None },
+    Release { version: "3.5", first: 3320, released: 3350, last: 3351, header: 12, layout: None },
+    Release { version: "3.6", first: 3360, released: 3379, last: 3379, header: 12, layout: None },
+    Release { version: "3.7", first: 3390, released: 3394, last: 3394, header: 16, layout: None },
+    Release { version: "3.8", first: 3400, released: 3413, last: 3413, header: 16, layout: Some(CodeLayout::Py38) },
+    Release { version: "3.9", first: 3420, released: 3425, last: 3425, header: 16, layout: Some(CodeLayout::Py38) },
+    Release { version: "3.10", first: 3430, released: 3439, last: 3439, header: 16, layout: Some(CodeLayout::Py38) },
+    Release { version: "3.11", first: 3450, released: 3495, last: 3495, header: 16, layout: Some(CodeLayout::Py311) },
+    Release { version: "3.12", first: 3500, released: 3531, last: 3531, header: 16, layout: Some(CodeLayout::Py311) },
+    Release { version: "3.13", first: 3550, released: 3571, last: 3571, header: 16, layout: Some(CodeLayout::Py311) },
+    Release { version: "3.14", first: 3600, released: 3627, last: 3627, header: 16, layout: Some(CodeLayout::Py311) },
 ];
+
+impl Release {
+    /// True when a final release of this line wrote `magic`, not a pre-release.
+    pub fn is_release(&self, magic: u16) -> bool {
+        (self.released..=self.last).contains(&magic)
+    }
+}
 
 /// The release line a magic number belongs to.
 pub fn release_for_magic(magic: u16) -> Option<&'static Release> {
@@ -95,7 +105,7 @@ pub struct PycHeader {
     pub magic: u16,
     /// The Python release line, when the magic number is one we know.
     pub version: Option<&'static str>,
-    /// True when the magic number is that of the released version, not a pre-release.
+    /// True when a final release wrote this magic number, not a pre-release.
     pub is_release: bool,
     /// Length of the header in front of the marshal data.
     pub size: usize,
@@ -130,7 +140,7 @@ pub fn parse_header(data: &[u8]) -> Result<PycHeader, FormatError> {
     let mut h = PycHeader {
         magic,
         version: release.map(|r| r.version),
-        is_release: release.is_some_and(|r| r.last == magic),
+        is_release: release.is_some_and(|r| r.is_release(magic)),
         size,
         flags: None,
         invalidation: Invalidation::Timestamp,
@@ -613,13 +623,13 @@ pub struct PycFile {
 pub fn read_pyc(data: &[u8]) -> Result<PycFile, FormatError> {
     let header = parse_header(data)?;
     let release = release_for_magic(header.magic);
-    let layout = release.filter(|r| r.last == header.magic).and_then(|r| r.layout);
+    let layout = release.filter(|r| r.is_release(header.magic)).and_then(|r| r.layout);
     let (code, code_missing) = match (layout, release) {
         (Some(layout), _) => match data.get(header.size..).ok_or_else(truncated).and_then(|body| read_code(body, layout)) {
             Ok(code) => (Some(code), None),
             Err(e) => (None, Some(format!("the compiled code couldn't be read: {e}"))),
         },
-        (None, Some(r)) if r.last != header.magic => (
+        (None, Some(r)) if !r.is_release(header.magic) => (
             None,
             Some(format!(
                 "magic number {} is from a pre-release of Python {}, whose code layout may differ, so only the header was read",
@@ -708,6 +718,9 @@ mod tests {
 
     #[test]
     fn the_magic_table_is_ordered_and_names_each_release() {
+        for r in RELEASES {
+            assert!(r.first <= r.released && r.released <= r.last, "{}", r.version);
+        }
         for w in RELEASES.windows(2) {
             if let [a, b] = w
                 && a.version.starts_with('3')
@@ -782,6 +795,19 @@ mod tests {
             let file = read_pyc(&pyc(magic, 0, [0; 8], &sample_311())).unwrap();
             assert!(file.code.is_none());
             assert!(file.code_missing.as_deref().unwrap().contains(why), "{magic}: {:?}", file.code_missing);
+        }
+    }
+
+    #[test]
+    fn python_3_5_0_to_3_5_2_files_are_from_a_release() {
+        // 3.5.0, 3.5.1 and 3.5.2 wrote 3350, 3.5.3 and later 3351; 3340 is from a 3.5 beta.
+        let file = |magic: u16| [&magic.to_le_bytes()[..], &[0x0d, 0x0a, 5, 0, 0, 0, 6, 0, 0, 0]].concat();
+        for (magic, released) in [(3350u16, true), (3351, true), (3340, false)] {
+            let h = parse_header(&file(magic)).unwrap();
+            assert_eq!((h.version, h.size, h.is_release), (Some("3.5"), 12, released), "{magic}");
+            let why = read_pyc(&file(magic)).unwrap().code_missing.unwrap();
+            let expected = if released { "the code layout of Python 3.5 isn't one we read" } else { "pre-release" };
+            assert!(why.contains(expected), "{magic}: {why}");
         }
     }
 

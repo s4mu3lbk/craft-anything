@@ -134,13 +134,14 @@ fn component(data: &[u8], at: usize) -> Option<(&str, usize)> {
     ok.then_some((s, at + len + 1))
 }
 
-/// Split `serde_json-1.0.108` into name and version at the first `-<digit>` followed by a dotted version.
+/// A Cargo package directory combines a crate name and a complete semantic version. Splitting
+/// at a hyphen only when the suffix parses keeps hyphens in names and prerelease versions.
 fn split_crate_dir(dir: &str) -> Option<(&str, &str)> {
-    let b = dir.as_bytes();
-    (1..b.len()).find_map(|i| {
-        let (name, ver) = (dir.get(..i)?, dir.get(i + 1..)?);
-        let looks_versioned = b.get(i) == Some(&b'-') && ver.split('.').take(2).all(|p| !p.is_empty() && p.bytes().all(|c| c.is_ascii_digit()));
-        (looks_versioned && ver.contains('.')).then_some((name, ver))
+    dir.match_indices('-').find_map(|(i, _)| {
+        let name = dir.get(..i)?;
+        let version = dir.get(i + 1..)?;
+        let valid_name = !name.is_empty() && name.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'));
+        (valid_name && semver::Version::parse(version).is_ok()).then_some((name, version))
     })
 }
 
@@ -449,6 +450,15 @@ mod tests {
         assert_eq!(split_crate_dir("tokio-1.35.0-alpha.1"), Some(("tokio", "1.35.0-alpha.1")));
         assert_eq!(split_crate_dir("noversion"), None);
         assert_eq!(split_crate_dir("x-1"), None);
+    }
+
+    #[test]
+    fn invalid_versioned_paths_are_not_dependency_evidence() {
+        let bytes = b"/vendor/notes-1.2.draft/src/lib.rs\0/vendor/foo-01.2.3/src/lib.rs\0/vendor/folder.name-1.2.3/src/lib.rs\0/vendor/helper-2-1.2.3-rc.1+build.7/src/lib.rs\0";
+        let report = inspect(bytes, None);
+        assert_eq!(report.crates.len(), 1);
+        assert_eq!(report.crates[0].name, "helper-2");
+        assert_eq!(report.crates[0].version.as_deref(), Some("1.2.3-rc.1+build.7"));
     }
 
     #[test]

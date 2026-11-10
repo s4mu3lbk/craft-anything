@@ -101,8 +101,51 @@ impl AgentAdapter for OpenCode {
         false
     }
 
+    /// A turn stopped part-way stays `running` in OpenCode's storage, and its shared service picks
+    /// it up the next time it starts and runs the builder's commands again (#1115, seen with 2.2.5).
+    /// A private server deletes it without resuming it. Short: the turn waits for it before it ends.
+    fn discard_unfinished(&self, program: &str, id: &str, host: Option<&str>) -> Result<(), ToolError> {
+        // From the agent's output: one read as a flag would delete nothing, or something else.
+        if id.is_empty() || id.starts_with('-') {
+            return Err(ToolError::invalid(format!("OpenCode named its session {id:?}, which can't be passed to `opencode session delete`."))
+                .with_remediation("Find it with `opencode session list` and delete it with `opencode session delete <id>`."));
+        }
+        let help_args = ["session", "delete", "--help"].map(String::from);
+        let help = match host {
+            Some(h) => Process::new("ssh").args(crate::ssh::ssh_line_args(h, crate::cli_agents::remote_command(program, help_args.to_vec(), &[]))),
+            None => self.process(program).args(help_args),
+        };
+        let standalone =
+            help.timeout(std::time::Duration::from_secs(10)).stdout_cap(64 * 1024).run().is_ok_and(|out| out.stdout_text().contains("--standalone"));
+        let on = host.map(|h| format!(" on {h}")).unwrap_or_default();
+        let flag = if standalone { "--standalone " } else { "" };
+        let by_hand = format!("Delete it yourself{on} with `opencode session delete {flag}{id}`, so OpenCode doesn't pick it up again.");
+        let args = session_delete_args(id, standalone);
+        let proc = match host {
+            Some(h) => Process::new("ssh").args(crate::ssh::ssh_line_args(h, crate::cli_agents::remote_command(program, args.to_vec(), &[]))),
+            None => self.process(program).args(args),
+        };
+        let out = proc.timeout(std::time::Duration::from_secs(30)).stdout_cap(64 * 1024).run().map_err(|e| e.with_remediation(by_hand.clone()))?;
+        if out.success {
+            Ok(())
+        } else {
+            Err(ToolError::new(
+                ErrorCode::ProgramFailed,
+                format!("opencode session delete exited with {}", out.code.map_or("no code".into(), |c| c.to_string())),
+            )
+            .with_remediation(by_hand))
+        }
+    }
+
+    fn discards_sessions(&self) -> bool {
+        true
+    }
+
     fn parse(&self, p: &mut StreamParser, v: &Value) -> Vec<AgentEvent> {
         let mut events = Vec::new();
+        if p.run_session.is_none() {
+            p.run_session = v.get("sessionID").and_then(Value::as_str).map(str::to_string);
+        }
         let part = v.get("part").unwrap_or(&Value::Null);
         match v.get("type").and_then(Value::as_str) {
             Some("text") => {
@@ -146,8 +189,7 @@ impl AgentAdapter for OpenCode {
             }
             Some("error") => {
                 let error = v.get("error").unwrap_or(&Value::Null);
-                let data = error.get("data").unwrap_or(&Value::Null);
-                let why = data.get("message").and_then(Value::as_str).unwrap_or("the service returned no error details");
+                let why = error_text(error);
                 p.failure = Some(opencode_failure(error));
                 p.saw_result = true;
                 events.push(AgentEvent::Error { message: format!("OpenCode stopped: {why}"), remediation: None, log: None });
@@ -185,26 +227,6 @@ fn octal_escape(bytes: &[u8]) -> String {
     out
 }
 
-/// One `ssh` run for a remote set-up step. Never interactive (`BatchMode`, stdin closed).
-fn ssh_run(host: &str, line: &str, timeout: std::time::Duration, stop: Option<&CancelToken>) -> Result<craft_anything_platform::Output, ToolError> {
-    let argv = crate::ssh::ssh_line_args(host, line.to_string());
-    let mut proc = craft_anything_platform::process::Process::new("ssh").args(&argv).timeout(timeout).stdout_cap(64 * 1024);
-    if let Some(stop) = stop {
-        let stop = stop.clone();
-        proc = proc.cancel_when(move || stop.is_cancelled());
-    }
-    proc.run()
-}
-
-/// The remote helper is on PATH, checked before a build starts (the remote server runs it).
-fn remote_check(host: &str, stop: Option<&CancelToken>) -> Result<(), ToolError> {
-    let out = ssh_run(host, "command -v craft-anything-cli >/dev/null", std::time::Duration::from_secs(15), stop)?;
-    if out.success {
-        return Ok(());
-    }
-    Err(remote_failure(host, &out))
-}
-
 /// The remote shell line: the helper is on PATH, then the config file goes in atomically and
 /// private (`printf` with octal escapes; no byte ends the quoted string). One line, no input.
 fn remote_prepare_line(name: &str, content: &str) -> String {
@@ -214,25 +236,53 @@ fn remote_prepare_line(name: &str, content: &str) -> String {
     )
 }
 
-/// Map the remote failure onto the fix, reusing the ssh failure wording other remote runs use.
-fn remote_failure(host: &str, out: &craft_anything_platform::Output) -> ToolError {
-    if let Some(failure) = crate::ssh::diagnose(host, "craft-anything-cli", crate::ssh::is_git_server(host), out.code, out.stderr_text().as_str()) {
-        return ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything can't set up its tools on {host}: {}.", failure.what))
-            .with_remediation(failure.fix);
-    }
-    let stderr = out.stderr_text();
-    let snippet: String = stderr.trim().chars().take(200).collect();
-    let exit = out.code.map_or_else(|| "it was stopped".to_string(), |code| format!("exit {code}"));
-    ToolError::new(ErrorCode::EngineMissing, format!("Craft Anything couldn't set up its tools on {host}: ssh didn't come back as expected ({exit})."))
-        .with_remediation(if snippet.is_empty() {
-            "Check that craft-anything-cli is on the PATH this ssh session uses, and that the host lets you run programs over ssh.".to_string()
-        } else {
-            format!("ssh said: {snippet}")
-        })
-}
-
 /// OpenCode's JSON error carries the provider status and its own retry decision. In particular,
 /// an unclassified exit or an unsupported CLI flag cannot become retryable from display text.
+/// What an OpenCode error event says went wrong, for the person (#1225): its message; else its
+/// name and HTTP status, with the start of the provider's response body; else its own fields. The
+/// words "no error details" are only for an event with nothing in it.
+fn error_text(error: &Value) -> String {
+    /// A non-blank string value, trimmed.
+    fn text(v: Option<&Value>) -> Option<&str> {
+        v.and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
+    }
+    let data = error.get("data");
+    if let Some(message) = text(data.and_then(|d| d.get("message"))) {
+        return message.to_string();
+    }
+    let name = text(error.get("name"));
+    let status = data.and_then(|d| d.get("statusCode")).and_then(Value::as_u64);
+    match (name, status) {
+        (Some(name), status) => {
+            let head = status.map_or_else(|| name.to_string(), |s| format!("{name} (HTTP {s})"));
+            match text(data.and_then(|d| d.get("responseBody"))) {
+                Some(body) => format!("{head}: {}", shorten(body)),
+                None => head,
+            }
+        }
+        (None, _) if error.is_null() || error.as_object().is_some_and(serde_json::Map::is_empty) => "the service returned no error details".into(),
+        (None, _) => shorten(&error.to_string()),
+    }
+}
+
+/// The first 300 characters of `text`, with an ellipsis when cut.
+fn shorten(text: &str) -> String {
+    let mut out: String = text.chars().take(300).collect();
+    if text.chars().count() > 300 {
+        out.push('…');
+    }
+    out
+}
+
+fn session_delete_args(id: &str, standalone: bool) -> Vec<String> {
+    let mut args = vec!["session".to_string(), "delete".to_string()];
+    if standalone {
+        args.push("--standalone".into());
+    }
+    args.push(id.into());
+    args
+}
+
 fn opencode_failure(error: &Value) -> TurnFailure {
     let data = error.get("data").unwrap_or(&Value::Null);
     match error.get("name").and_then(Value::as_str) {
@@ -310,9 +360,11 @@ mod tests {
             json!({"type":"text","part":{"text":"Built a page"}}),
             json!({"type":"tool_use","part":{"callID":"write-1","tool":"write","state":{"status":"completed","input":{"path":"index.html"},"output":"wrote the page"}}}),
             json!({"type":"step_finish","part":{"tokens":{"input":10,"output":5,"reasoning":2,"cache":{"read":3,"write":1}},"cost":0.01}}),
-            json!({"type":"step_finish","part":{"tokens":{"input":1,"output":2},"cost":0.02}}),
+            json!({"type":"step_finish","sessionID":"another","part":{"tokens":{"input":1,"output":2},"cost":0.02}}),
         ];
         let events: Vec<_> = lines.iter().flat_map(|v| p.line(&v.to_string())).collect();
+        // #1115: kept so an unfinished turn's session can be deleted, the first one it named.
+        assert_eq!(p.run_session.as_deref(), Some("reported-but-not-resumable"));
         assert!(
             matches!(events.as_slice(), [AgentEvent::TextDelta { text }, AgentEvent::ToolStarted { tool, .. }, AgentEvent::ToolFinished { ok:true, .. }] if text=="Built a page" && tool=="write")
         );
@@ -322,6 +374,26 @@ mod tests {
         let events = p.line(&json!({"type":"error","error":{"name":"APIError","data":{"message":"暂时失败","statusCode":429,"isRetryable":true}}}).to_string());
         assert!(matches!(events.as_slice(), [AgentEvent::Error { .. }]), "run_cli alone owns TurnDone");
         assert_eq!(p.failure.unwrap().kind, FailureKind::RateLimited);
+    }
+
+    /// #1225: an error event without a message says what it does have, and "no error details" only
+    /// when it has nothing.
+    #[test]
+    fn an_error_event_without_a_message_says_what_it_has() {
+        assert_eq!(
+            error_text(&json!({"name":"APIError","data":{"statusCode":400,"responseBody":"Request is missing x-opencode-session"}})),
+            "APIError (HTTP 400): Request is missing x-opencode-session"
+        );
+        assert_eq!(error_text(&json!({"name":"UnknownError"})), "UnknownError");
+        assert_eq!(error_text(&json!({"name":"APIError","data":{"responseBody":"  "}})), "APIError");
+        assert_eq!(error_text(&json!({"data":{"message":"  the model failed  "}})), "the model failed");
+        assert_eq!(error_text(&Value::Null), "the service returned no error details");
+        assert_eq!(error_text(&json!({})), "the service returned no error details");
+        assert_eq!(error_text(&json!("plain")), "\"plain\"", "a plain error is shown, not hidden");
+        let long = "x".repeat(400);
+        let cut = error_text(&json!({"name":"APIError","data":{"responseBody":long}}));
+        assert!(cut.starts_with("APIError: ") && cut.ends_with('…'));
+        assert_eq!(cut.chars().count(), "APIError: ".len() + 300 + 1);
     }
 
     #[test]
@@ -366,7 +438,7 @@ mod tests {
         let v: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         assert_eq!(v["mcp"][MCP_NAME]["command"], json!(["craft-anything-cli", "mcp"]));
         let options = BackendOptions { cli_model: Some("test/model".into()), ..Default::default() };
-        assert!(OpenCode.check_native_options(&options).is_ok());
+        assert!(OpenCode.check_native_options(&options, None).is_ok());
     }
 
     #[test]
@@ -475,6 +547,26 @@ mod tests {
     }
 
     /// Every supported depth reaches native chat and builder runs in the selected model reference.
+    #[test]
+    fn a_session_id_that_reads_as_a_flag_is_refused_before_anything_runs() {
+        // No such program: had it been started, the error would say it wasn't found.
+        for (id, host) in [("", None), ("-h", None), ("--all", Some("studio"))] {
+            let e = OpenCode.discard_unfinished("no-such-opencode-here", id, host).unwrap_err();
+            assert_eq!(e.code, ErrorCode::BadInput, "{id:?}: {e:?}");
+            assert!(e.remediation.unwrap_or_default().contains("opencode session delete <id>"));
+        }
+        // A delete that couldn't run says how to do it by hand, not the process runner's own advice.
+        let e = OpenCode.discard_unfinished("no-such-opencode-here", "ses_1", None).unwrap_err();
+        assert_ne!(e.code, ErrorCode::BadInput, "{e:?}");
+        assert!(e.remediation.as_deref().unwrap_or_default().contains("opencode session delete ses_1"), "{e:?}");
+    }
+
+    #[test]
+    fn session_delete_uses_standalone_only_when_help_offers_it() {
+        assert_eq!(session_delete_args("ses_1", false), ["session", "delete", "ses_1"]);
+        assert_eq!(session_delete_args("ses_1", true), ["session", "delete", "--standalone", "ses_1"]);
+    }
+
     #[test]
     fn thinking_depth_is_part_of_the_selected_model_reference() {
         for depth in crate::Effort::ALL {

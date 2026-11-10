@@ -16,6 +16,7 @@ serde_json = { workspace = true }
 miniz_oxide = { workspace = true }
 object = { workspace = true }
 rustc-demangle = { workspace = true }
+semver = "1"
 sha2 = { workspace = true }
 wasmparser = { workspace = true }
 wasmprinter = { workspace = true }

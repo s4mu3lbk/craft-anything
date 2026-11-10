@@ -16,15 +16,22 @@ fn regression_preview_limits_connections_and_releases_listener() {
     let mut out = String::new();
     s.read_to_string(&mut out).unwrap();
     assert!(out.starts_with("HTTP/1.1 503"), "{out}");
-    // Keep the first rejected client's write side open and exceed the refusal queue.
-    let excess: Vec<_> = (0..16).map(|_| TcpStream::connect(("127.0.0.1", srv.port)).unwrap()).collect();
+    // Keep the first rejected client's write side open and exceed the refusal queue. The read
+    // timeout is set now: once the server has gone, macOS refuses socket options on a connection
+    // it reset, with `Invalid argument`.
+    let excess: Vec<_> = (0..16)
+        .map(|_| {
+            let stream = TcpStream::connect(("127.0.0.1", srv.port)).unwrap();
+            stream.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+            stream
+        })
+        .collect();
     let port = srv.port;
     let stopping = std::time::Instant::now();
     drop(srv);
     assert!(stopping.elapsed() < Duration::from_secs(2), "refusal cleanup must not grow with the number of excess clients");
     assert!(TcpStream::connect(("127.0.0.1", port)).is_err(), "the listener is gone when drop returns");
     for stream in excess {
-        stream.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
         let mut response = Vec::new();
         if let Err(error) = (&stream).take(1024).read_to_end(&mut response) {
             // Closing the listener may reset connections still in its accept backlog.

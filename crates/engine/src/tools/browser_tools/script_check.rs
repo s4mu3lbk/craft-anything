@@ -288,11 +288,11 @@ pub struct ScriptProblem {
 }
 
 fn clipped(s: String) -> String {
-    if s.len() <= MAX_MESSAGE {
+    let mut chars = s.char_indices().skip(MAX_MESSAGE);
+    let Some((end, _)) = chars.next() else {
         return s;
-    }
-    let cut: String = s.chars().take(MAX_MESSAGE).collect();
-    format!("{cut}…")
+    };
+    format!("{}…", &s[..end])
 }
 
 /// How many single-character edits apart two short names are, or `None` when clearly unrelated.
@@ -547,4 +547,19 @@ pub(super) fn web_walkthrough_check(_ctx: &mut crate::tool::Ctx<'_>, params: Val
 #[cfg(test)]
 pub(super) fn step_kinds() -> Vec<(&'static str, Vec<&'static str>, Vec<&'static str>)> {
     STEP_KINDS.iter().map(|k| (k.name, k.required.to_vec(), k.fields())).collect()
+}
+
+#[cfg(test)]
+mod clipped_tests {
+    use super::*;
+
+    #[test]
+    fn clipped_keeps_short_multibyte_text() {
+        assert_eq!(clipped("é".repeat(300)), "é".repeat(300));
+    }
+
+    #[test]
+    fn clipped_cuts_long_multibyte_text() {
+        assert_eq!(clipped("é".repeat(401)), format!("{}…", "é".repeat(400)));
+    }
 }

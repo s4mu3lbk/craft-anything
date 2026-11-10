@@ -27,6 +27,18 @@ found_by = ["package.json", "Cargo.toml", "go.mod", "pom.xml", "build.gradle", "
 steps = "Use what their request names; otherwise choose the stack yourself: the one that best fits the request and the original. If the request names none and the capture shows what the original is built with (the script and stylesheet addresses in capture.json and page.html, for example /_next/ for Next.js or /_nuxt/ for Nuxt), use the same. For a website, create the project in app/ with a \"build\" script in package.json, then run `npm install` and `npm run build` from app/ until it succeeds: the output must be static files in app/dist, app/out or app/build (index.html at its top and each other page at its own path) that work when served as static files."
 
 [[stack]]
+name = "Phaser"
+asked_by = [" in phaser ", " with phaser ", " using phaser ", " use phaser "]
+uses = ["phaser"]
+steps = "Use Phaser for the game. Create its browser project in app/ with Phaser in package.json and a build script that produces a playable static site."
+
+[[stack]]
+name = "Bevy"
+asked_by = [" in bevy ", " with bevy ", " using bevy ", " use bevy "]
+uses = ["bevy"]
+steps = "Use Bevy for the game. Put Cargo.toml and src/main.rs directly in app/, with Bevy as a dependency, and build the game with Cargo."
+
+[[stack]]
 name = "Electron"
 asked_by = [" electron "]
 uses = ["electron"]

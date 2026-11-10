@@ -255,18 +255,29 @@ pub struct ModelSlot {
 }
 
 /// Settings for one conversation.
-#[derive(Default)]
 pub struct LoopConfig {
     pub beginner: bool,
     pub prices: BTreeMap<String, crate::config::Price>,
-    /// Keep the conversation in this file after every step, and continue it when it's there.
+    /// Keep the conversation in this file after every step, and continue it when it's there in
+    /// this same mode.
     pub transcript: Option<std::path::PathBuf>,
+    /// The mode the conversation runs in (`true`: Deep). A kept transcript from the other mode
+    /// isn't loaded, since it may carry what a Deep run read. Must be set whenever `transcript`
+    /// is `Some`; `Default` is Deep, the safe direction.
+    pub deep: bool,
     /// Override the input tokens the conversation may grow to before it's trimmed. Zero uses
     /// the active backend's budget, or its local/cloud default (see [`crate::context`]).
     pub context_tokens: u64,
     /// A builder on a local model is offered the tools for building, not the whole Core set (see
     /// [`lean_for_local`]).
     pub lean_for_local: bool,
+}
+
+impl Default for LoopConfig {
+    /// Deep, so a conversation started without an explicit mode keeps the old, safe behavior.
+    fn default() -> Self {
+        Self { beginner: false, prices: BTreeMap::new(), transcript: None, deep: true, context_tokens: 0, lean_for_local: false }
+    }
 }
 
 /// The Core tools a builder on a local model keeps. The Core set is 25-odd tools for studying a
@@ -502,7 +513,7 @@ impl AgentLoop {
     /// Keep the conversation in its transcript file, when it has one.
     fn save_transcript(&self) {
         if let Some(p) = &self.cfg.transcript
-            && let Err(e) = context::save(p, &self.history)
+            && let Err(e) = context::save(p, &self.history, self.cfg.deep)
         {
             log::warn!("couldn't keep the conversation in {}: {}", p.display(), e.message);
         }
@@ -608,7 +619,8 @@ impl AgentLoop {
         msg_usage: &mut Usage,
         msg_cost: &mut Option<f64>,
     ) -> Option<crate::model::TurnResult> {
-        let mut refitted = false;
+        // Chain positions already fitted to a window their server reported: each is asked once more.
+        let mut refitted = BTreeSet::new();
         loop {
             // A fallback can have a smaller window than the backend that just failed.
             if let Some((usage, cost)) = self.fit_context(system, tools) {
@@ -646,17 +658,26 @@ impl AgentLoop {
                     // is: make room to fit it, measured with the server's own count, and ask once more.
                     let detail = |k: &str| e.details.as_ref().and_then(|d| d.get(k)).and_then(Value::as_u64);
                     if !produced
-                        && !refitted
                         && let Some(window) = detail("context_window")
+                        && refitted.insert(self.current)
                     {
-                        refitted = true;
                         self.server_windows.insert(self.current, window);
-                        if let Some(asked) = detail("prompt_tokens") {
-                            self.last_input = asked;
-                            self.last_history_estimate = context::estimate_tokens(&self.history);
-                        }
+                        // The refused request was larger than the window, whatever else is known.
+                        self.last_input = detail("prompt_tokens").unwrap_or(0).max(window.saturating_add(1));
+                        let before = context::estimate_tokens(&self.history);
+                        self.last_history_estimate = before;
                         self.emit(AgentEvent::Status { text: format!("{name} has room for {window} tokens; making room…") });
-                        continue;
+                        if let Some((usage, cost)) = self.fit_context(system, tools) {
+                            msg_usage.add(usage);
+                            *msg_cost = match (*msg_cost, cost) {
+                                (Some(a), Some(b)) => Some(a + b),
+                                _ => None,
+                            };
+                        }
+                        // The same request would be refused the same way: ask again only when room was made.
+                        if context::estimate_tokens(&self.history) < before {
+                            continue;
+                        }
                     }
                     if !produced && self.current + 1 < self.chain.len() {
                         self.current += 1;
@@ -824,8 +845,8 @@ impl ApiConversation {
         let cancel = Arc::new(Mutex::new(CancelToken::default()));
         let waiters: Waiters = Arc::default();
         let failure: Arc<Mutex<Option<TurnFailure>>> = Arc::default();
-        // A kept conversation continues where it stopped.
-        let history = cfg.transcript.as_deref().and_then(context::load).unwrap_or_default();
+        // A kept conversation continues where it stopped, in the mode it ran in.
+        let history = cfg.transcript.as_deref().and_then(|p| context::load(p, cfg.deep)).unwrap_or_default();
         let resumed = !history.is_empty();
         let mut agent = AgentLoop {
             host,
@@ -1234,6 +1255,7 @@ pub(crate) mod tests {
         assert!(e.registry().get(BUILD_COMMAND_TOOL).is_some_and(|s| !s.effects.is_empty()));
     }
 
+    /// A long conversation is summarised, saved after every message, and resumed in its mode.
     #[test]
     fn a_long_conversation_is_summarised_kept_and_resumed() {
         let d = tempfile::tempdir().unwrap();
@@ -1292,13 +1314,13 @@ pub(crate) mod tests {
         let seen2 = Arc::new(Mutex::new(Vec::new()));
         let script = Scripted { turns: VecDeque::from([turn(vec![Block::Text { text: "blue now".into() }], StopReason::EndTurn)]), seen: seen2.clone() };
         let slot = ModelSlot { name: "Fake".into(), model: Box::new(script), local: false, effort: None, max_turns: 10, context_tokens: 0 };
-        let mut c = ApiConversation::start(host, vec![slot], LoopConfig { transcript: Some(path.clone()), ..LoopConfig::default() }).unwrap();
+        let mut c = ApiConversation::start(host, vec![slot], LoopConfig { transcript: Some(path.clone()), deep: true, ..LoopConfig::default() }).unwrap();
         assert!(c.resumed());
         c.send("Make it blue");
         drain_until_done(&mut c, |_, _| {});
         let seen2 = seen2.lock().unwrap();
         assert!(seen2[0][0].text().contains("Made index.html") && seen2[0].last().unwrap().text().contains("Make it blue"));
-        assert!(crate::context::load(&path).unwrap().last().unwrap().text().contains("blue now"), "kept after every message");
+        assert!(crate::context::load(&path, true).unwrap().last().unwrap().text().contains("blue now"), "kept after every message");
     }
 
     #[test]
@@ -1337,6 +1359,7 @@ pub(crate) mod tests {
         }
     }
 
+    /// A huge backend budget can trim a kept conversation without overflow.
     #[test]
     fn a_large_backend_budget_can_trim_without_overflow() {
         let budget = i64::MAX as u64;
@@ -1353,12 +1376,13 @@ pub(crate) mod tests {
             history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: "checked".into() }] });
             history.push(Msg::user_text("continue"));
         }
-        context::save(&transcript, &history).unwrap();
+        context::save(&transcript, &history, true).unwrap();
         let mut first = turn(vec![Block::ToolUse { id: "new".into(), name: "look".into(), input: json!({}) }], StopReason::ToolUse).unwrap();
         first.usage.input_tokens = budget + 1;
         let script = Scripted { turns: VecDeque::from([Ok(first), turn(vec![Block::Text { text: "done".into() }], StopReason::EndTurn)]), seen: seen.clone() };
         let slot = ModelSlot { name: "Large".into(), model: Box::new(script), local: false, effort: None, max_turns: 5, context_tokens: budget };
-        let mut conversation = ApiConversation::start(host.clone(), vec![slot], LoopConfig { transcript: Some(transcript), ..Default::default() }).unwrap();
+        let mut conversation =
+            ApiConversation::start(host.clone(), vec![slot], LoopConfig { transcript: Some(transcript), deep: true, ..Default::default() }).unwrap();
         assert!(conversation.resumed());
         conversation.send("continue");
         let events = drain_until_done(&mut conversation, |event, _| {
@@ -1496,6 +1520,7 @@ pub(crate) mod tests {
         assert!(journal.iter().any(|(kind, entry)| kind == "model_turn" && entry["purpose"] == "context_summary" && entry["backend"] == "Small"));
     }
 
+    /// A fallback fits its own budget, counting new tool results since the last request.
     #[test]
     fn fallback_budget_counts_new_results_since_the_last_request() {
         let last_input = 10_000;
@@ -1512,7 +1537,7 @@ pub(crate) mod tests {
             history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: "checked".into() }] });
             history.push(Msg::user_text("continue"));
         }
-        context::save(&transcript, &history).unwrap();
+        context::save(&transcript, &history, true).unwrap();
         let mut first = turn(vec![Block::ToolUse { id: "new".into(), name: "look".into(), input: json!({"large": true}) }], StopReason::ToolUse).unwrap();
         first.usage.input_tokens = last_input;
         let primary_seen = Arc::new(Mutex::new(Vec::new()));
@@ -1531,7 +1556,8 @@ pub(crate) mod tests {
             ModelSlot { name: "Large".into(), model: Box::new(primary), local: false, effort: None, max_turns: 5, context_tokens: 30_000 },
             ModelSlot { name: "Small".into(), model: Box::new(fallback), local: false, effort: None, max_turns: 5, context_tokens: budget },
         ];
-        let mut conversation = ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), ..Default::default() }).unwrap();
+        let mut conversation =
+            ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), deep: true, ..Default::default() }).unwrap();
         conversation.send("continue");
         let events = drain_until_done(&mut conversation, |event, _| assert!(!matches!(event, AgentEvent::Error { .. }), "{event:?}"));
         assert!(events.iter().any(|event| matches!(event, AgentEvent::TextDelta { text } if text == "done")));
@@ -1572,6 +1598,8 @@ pub(crate) mod tests {
         assert!(trims[0].1["tokens_before"].as_u64().unwrap() > budget);
     }
 
+    /// A request refused for the server's window is fitted and asked once more; a second refusal
+    /// stops with the way to raise the window.
     #[test]
     fn a_request_too_long_for_the_servers_window_is_fitted_and_asked_once_more() {
         // #962: Ollama on its 64k default refused a 70k request; our 24k-local guess counts
@@ -1593,12 +1621,13 @@ pub(crate) mod tests {
                 history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: "checked".into() }] });
                 history.push(Msg::user_text("continue"));
             }
-            context::save(&transcript, &history).unwrap();
+            context::save(&transcript, &history, true).unwrap();
             let host = Arc::new(FakeHost { calls: Mutex::default(), journal: Mutex::default() });
             let seen = Arc::new(Mutex::new(Vec::new()));
             let model = Scripted { turns: VecDeque::from(turns), seen: seen.clone() };
             let chain = vec![ModelSlot { name: "Ollama (local)".into(), model: Box::new(model), local: true, effort: None, max_turns: 5, context_tokens: 0 }];
-            let mut conversation = ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), ..Default::default() }).unwrap();
+            let mut conversation =
+                ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), deep: true, ..Default::default() }).unwrap();
             conversation.send("continue");
             let events = drain_until_done(&mut conversation, |_, _| {});
             let seen = seen.lock().unwrap();
@@ -1628,6 +1657,78 @@ pub(crate) mod tests {
                 assert!(error.is_some_and(|r| r.contains("OLLAMA_CONTEXT_LENGTH")), "{events:?}");
             }
         }
+    }
+
+    /// A conversation kept in `dir` whose old tool result (8000 characters) can be trimmed, or
+    /// just one message when `long` is false.
+    fn refit_conversation(dir: &std::path::Path, long: bool, chain: Vec<ModelSlot>) -> (ApiConversation, Arc<FakeHost>) {
+        let transcript = dir.join("transcript.json");
+        let mut history = vec![Msg::user_text("Build it")];
+        if long {
+            history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::ToolUse { id: "old".into(), name: "look".into(), input: json!({}) }] });
+            history
+                .push(Msg { role: Speaker::User, blocks: vec![Block::ToolResult { tool_use_id: "old".into(), content: "x".repeat(8000), is_error: false }] });
+            for _ in 0..context::KEEP_RECENT / 2 {
+                history.push(Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: "checked".into() }] });
+                history.push(Msg::user_text("continue"));
+            }
+        }
+        context::save(&transcript, &history, true).unwrap();
+        let host = Arc::new(FakeHost { calls: Mutex::default(), journal: Mutex::default() });
+        let conversation = ApiConversation::start(host.clone(), chain, LoopConfig { transcript: Some(transcript), deep: true, ..Default::default() }).unwrap();
+        (conversation, host)
+    }
+
+    fn old_result_len(history: &[Msg]) -> Option<usize> {
+        history.iter().flat_map(|m| &m.blocks).find_map(|b| match b {
+            Block::ToolResult { tool_use_id, content, .. } if tool_use_id == "old" => Some(content.len()),
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn a_refit_makes_room_first_and_each_backend_gets_its_own() {
+        let refused = |message: &str| Err(crate::http::status_error("Server", 400, &json!({"error": {"message": message}}).to_string()));
+        let window_only = "This model's maximum context length is 2048 tokens.";
+        let answer = || turn(vec![Block::Text { text: "done".into() }], StopReason::EndTurn);
+        let slot =
+            |name: &str, model: Scripted| ModelSlot { name: name.into(), model: Box::new(model), local: true, effort: None, max_turns: 5, context_tokens: 0 };
+
+        // No count of the refused request: it was larger than the window, so room is made all the same.
+        let dir = tempfile::tempdir().unwrap();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let model = Scripted { turns: VecDeque::from([refused(window_only), answer()]), seen: seen.clone() };
+        let (mut conversation, _) = refit_conversation(dir.path(), true, vec![slot("A", model)]);
+        conversation.send("continue");
+        let events = drain_until_done(&mut conversation, |_, _| {});
+        assert!(events.iter().any(|e| matches!(e, AgentEvent::TextDelta { text } if text == "done")), "{events:?}");
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 2);
+        assert!(old_result_len(&seen[1]).unwrap() < 8000, "trimmed before asking again");
+
+        // Nothing to trim: the same request isn't sent again.
+        let dir = tempfile::tempdir().unwrap();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let model = Scripted { turns: VecDeque::from([refused(window_only), answer()]), seen: seen.clone() };
+        let (mut conversation, _) = refit_conversation(dir.path(), false, vec![slot("A", model)]);
+        conversation.send("continue");
+        let events = drain_until_done(&mut conversation, |_, _| {});
+        assert_eq!(seen.lock().unwrap().len(), 1, "an unchanged request isn't asked again");
+        assert!(events.iter().any(|e| matches!(e, AgentEvent::Error { .. })), "{events:?}");
+
+        // A fallback refused for its own window is fitted and asked once more too.
+        let dir = tempfile::tempdir().unwrap();
+        let (first_seen, second_seen) = (Arc::new(Mutex::new(Vec::new())), Arc::new(Mutex::new(Vec::new())));
+        let ollama = "request (69944 tokens) exceeds the available context size (65536 tokens)";
+        let first = Scripted { turns: VecDeque::from([refused(ollama), refused(ollama)]), seen: first_seen.clone() };
+        // B's 2048-token window is small enough that it summarises before asking again.
+        let second = Scripted { turns: VecDeque::from([refused(window_only), answer(), answer()]), seen: second_seen.clone() };
+        let (mut conversation, _) = refit_conversation(dir.path(), true, vec![slot("A", first), slot("B", second)]);
+        conversation.send("continue");
+        let events = drain_until_done(&mut conversation, |_, _| {});
+        assert!(events.iter().any(|e| matches!(e, AgentEvent::TextDelta { text } if text == "done")), "{events:?}");
+        assert_eq!((first_seen.lock().unwrap().len(), second_seen.lock().unwrap().len()), (2, 3), "A asked twice; B refused, summarised, answered");
+        assert!(!events.iter().any(|e| matches!(e, AgentEvent::Error { .. })), "{events:?}");
     }
 
     #[test]

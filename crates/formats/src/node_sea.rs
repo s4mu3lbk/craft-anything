@@ -16,6 +16,8 @@ const RESOURCE: &str = "NODE_SEA_BLOB";
 const FUSE: &[u8] = b"NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2:";
 /// How many items a count in the blob may claim.
 const MAX_COUNT: u64 = 1 << 20;
+/// Total decoded bytes retained for the main path, asset keys and execution arguments.
+const MAX_TEXT_BYTES: usize = 8 * 1024 * 1024;
 
 const FLAG_NO_WARNING: u32 = 1;
 const FLAG_SNAPSHOT: u32 = 1 << 1;
@@ -74,6 +76,28 @@ impl Cursor<'_> {
         Some(Part { start: self.base.checked_add(at)?, len })
     }
 
+    /// Keep whole text fields only: shortening an asset key would invent an extraction path.
+    fn retain_text(&self, part: Part, remaining: &mut usize) -> bool {
+        if part.len > *remaining {
+            return false;
+        }
+        let Some(start) = part.start.checked_sub(self.base) else {
+            return false;
+        };
+        let Some(bytes) = self.blob.get(start..start.saturating_add(part.len)) else {
+            return false;
+        };
+        let mut len = 0usize;
+        for chunk in bytes.utf8_chunks() {
+            len += chunk.valid().len() + if chunk.invalid().is_empty() { 0 } else { 3 };
+            if len > *remaining {
+                return false;
+            }
+        }
+        *remaining -= len;
+        true
+    }
+
     fn count(&mut self) -> Option<usize> {
         let n = self.number()?;
         if n > MAX_COUNT {
@@ -93,7 +117,10 @@ struct Parsed {
     code: Part,
     code_cache: Option<Part>,
     assets: Vec<(Part, Part)>,
+    asset_count: usize,
     exec_argv: Vec<Part>,
+    exec_argv_count: usize,
+    metadata_truncated: bool,
     trailing_zeros: usize,
 }
 
@@ -110,27 +137,61 @@ fn parse_with(blob: &[u8], base: usize, flags: u32, layout: Layout) -> Option<Pa
         extension = Some(e);
         c.pos += 1;
     }
-    let code_path = if layout.code_path { Some(c.part()?) } else { None };
+    let mut remaining = MAX_TEXT_BYTES;
+    let mut metadata_truncated = false;
+    let code_path = if layout.code_path {
+        let path = c.part()?;
+        if c.retain_text(path, &mut remaining) {
+            Some(path)
+        } else {
+            metadata_truncated = true;
+            None
+        }
+    } else {
+        None
+    };
     let code = c.part()?;
     let code_cache = if flags & FLAG_CODE_CACHE != 0 { Some(c.part()?) } else { None };
+    let asset_count = if flags & FLAG_ASSETS != 0 { c.count()? } else { 0 };
+    let asset_limit = MAX_ENTRIES.saturating_sub(1 + usize::from(code_cache.is_some()));
     let mut assets = Vec::new();
-    if flags & FLAG_ASSETS != 0 {
-        for _ in 0..c.count()? {
-            let key = c.part()?;
-            assets.push((key, c.part()?));
+    for _ in 0..asset_count {
+        let key = c.part()?;
+        let value = c.part()?;
+        if assets.len() < asset_limit && c.retain_text(key, &mut remaining) {
+            assets.push((key, value));
+        } else {
+            metadata_truncated = true;
         }
     }
+    let exec_argv_count = if flags & FLAG_EXEC_ARGV != 0 { c.count()? } else { 0 };
     let mut exec_argv = Vec::new();
-    if flags & FLAG_EXEC_ARGV != 0 {
-        for _ in 0..c.count()? {
-            exec_argv.push(c.part()?);
+    for _ in 0..exec_argv_count {
+        let argument = c.part()?;
+        if exec_argv.len() < MAX_ENTRIES && c.retain_text(argument, &mut remaining) {
+            exec_argv.push(argument);
+        } else {
+            metadata_truncated = true;
         }
     }
     let rest = blob.get(c.pos..)?;
     if rest.iter().any(|b| *b != 0) {
         return None;
     }
-    Some(Parsed { layout, flags, extension, code_path, code, code_cache, assets, exec_argv, trailing_zeros: rest.len() })
+    Some(Parsed {
+        layout,
+        flags,
+        extension,
+        code_path,
+        code,
+        code_cache,
+        assets,
+        asset_count,
+        exec_argv,
+        exec_argv_count,
+        metadata_truncated,
+        trailing_zeros: rest.len(),
+    })
 }
 
 fn parse_blob(blob: &[u8], base: usize) -> Result<Parsed, FormatError> {
@@ -223,6 +284,9 @@ impl PackedFormat for NodeSea {
         }
         let exec_argv: Vec<String> = p.exec_argv.iter().map(|a| text(data, *a)).collect();
         let mut notes = Vec::new();
+        if p.metadata_truncated {
+            notes.push("Some paths or arguments were omitted because the metadata listing reached its entry or decoded text byte limit.".to_string());
+        }
         if snapshot {
             notes.push("The main program is a V8 startup snapshot, not source text; it's taken out as it is and isn't decoded.".to_string());
         }
@@ -247,11 +311,13 @@ impl PackedFormat for NodeSea {
             "uses_code_cache": p.code_cache.is_some(),
             "exec_argv_extension": p.extension,
             "code_path": code_path,
-            "assets": p.assets.len(),
+            "assets": p.asset_count,
+            "assets_listed": p.assets.len().min(room),
+            "exec_argv_count": p.exec_argv_count,
             "exec_argv": exec_argv,
             "fuse_says_injected": fuse_injected,
         });
-        Ok(PackedListing { facts, truncated: p.assets.len() > room, entries, notes })
+        Ok(PackedListing { facts, truncated: p.metadata_truncated || p.assets.len() > room, entries, notes })
     }
 }
 

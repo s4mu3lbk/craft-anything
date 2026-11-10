@@ -156,14 +156,20 @@ impl PackedFormat for DotnetBundle {
                 }
             }
         }
-        let outside = entries.iter().filter(|e| e.offset.checked_add(e.stored_size).is_none_or(|end| end > data.len() as u64)).count();
+        let compressed = entries.iter().filter(|e| e.compression == Compression::Deflate).count();
+        let mut outside = 0;
+        for entry in &mut entries {
+            if entry.offset.checked_add(entry.stored_size).is_none_or(|end| end > at as u64) {
+                entry.compression = Compression::Unreadable;
+                outside += 1;
+            }
+        }
         if outside > 0 {
-            notes.push(format!("{outside} listed file(s) lie past the end of this file, so they can't be read."));
+            notes.push(format!("{outside} listed file(s) extend past the end of the bundle data, so they can't be read."));
         }
         if minor != 0 {
             notes.push(format!("This manifest is version {major}.{minor}; we read it as {major}.0."));
         }
-        let compressed = entries.iter().filter(|e| e.compression == Compression::Deflate).count();
         let facts = json!({
             "manifest_offset": at,
             "manifest_version": format!("{major}.{minor}"),
@@ -183,6 +189,20 @@ mod tests {
     use super::*;
     use crate::packed;
     use craft_anything_testkit::packed::{DOTNET_SIGNATURE, dotnet_bundle, dotnet_sample};
+
+    #[test]
+    fn a_member_cannot_borrow_bytes_from_the_manifest() {
+        let mut data = dotnet_bundle(1, &[("App.dll", 1, b"plain")]);
+        let manifest = header_offset(&data).unwrap();
+        let mut cursor = Cursor { r: Reader::new(&data), pos: manifest + 12 };
+        cursor.string().unwrap();
+        let member_offset = cursor.pos;
+        data[member_offset..member_offset + 8].copy_from_slice(&((manifest - 1) as u64).to_le_bytes());
+
+        let listing = DotnetBundle.list(&data).unwrap();
+        assert!(DotnetBundle.read(&data, &listing.entries[0], 100).is_err());
+        assert!(!listing.notes.is_empty());
+    }
 
     #[test]
     fn the_signature_is_the_same_on_both_sides() {

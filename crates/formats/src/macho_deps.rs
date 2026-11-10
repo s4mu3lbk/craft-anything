@@ -54,6 +54,8 @@ pub struct Encryption {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SectionRef {
+    /// The low byte of the section flags describes its storage type.
+    pub section_type: u8,
     pub segname: String,
     pub sectname: String,
     pub addr: u64,
@@ -532,6 +534,7 @@ pub fn parse_thin(data: &[u8]) -> Result<MachoDeps, FormatError> {
                         (e.u32(o + 32).map(u64::from), e.u32(o + 36).map(u64::from), e.u32(o + 40))
                     };
                     let s = SectionRef {
+                        section_type: (e.u32(o + if wide { 64 } else { 56 }).unwrap_or(0) & 0xff) as u8,
                         segname: e.r.cstr(o + 16, 16).unwrap_or_default(),
                         sectname: e.r.cstr(o, 16).unwrap_or_default(),
                         addr: addr.unwrap_or(0),
@@ -562,6 +565,11 @@ impl MachoDeps {
     /// The file bytes of a section, by segment and section name.
     pub fn section_bytes<'a>(&self, data: &'a [u8], seg: &str, sect: &str) -> Option<&'a [u8]> {
         let s = self.sections.iter().find(|s| s.segname == seg && s.sectname == sect)?;
+        // S_ZEROFILL, S_GB_ZEROFILL and S_THREAD_LOCAL_ZEROFILL have
+        // virtual storage but no corresponding range in the file.
+        if matches!(s.section_type, 0x1 | 0xc | 0x12) {
+            return None;
+        }
         let off = s.offset as usize;
         data.get(off..off.checked_add(usize::try_from(s.size).ok()?)?)
     }
@@ -571,6 +579,19 @@ impl MachoDeps {
 mod tests {
     use super::*;
     use craft_anything_testkit::apple as fx;
+
+    #[test]
+    fn zero_fill_sections_have_no_bytes_in_the_file() {
+        for flags in [0x1_u32, 0xc, 0x12] {
+            let mut image = fx::macho_min(fx::CPU_ARM64, 2, &[], &[("__bss", b"data")]);
+            // 64-bit Mach header, segment command, then the first section.
+            let section = 32 + 72;
+            image[section + 48..section + 52].copy_from_slice(&0_u32.to_le_bytes());
+            image[section + 64..section + 68].copy_from_slice(&flags.to_le_bytes());
+            let layout = parse_thin(&image).unwrap();
+            assert_eq!(layout.section_bytes(&image, "__TEXT", "__bss"), None);
+        }
+    }
 
     #[test]
     fn reads_load_commands() {

@@ -146,7 +146,16 @@ pub fn header(data: &[u8], file_len: u64) -> Result<Header, FormatError> {
 /// Read the metadata (`data` is the file from its start through the metadata).
 pub fn metadata(data: &[u8], h: &Header) -> Result<Metadata, FormatError> {
     let v = h.version;
-    let mut c = Cur { data, pos: h.metadata_offset as usize, big: h.big_endian };
+    let bad_range = || FormatError::Truncated("serialized metadata lies outside its declared range or the supplied bytes".into());
+    let end = h
+        .metadata_offset
+        .checked_add(h.metadata_size)
+        .filter(|end| *end <= h.data_offset && *end <= h.file_size)
+        .and_then(|end| usize::try_from(end).ok())
+        .ok_or_else(bad_range)?;
+    let start = usize::try_from(h.metadata_offset).map_err(|_| bad_range())?;
+    let data = data.get(..end).filter(|data| start <= data.len()).ok_or_else(bad_range)?;
+    let mut c = Cur { data, pos: start, big: h.big_endian };
     let unity_version = c.cstr("Unity version")?;
     let platform = c.i32("platform")?;
     let type_trees = c.u8("type trees")? != 0;

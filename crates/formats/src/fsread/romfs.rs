@@ -27,6 +27,17 @@ pub fn read(data: &[u8], limits: &Limits) -> FsImage {
         img.complete = false;
         return img;
     }
+    let Some(size) = r.u32_be(8).filter(|&size| size >= 16) else {
+        img.warn("romfs: invalid image size");
+        img.complete = false;
+        return img;
+    };
+    if size as usize > data.len() {
+        img.warn("romfs: image ends before its declared size");
+        img.complete = false;
+    }
+    let data = data.get(..size as usize).unwrap_or(data);
+    let r = Reader::new(data);
     // Root directory's first entry sits just after the volume name.
     let Some((_, vol_len)) = name_at(data, 16, 128) else {
         img.warn("volume name unreadable");
@@ -61,7 +72,12 @@ fn walk(data: &[u8], first: usize, parent: &str, limits: &Limits, img: &mut FsIm
     let r = Reader::new(data);
     let mut off = first;
     let mut siblings = 0usize;
-    while off != 0 && off + 16 <= data.len() {
+    while off != 0 {
+        if !off.is_multiple_of(16) || r.slice(off, 16).is_none() {
+            img.warn("romfs: header pointer outside the image or unaligned");
+            img.complete = false;
+            break;
+        }
         if img.entries.len() >= limits.max_entries {
             img.complete = false;
             return;
@@ -82,41 +98,41 @@ fn walk(data: &[u8], first: usize, parent: &str, limits: &Limits, img: &mut FsIm
         let next = (next_raw & 0xffff_fff0) as usize;
         let spec = r.u32_be(off + 4).unwrap_or(0) as usize;
         let size = r.u32_be(off + 8).unwrap_or(0) as usize;
-        let Some((name, name_len)) = name_at(data, off + 16, limits.max_name) else { break };
+        let Some((name, name_len)) = name_at(data, off + 16, limits.max_name) else {
+            img.warn("romfs: unreadable entry name");
+            img.complete = false;
+            break;
+        };
         if !is_dot(&name) && !name.is_empty() {
             let path = join(parent, &name);
             match ftype {
                 1 => {
                     // Directory: recurse into its first child at `spec`.
                     img.entries.push(FsEntry::dir(path.clone()));
-                    if spec != 0 && spec + 16 <= data.len() {
+                    if spec != 0 {
                         walk(data, spec, &path, limits, img, visited, depth + 1);
                     }
                 }
-                2 => {
-                    let data_off = off.checked_add(16).and_then(|v| v.checked_add(name_len));
-                    let bytes = data_off
-                        .filter(|_| size as u64 <= limits.max_file_bytes && img.bytes.saturating_add(size as u64) <= limits.max_total_bytes)
-                        .and_then(|d| data.get(d..d.checked_add(size)?))
-                        .map(<[u8]>::to_vec);
-                    if let Some(b) = &bytes {
-                        img.bytes = img.bytes.saturating_add(b.len() as u64);
-                    } else if size > 0 {
-                        img.warn(format!("{path}: file data not recovered (size/bounds)"));
+                2 | 3 => {
+                    let payload = (size as u64 <= limits.max_file_bytes && img.bytes.saturating_add(size as u64) <= limits.max_total_bytes)
+                        .then_some(off + 16)
+                        .and_then(|start| start.checked_add(name_len))
+                        .and_then(|start| r.slice(start, size));
+                    if payload.is_some() {
+                        img.bytes = img.bytes.saturating_add(size as u64);
+                    } else {
+                        img.warn(format!("{path}: entry data not recovered (size/bounds)"));
                         img.complete = false;
                     }
-                    img.entries.push(FsEntry::file(path, size as u64, bytes));
-                }
-                3 => {
-                    let data_off = off.checked_add(16).and_then(|v| v.checked_add(name_len));
-                    let target = data_off.and_then(|d| data.get(d..d.checked_add(size)?)).map(|b| String::from_utf8_lossy(b).into_owned()).unwrap_or_default();
-                    img.entries.push(FsEntry::symlink(path, target));
+                    if ftype == 2 {
+                        img.entries.push(FsEntry::file(path, size as u64, payload.map(<[u8]>::to_vec)));
+                    } else {
+                        let symlink_target = payload.map(|bytes| String::from_utf8_lossy(bytes).into_owned());
+                        img.entries.push(FsEntry { path, kind: super::FsKind::Symlink, size: size as u64, symlink_target, data: None });
+                    }
                 }
                 _ => img.entries.push(FsEntry { path, kind: super::FsKind::Other, size: size as u64, symlink_target: None, data: None }),
             }
-        }
-        if next == 0 || next == off {
-            break;
         }
         off = next;
     }

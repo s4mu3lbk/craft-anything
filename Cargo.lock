@@ -1282,6 +1282,7 @@ dependencies = [
  "rsa",
  "rustc-demangle",
  "ruzstd",
+ "semver",
  "serde",
  "serde_json",
  "sha1",

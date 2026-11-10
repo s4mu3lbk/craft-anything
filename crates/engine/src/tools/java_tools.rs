@@ -328,7 +328,7 @@ fn ev(ctx: &Ctx<'_>, op: &str, src: &Source, params: Value) -> EvidenceBuilder {
 // ---------------------------------------------------------------------------------------------
 // java_archive_show
 
-fn parse_manifest(bytes: &[u8]) -> BTreeMap<String, String> {
+pub(crate) fn parse_manifest(bytes: &[u8]) -> BTreeMap<String, String> {
     let text = String::from_utf8_lossy(bytes);
     let mut map: BTreeMap<String, String> = BTreeMap::new();
     let mut last_key: Option<String> = None;

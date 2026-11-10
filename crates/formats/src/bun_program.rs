@@ -10,7 +10,7 @@ use crate::common::FormatError;
 use crate::packed::{Compression, MAX_ENTRIES, PackedEntry, PackedFormat, PackedListing};
 use crate::packed_carrier::{self, Span};
 use serde_json::json;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const TRAILER: &[u8] = b"\n---- Bun! ----\n";
 /// Bun's own names for the folder its modules appear in: the Unix form, then the Windows forms.
@@ -108,6 +108,11 @@ impl Ptr {
     /// Whether it lies inside `limit` bytes of graph.
     fn fits(&self, limit: u64) -> bool {
         u64::from(self.off) + u64::from(self.len) <= limit
+    }
+
+    fn entry(self, start: u64, path: String, kind: String) -> PackedEntry {
+        let size = u64::from(self.len);
+        PackedEntry { path, offset: start + u64::from(self.off), stored_size: size, size: Some(size), compression: Compression::None, kind: Some(kind) }
     }
 
     fn bytes<'a>(&self, data: &'a [u8], start: usize) -> Option<&'a [u8]> {
@@ -288,15 +293,7 @@ impl PackedFormat for BunProgram {
                 m.sourcemap.len,
                 m.bytecode.len,
             );
-            let size = u64::from(m.contents.len);
-            entries.push(PackedEntry {
-                path: inner_path(&m.name),
-                offset: graph_start.saturating_add(u64::from(m.contents.off)),
-                stored_size: size,
-                size: Some(size),
-                compression: Compression::None,
-                kind: Some(kind),
-            });
+            entries.push(m.contents.entry(graph_start, inner_path(&m.name), kind));
         }
         let entry_point = usize::try_from(o.entry_point).ok().and_then(|i| modules.get(i)).map(|m| inner_path(&m.name));
         let exec_argv = o.exec_argv.bytes(data, o.start).map(|b| String::from_utf8_lossy(b).into_owned()).filter(|s| !s.is_empty());
@@ -305,9 +302,29 @@ impl PackedFormat for BunProgram {
             notes.push(format!("The graph names module {} as its entry point, which isn't in its table.", o.entry_point));
         }
         if with_map + with_code > 0 {
-            notes.push(format!(
-                "{with_map} module(s) carry a source map and {with_code} carry bytecode; each member's kind gives the sizes. They're Bun's own stored forms and aren't taken out as files."
-            ));
+            // Keep original module paths and their order. Reserve a separate directory for the
+            // raw payloads, including on case-insensitive systems and for Windows module paths.
+            let roots: BTreeSet<_> =
+                entries.iter().filter_map(|e| e.path.split(['/', '\\']).find(|s| !s.is_empty() && *s != ".")).map(str::to_ascii_lowercase).collect();
+            let mut dir = "bun-payloads".to_string();
+            for n in 1..=roots.len() {
+                if !roots.contains(&dir) {
+                    break;
+                }
+                dir = format!("bun-payloads-{n}");
+            }
+            'modules: for (i, m) in modules.iter().enumerate() {
+                for (kind, ptr) in [("sourcemap", m.sourcemap), ("bytecode", m.bytecode)] {
+                    if ptr.len == 0 {
+                        continue;
+                    }
+                    if entries.len() >= MAX_ENTRIES {
+                        break 'modules;
+                    }
+                    entries.push(ptr.entry(graph_start, format!("{dir}/{i}.{kind}"), format!("stored {kind} for module {i}")));
+                }
+            }
+            notes.push(format!("Stored source maps and bytecode use {dir}/ and the zero-based module index. Their bytes are in Bun's own binary forms."));
         }
         if carrier_sections(data).len() > 1 {
             notes.push("This file holds more than one graph (a universal program has one per slice); this lists the first.".to_string());
@@ -329,7 +346,8 @@ impl PackedFormat for BunProgram {
             "modules_with_sourcemap": with_map,
             "modules_with_bytecode": with_code,
         });
-        Ok(PackedListing { facts, truncated: total > entries.len(), entries, notes })
+        let truncated = total > modules.len() || entries.len() < modules.len() + with_map + with_code;
+        Ok(PackedListing { facts, truncated, entries, notes })
     }
 }
 
@@ -341,7 +359,7 @@ mod tests {
 
     fn check_sample(data: &[u8]) -> PackedListing {
         let listing = BunProgram.list(data).unwrap();
-        assert_eq!(listing.entries.len(), 2);
+        assert_eq!(listing.entries.len(), 4);
         let app = &listing.entries[0];
         assert_eq!(app.path, "root/app.js");
         assert_eq!(BunProgram.read(data, app, 1000).unwrap(), b"console.log('app')");
@@ -350,6 +368,11 @@ mod tests {
         assert_eq!(logo.path, "root/logo.png");
         assert_eq!(BunProgram.read(data, logo, 1000).unwrap(), b"\x89PNG");
         assert_eq!(logo.kind.as_deref(), Some("loader=file format=none encoding=binary side=client sourcemap_bytes=0 bytecode_bytes=0"));
+        for (key, expected) in [("bun-payloads/0.sourcemap", &b"map-bytes"[..]), ("bun-payloads/0.bytecode", &b"code-bytes"[..])] {
+            let e = listing.entries.iter().find(|e| e.path == key).unwrap();
+            assert_eq!(BunProgram.read(data, e, 10).unwrap(), expected);
+            assert!(BunProgram.read(data, e, 8).is_err());
+        }
         assert_eq!(listing.facts["entry_point"], "root/app.js");
         assert_eq!(listing.facts["exec_argv"], "--smol");
         assert_eq!(listing.facts["flags"], 7);
@@ -357,6 +380,20 @@ mod tests {
         assert_eq!(listing.facts["loaders"]["js"], 1);
         assert!(!listing.truncated);
         listing
+    }
+
+    #[test]
+    fn generated_payload_paths_keep_original_files_addressable() {
+        let modules = [
+            BunModule { sourcemap: b"raw", ..bun_module("/$bunfs/./BUN-PAYLOADS/0.sourcemap", b"original") },
+            bun_module(r"B:\~BUN\bun-payloads-1\other", b"other"),
+        ];
+        let file = bun_appended(&bun_graph(&modules, 0, "", 36, 24));
+        let listing = BunProgram.list(&file).unwrap();
+        assert_eq!(listing.entries.len(), 3);
+        assert_eq!(listing.entries[2].path, "bun-payloads-2/0.sourcemap");
+        assert_eq!(BunProgram.read(&file, &listing.entries[0], 32).unwrap(), b"original");
+        assert_eq!(BunProgram.read(&file, &listing.entries[2], 32).unwrap(), b"raw");
     }
 
     #[test]

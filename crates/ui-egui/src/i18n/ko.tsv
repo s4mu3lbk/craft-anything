@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	자동은 
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	심층: 가진 모든 도구로 코드, 파일, 페이지 소스를 읽고, 외부 디컴파일러가 설치되어 있으면 함께 씁니다. 눌러서 전환합니다.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine}이 설치되지 않아 내장 디컴파일러를 대신 씁니다. 설정 → 엔진에서 엔진을 선택하세요.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	이 컴퓨터에 아직 {engine}이 없어 내장 디컴파일러를 대신 씁니다.
+Connecting to {name}… {seconds} s	{name}에 연결하는 중… {seconds}초
+Stopped adding {name}.	{name} 추가를 멈췄습니다.

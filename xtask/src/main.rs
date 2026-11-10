@@ -1,4 +1,4 @@
-//! `cargo xtask <layers | locks | i18n-coverage | tools [--check] | wasm | licenses | schemas [--check] | pending [--count] | secrets [--history] | ci | version [set X.Y.Z] | ico <out.ico> <png>...>`
+//! `cargo xtask <layers | locks | status | i18n-coverage | tools [--check] | wasm | licenses | schemas [--check] | pending [--count] | secrets [--history] | ci | version [set X.Y.Z] | ico <out.ico> <png>...>`
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -8,6 +8,7 @@ mod i18n_coverage;
 mod ico;
 mod locks;
 mod secrets;
+mod status;
 
 /// Workspace crates and their layer. A crate may depend only on strictly lower layers
 /// (L0 format crates depend on nothing in the workspace).
@@ -38,6 +39,7 @@ fn main() -> ExitCode {
     let ok = match args.first().map(String::as_str) {
         Some("layers") => layers(&root),
         Some("locks") => locks::check(&root),
+        Some("status") => status::check(&root),
         Some("i18n-coverage") => i18n_coverage::check(&root),
         Some("tools") => tools(&root, args.iter().any(|a| a == "--check")),
         Some("schemas") => schemas(&root, args.iter().any(|a| a == "--check")),
@@ -51,7 +53,8 @@ fn main() -> ExitCode {
             ico::run(&rest).map_err(|e| eprintln!("ico: {e}")).is_ok()
         }
         Some("ci") => {
-            layers(&root)
+            status::check(&root)
+                && layers(&root)
                 && locks::check(&root)
                 && i18n_coverage::check(&root)
                 && secrets::secrets(&root, false)
@@ -67,7 +70,7 @@ fn main() -> ExitCode {
         }
         _ => {
             eprintln!(
-                "usage: cargo xtask <layers | locks | i18n-coverage | tools [--check] | wasm | licenses | schemas [--check] | pending [--count] | secrets [--history] | ci | version [set X.Y.Z] | ico <out.ico> <png>...>"
+                "usage: cargo xtask <layers | locks | status | i18n-coverage | tools [--check] | wasm | licenses | schemas [--check] | pending [--count] | secrets [--history] | ci | version [set X.Y.Z] | ico <out.ico> <png>...>"
             );
             false
         }

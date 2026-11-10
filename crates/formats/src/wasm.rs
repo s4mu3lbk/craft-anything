@@ -202,10 +202,8 @@ pub fn validate(data: &[u8]) -> WasmValidation {
 
 /// A length-prefixed UTF-8 string at the start of a custom section payload.
 fn leading_string(data: &[u8]) -> Option<String> {
-    let r = Reader::new(data);
-    let (n, used) = r.uleb128(0)?;
-    let s = r.slice(used, usize::try_from(n).ok()?)?;
-    Some(String::from_utf8_lossy(s).into_owned())
+    // inspect bounds the enclosing module by MAX_INPUT, including any inline source map.
+    wasmparser::BinaryReader::new(data, 0).read_unlimited_string().ok().map(str::to_owned)
 }
 
 fn target_features(data: &[u8]) -> Vec<String> {
@@ -263,10 +261,12 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
     let mut types: Vec<Option<FuncType>> = Vec::new();
     let mut func_types: Vec<u32> = Vec::new();
     let mut fn_names: BTreeMap<u32, String> = BTreeMap::new();
+    let mut producer_values = 0usize;
     let mut imported_tables = 0u32;
     let mut imported_memories = 0u32;
     let mut imported_globals = 0u32;
     let mut imported_tags = 0u32;
+    let mut declared_functions = 0;
     let mut code_index = 0u32;
     let type_sig = |types: &[Option<FuncType>], t: u32| -> String {
         match types.get(t as usize) {
@@ -383,6 +383,7 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
                     }
                 }
                 Payload::FunctionSection(r) => {
+                    declared_functions = r.count();
                     for t in r {
                         if func_types.len() >= MAX_ITEMS {
                             rep.truncated = true;
@@ -467,7 +468,7 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
                     let ti = func_types.get(code_index as usize).copied();
                     let mut locals = 0u64;
                     let lr = body.get_locals_reader()?;
-                    for l in lr.into_iter().take(10_000) {
+                    for l in lr {
                         let (n, _) = l?;
                         locals = locals.saturating_add(u64::from(n));
                     }
@@ -500,7 +501,11 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
                     match c.as_known() {
                         KnownCustom::Name(names) => {
                             // A damaged name section is reported but does not stop the rest.
-                            for sub in names.into_iter().take(64) {
+                            for (i, sub) in names.into_iter().take(65).enumerate() {
+                                if i == 64 {
+                                    rep.truncated = true;
+                                    break;
+                                }
                                 let Ok(sub) = sub else {
                                     rep.warnings.push("the name section is damaged".into());
                                     break;
@@ -508,10 +513,19 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
                                 match sub {
                                     Name::Module { name, .. } => rep.module_name = Some(name.to_string()),
                                     Name::Function(map) => {
-                                        for n in map.into_iter().take(MAX_ITEMS) {
+                                        for (i, n) in map.into_iter().take(MAX_ITEMS + 1).enumerate() {
+                                            if i == MAX_ITEMS {
+                                                rep.truncated = true;
+                                                break;
+                                            }
                                             match n {
                                                 Ok(n) => {
-                                                    fn_names.insert(n.index, n.name.to_string());
+                                                    if let Some(name) = fn_names.get_mut(&n.index) {
+                                                        // Repeated sections may replace an already retained name at the limit.
+                                                        *name = n.name.to_string();
+                                                    } else if cap(fn_names.len(), &mut rep.truncated) {
+                                                        fn_names.insert(n.index, n.name.to_string());
+                                                    }
                                                 }
                                                 Err(_) => {
                                                     rep.warnings.push("a function name entry is damaged".into());
@@ -525,18 +539,26 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
                             }
                         }
                         KnownCustom::Producers(p) => {
-                            for f in p.into_iter().take(64) {
+                            for (i, f) in p.into_iter().take(65).enumerate() {
+                                if i == 64 || !cap(rep.producers.len(), &mut rep.truncated) {
+                                    rep.truncated = true;
+                                    break;
+                                }
                                 let Ok(f) = f else {
                                     rep.warnings.push("the producers section is damaged".into());
                                     break;
                                 };
-                                let values = f
-                                    .values
-                                    .into_iter()
-                                    .take(64)
-                                    .filter_map(Result::ok)
-                                    .map(|v| ProducerValue { name: v.name.to_string(), version: v.version.to_string() })
-                                    .collect();
+                                let mut values = Vec::new();
+                                for (i, value) in f.values.into_iter().take(65).enumerate() {
+                                    if i == 64 || !cap(producer_values, &mut rep.truncated) {
+                                        rep.truncated = true;
+                                        break;
+                                    }
+                                    if let Ok(value) = value {
+                                        values.push(ProducerValue { name: value.name.to_string(), version: value.version.to_string() });
+                                        producer_values += 1;
+                                    }
+                                }
                                 rep.producers.push(ProducerField { field: f.name.to_string(), values });
                             }
                         }
@@ -564,8 +586,8 @@ pub fn inspect(data: &[u8]) -> Result<WasmReport, FormatError> {
         f.name = fn_names.get(&f.index).cloned();
         f.exported_as = exported.remove(&f.index).unwrap_or_default();
     }
-    if func_types.len() != code_index as usize && rep.parse_error.is_none() {
-        rep.warnings.push(format!("{} function declarations but {} bodies", func_types.len(), code_index));
+    if declared_functions != code_index && rep.parse_error.is_none() {
+        rep.warnings.push(format!("{declared_functions} function declarations but {code_index} bodies"));
     }
     Ok(rep)
 }
@@ -653,6 +675,67 @@ pub fn scan_glue(text: &str, imports: &[WasmImport]) -> GlueScan {
 mod tests {
     use super::*;
     use craft_anything_testkit::formats as fx;
+
+    /// The output inventory limit applies to retained functions, not the local groups within one retained function.
+    #[test]
+    fn local_counts_include_groups_after_ten_thousand() {
+        // One valid () -> () function containing 10,001 runs of one i32 local.
+        let mut bytes = b"\0asm\x01\0\0\0\x01\x04\x01\x60\0\0\x03\x02\x01\0".to_vec();
+        // section size = 1 + 3 + 20005, body size = 2 + 20002 + 1.
+        bytes.extend([10, 0xa9, 0x9c, 1, 1, 0xa5, 0x9c, 1, 0x91, 0x4e]);
+        for _ in 0..10_001 {
+            bytes.extend([1, 0x7f]);
+        }
+        bytes.push(0x0b);
+        let report = inspect(&bytes).unwrap();
+        assert!(report.validation.valid, "{:?}", report.validation);
+        assert_eq!(report.functions[0].locals, 10_001);
+    }
+
+    #[test]
+    fn debug_links_need_valid_wasm_names() {
+        assert_eq!(leading_string(b"\x04test").as_deref(), Some("test"));
+        assert!(leading_string(&[1, 0xff]).is_none());
+        assert!(leading_string(b"\x81\x80\x80\x80\x80\0x").is_none());
+        assert!(leading_string(b"\x04abc").is_none());
+    }
+
+    #[test]
+    fn inspect_preserves_long_source_mapping_urls() {
+        let url = format!("data:application/json;base64,{}", "A".repeat(100_000));
+        let report = inspect(&fx::wasm_module_with_source_mapping_url(&url)).unwrap();
+        assert_eq!(report.source_mapping_url.as_deref(), Some(url.as_str()));
+    }
+
+    #[test]
+    fn large_function_tables_do_not_report_missing_declarations() {
+        fn leb(mut value: usize) -> Vec<u8> {
+            let mut out = Vec::new();
+            while value >= 128 {
+                out.push((value as u8 & 0x7f) | 0x80);
+                value >>= 7;
+            }
+            out.push(value as u8);
+            out
+        }
+        let count = MAX_ITEMS + 1;
+        let mut bytes = b"\0asm\x01\0\0\0\x01\x04\x01\x60\0\0".to_vec();
+        let mut declarations = leb(count);
+        declarations.resize(declarations.len() + count, 0);
+        let mut bodies = leb(count);
+        for _ in 0..count {
+            bodies.extend([2, 0, 0x0b]);
+        }
+        for (id, section) in [(3, declarations), (10, bodies)] {
+            bytes.push(id);
+            bytes.extend(leb(section.len()));
+            bytes.extend(section);
+        }
+        let report = inspect(&bytes).unwrap();
+        assert!(report.validation.valid && report.truncated);
+        assert_eq!(report.functions.len(), MAX_ITEMS);
+        assert!(!report.warnings.iter().any(|s| s.contains("function declarations")), "{:?}", report.warnings);
+    }
 
     #[test]
     fn reads_the_sample_module() {

@@ -55,18 +55,19 @@ fn walk(data: &[u8], dir_off: usize, dir_size: usize, parent: &str, limits: &Lim
         img.complete = false;
         return;
     }
-    let r = Reader::new(data);
-    let Some(end) = dir_off.checked_add(dir_size) else { return };
-    let mut pos = dir_off;
-    while pos + 12 <= end && pos + 12 <= data.len() {
+    let rest = data.get(dir_off..).unwrap_or_default();
+    let directory = rest.get(..dir_size).unwrap_or(rest);
+    let r = Reader::new(directory);
+    let mut pos = 0;
+    while pos < directory.len() {
         if img.entries.len() >= limits.max_entries {
             img.complete = false;
             return;
         }
         let Some(ino) = inode_at(&r, pos) else { break };
         let name_off = pos + 12;
-        let Some(name_bytes) = r.slice(name_off, ino.namelen.min(limits.max_name.max(1))) else { break };
-        let name = trim(name_bytes);
+        let Some(full_name) = r.slice(name_off, ino.namelen) else { break };
+        let name = trim(full_name.get(..ino.namelen.min(limits.max_name.max(1))).unwrap_or_default());
         let advance = 12usize.checked_add(ino.namelen);
         let Some(advance) = advance.filter(|&a| a > 12) else { break };
         let path = if name.is_empty() { parent.to_string() } else { join(parent, &name) };
@@ -92,6 +93,10 @@ fn walk(data: &[u8], dir_off: usize, dir_size: usize, parent: &str, limits: &Lim
             Some(n) if n > pos => n,
             _ => break,
         };
+    }
+    if pos != dir_size {
+        img.warn("cramfs: incomplete directory entry");
+        img.complete = false;
     }
 }
 

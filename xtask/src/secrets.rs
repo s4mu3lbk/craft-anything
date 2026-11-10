@@ -100,24 +100,40 @@ fn git(root: &Path, args: &[&str]) -> Option<String> {
     }
 }
 
+/// Words in a variable's name that mark its value as secret.
+const SECRET_WORDS: &[&str] = &["KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "AUTH"];
+/// Git's identity, set while its hooks run: "AUTH" is in their names, but the committer's own name
+/// and address are public in every commit they make.
+const NOT_SECRET: &[&str] = &["GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_AUTHOR_DATE"];
+
 /// Values of this machine's environment that would be a leak in a file: secret-named variables
 /// and the home folder.
 fn env_values() -> Vec<(String, String)> {
+    leak_values(std::env::vars())
+}
+
+fn leak_values(vars: impl IntoIterator<Item = (String, String)>) -> Vec<(String, String)> {
     let mut v = Vec::new();
-    for (k, val) in std::env::vars() {
+    let mut homes = Vec::new();
+    for (k, val) in vars {
         let up = k.to_ascii_uppercase();
-        let secret = ["KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "AUTH"].iter().any(|w| up.contains(w));
+        if up == "USERPROFILE" || up == "HOME" {
+            homes.push((k.clone(), val.clone()));
+        }
+        let secret = SECRET_WORDS.iter().any(|w| up.contains(w)) && !NOT_SECRET.contains(&up.as_str());
         if secret && val.len() >= 12 && !val.contains(['/', '\\']) {
             v.push((k, val));
         }
     }
-    for k in ["USERPROFILE", "HOME"] {
-        if let Ok(home) = std::env::var(k) {
-            // Only a real person's folder: "/root" or "C:\" aren't personal.
-            if home.len() > 6 {
-                v.push((k.to_string(), home.replace('\\', "/")));
-                v.push((k.to_string(), home.clone()));
+    for (k, home) in homes {
+        // Only a real person's folder: "/root" or "C:\" aren't personal.
+        if home.len() > 6 {
+            let forward = home.replace('\\', "/");
+            // A Unix home is the same both ways: one entry, or each line is reported twice.
+            if forward != home {
+                v.push((k.clone(), forward));
             }
+            v.push((k, home));
         }
     }
     v
@@ -206,5 +222,43 @@ mod tests {
         assert!(path_problem(".env").is_some() && path_problem("a/.env.local").is_some() && path_problem("log/devlog.md").is_some());
         assert!(path_problem("certs/server.pem").is_some() && path_problem(".claude/settings.local.json").is_some());
         assert!(path_problem("crates/ai/src/keys.rs").is_none() && path_problem("docs/environment.md").is_none());
+    }
+
+    fn vars(list: &[(&str, &str)]) -> Vec<(String, String)> {
+        list.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    #[test]
+    fn the_committers_own_name_is_not_a_secret() {
+        let env = leak_values(vars(&[
+            ("GIT_AUTHOR_NAME", "a-long-handle-name"),
+            ("GIT_AUTHOR_EMAIL", "someone@example.com"),
+            ("GIT_AUTHOR_DATE", "@1762500000 +0000"),
+        ]));
+        assert!(env.is_empty(), "{env:?}");
+        assert!(line_problems("— claimed: a-long-handle-name, branch bugfix/x", &env).is_empty());
+    }
+
+    #[test]
+    fn auth_named_secrets_are_still_found() {
+        let env = leak_values(vars(&[
+            ("GITHUB_OAUTH_TOKEN", "fake-oauth-value-1"),
+            ("HTTP_AUTHORIZATION", "Bearer fake-bearer-2"),
+            ("MY_AUTH", "fake-auth-value-33"),
+            ("API_KEY", "short"),
+            ("SSH_AUTH_SOCK", "/run/user/1/agent.sock"),
+        ]));
+        let names: Vec<&str> = env.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(names, ["GITHUB_OAUTH_TOKEN", "HTTP_AUTHORIZATION", "MY_AUTH"], "short values and paths aren't secrets");
+        assert!(!line_problems("x = fake-oauth-value-1", &env).is_empty());
+    }
+
+    #[test]
+    fn the_home_folder_is_found_both_ways() {
+        let env = leak_values(vars(&[("USERPROFILE", "C:\\Users\\someone"), ("HOME", "/root")]));
+        let values: Vec<&str> = env.iter().map(|(_, v)| v.as_str()).collect();
+        assert_eq!(values, ["C:/Users/someone", "C:\\Users\\someone"], "\"/root\" isn't personal");
+        let env = leak_values(vars(&[("HOME", "/home/someone")]));
+        assert_eq!(env, [("HOME".to_string(), "/home/someone".to_string())], "a Unix home is listed once");
     }
 }

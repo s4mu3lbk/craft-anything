@@ -180,7 +180,7 @@ pub(crate) fn row(ui: &mut Ui, icon: &str, label: &str, status: Option<(egui::Co
     match (pill, status) {
         (Some((color, g)), _) => {
             let r = egui::Rect::from_min_size(egui::pos2(rect.right() - 10.0 - g.size().x - 12.0, rect.center().y - 10.0), Vec2::new(g.size().x + 12.0, 20.0));
-            ui.painter().rect_filled(r, 10.0, color.gamma_multiply(0.16));
+            ui.painter().rect_filled(r, t.r_sm(), color.gamma_multiply(0.16));
             ui.painter().galley(r.center() - g.size() / 2.0, g, color);
         }
         (None, Some((color, _, _))) => {

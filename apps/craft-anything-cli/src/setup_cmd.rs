@@ -165,8 +165,21 @@ pub fn doctor(a: &DoctorArgs, f: Format) -> u8 {
 
 pub fn uninstall(_a: &UninstallArgs, f: Format) -> u8 {
     let report = craft_anything_setup::uninstall(&Host::current());
-    let v = serde_json::to_value(&report).unwrap_or(Value::Null);
+    // Coding-agent sessions a build left running when the app was killed, which the agent's own
+    // service would otherwise resume after we're gone (#1115).
+    let logs = craft_anything_ai::failure_log::dir_in(&craft_anything_engine::settings::config_dir());
+    let sessions = craft_anything_ai::cli_agents::unfinished::sweep(
+        &craft_anything_ai::cli_agents::unfinished::dir_in(&logs),
+        &craft_anything_ai::cli_agents::adapters::AgentAdapters::default(),
+    );
+    let mut v = serde_json::to_value(&report).unwrap_or(Value::Null);
+    if let Some(o) = v.as_object_mut() {
+        o.insert("unfinished_sessions".into(), json!(sessions));
+    }
     if human(f) {
+        for s in &sessions {
+            out(s);
+        }
         for r in &report.removed_entries {
             let e = serde_json::to_value(r).unwrap_or(Value::Null);
             out(&format!("removed {} ({})", e["client"].as_str().unwrap_or_default(), e["path"].as_str().unwrap_or_default()));

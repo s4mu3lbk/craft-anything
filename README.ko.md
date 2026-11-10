@@ -243,6 +243,27 @@ mv "craft-anything-cli-$ver-macos-universal/craft-anything-cli" ~/.local/bin/
 
 이미 막힌 파일이 있다면 휴지통으로 이동(Move to Bin) 대신 완료(Done)를 누른 뒤 `xattr -d com.apple.quarantine <path to craft-anything-cli>`를 실행하거나, 시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기(Open Anyway)에서 허용하세요.
 
+#### Mac 다운로드가 서명·공증되었는지 확인하기
+
+Mac 릴리스는 Developer ID 인증서로 서명되고 Apple의 공증을 받습니다. 직접 확인하려면 터미널에서 다음을 실행하세요(`<ver>`는 버전, 경로는 본인 것으로 바꾸세요):
+
+```sh
+# 디스크 이미지: "accepted"와 "source=Notarized Developer ID"면 통과
+spctl --assess --type open --context context:primary-signature -v "craft-anything-<ver>-macos-universal.dmg"
+# 공증 티켓이 첨부됨: "The validate action worked!"가 출력됩니다
+xcrun stapler validate "craft-anything-<ver>-macos-universal.dmg"
+
+# 앱(디스크 이미지를 연 뒤): 서명이 검증되어야 합니다
+codesign --verify --deep --strict --verbose=2 "/Volumes/<disk image name>/Craft Anything.app"
+spctl --assess --type execute --verbose "/Volumes/<disk image name>/Craft Anything.app"
+
+# 명령줄 도구: 단독 프로그램은 티켓을 가질 수 없어 macOS가 온라인으로 확인합니다
+codesign --verify --strict --verbose=2 ~/.local/bin/craft-anything-cli
+codesign -dv --verbose=4 ~/.local/bin/craft-anything-cli 2>&1 | grep Authority
+```
+
+`Authority` 줄에 "Developer ID Application" 인증서가 나와야 합니다. 확인에 실패한 파일은 실행하지 말고, 출력과 릴리스 태그를 알려 주세요.
+
 ### <a id="linux"></a>Linux
 
 | 형식                 | x86_64                                       | aarch64 (ARM64)                               | 참고                                                                                                                |

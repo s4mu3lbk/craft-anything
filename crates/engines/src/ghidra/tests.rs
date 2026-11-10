@@ -474,8 +474,14 @@ fn a_second_analysis_waits_for_the_running_one_and_a_dead_ones_lock_is_taken_ove
 fn a_move_that_cannot_pass_is_told_apart_from_one_that_might() {
     use std::io::{Error, ErrorKind};
     assert!(move_may_pass(&Error::from(ErrorKind::PermissionDenied)), "a folder Windows has open files in reads as a permission problem");
+    assert!(move_may_pass(&Error::from(ErrorKind::WouldBlock)), "a momentary block passes");
+    // Windows reports a busy folder by number, not by kind: without these the wait would never
+    // happen there, which is the whole point of the change.
+    assert!(move_may_pass(&Error::from_raw_os_error(32)), "ERROR_SHARING_VIOLATION is a folder in use");
+    assert!(move_may_pass(&Error::from_raw_os_error(33)), "ERROR_LOCK_VIOLATION is a file locked");
     assert!(!move_may_pass(&Error::from(ErrorKind::InvalidInput)), "a path we cannot name will not fix itself");
     assert!(!move_may_pass(&Error::from(ErrorKind::NotFound)), "gone is not a reason to wait");
+    assert!(!move_may_pass(&Error::from_raw_os_error(2)), "a missing file is not a folder in use");
 }
 
 /// A lock that cannot be released reads to every other process as an analysis in progress, so
@@ -502,8 +508,11 @@ fn a_move_that_cannot_pass_gives_the_lock_back_and_says_why() {
 
     let refusal = std::io::Error::from(std::io::ErrorKind::InvalidInput);
     let err = refuse_move(&lock, &project, &refusal);
-    assert!(err.to_string().contains("out of the way"), "{err}");
-    assert!(!err.to_string().contains("and releasing"), "a clean release is not worth mentioning: {err}");
+    assert_eq!(
+        err.to_string(),
+        format!("could not start the Deep engine: moving {} out of the way: {refusal}", project.display()),
+        "a clean release leaves the move as the whole message"
+    );
     assert!(!lock.exists(), "the lock is gone");
 
     // Now the lock cannot be released: a folder where the lock file should be.
@@ -511,8 +520,11 @@ fn a_move_that_cannot_pass_gives_the_lock_back_and_says_why() {
     std::fs::create_dir(&stuck).unwrap();
     let err = refuse_move(&stuck, &project, &refusal);
     let text = err.to_string();
-    assert!(text.contains("out of the way"), "the move is still what is reported: {text}");
-    assert!(text.contains("and releasing the analysis lock"), "and the lock that could not be freed: {text}");
+    assert!(
+        text.starts_with(&format!("could not start the Deep engine: moving {} out of the way: {refusal}; and ", project.display())),
+        "the move leads, then the lock: {text}"
+    );
+    assert!(text.contains("releasing the analysis lock"), "and the lock that could not be freed: {text}");
 }
 
 /// #951: the folder a stale lock was guarding is moved, not removed, so a Ghidra that outlived the

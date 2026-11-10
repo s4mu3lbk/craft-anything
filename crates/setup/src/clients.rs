@@ -56,11 +56,14 @@ pub struct Host {
 }
 
 impl Host {
-    /// The real machine: the user's home and only the config-related environment variables.
+    /// The real machine: the user's home and only the config-related environment variables. On
+    /// Windows the apps keep their settings in the user profile and ignore HOME, which a shell such
+    /// as MSYS2 or Cygwin points elsewhere, so USERPROFILE comes first there.
     pub fn current() -> Host {
-        let home = std::env::var_os("HOME")
+        let (first, second) = if cfg!(windows) { ("USERPROFILE", "HOME") } else { ("HOME", "USERPROFILE") };
+        let home = std::env::var_os(first)
             .filter(|h| !h.is_empty())
-            .or_else(|| std::env::var_os("USERPROFILE"))
+            .or_else(|| std::env::var_os(second).filter(|h| !h.is_empty()))
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("."));
         let env = ENV_KEYS.iter().filter_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()).map(|v| (k.to_string(), v))).collect();

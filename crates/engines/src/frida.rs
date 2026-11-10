@@ -286,7 +286,7 @@ pub struct FridaDevice {
 pub fn parse_devices(text: &str) -> Vec<FridaDevice> {
     let mut out = Vec::new();
     for line in text.lines().take(MAX_LINES) {
-        let line = line.get(..MAX_LINE.min(line.len())).unwrap_or(line);
+        let line = crate::capped_line(line, MAX_LINE);
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with("----") {
             continue;
@@ -319,7 +319,7 @@ pub struct FridaProcess {
 pub fn parse_processes(text: &str) -> Vec<FridaProcess> {
     let mut out = Vec::new();
     for line in text.lines().take(MAX_LINES) {
-        let line = line.get(..MAX_LINE.min(line.len())).unwrap_or(line);
+        let line = crate::capped_line(line, MAX_LINE);
         let trimmed = line.trim();
         if trimmed.is_empty() || trimmed.starts_with("----") {
             continue;
@@ -341,6 +341,19 @@ pub fn parse_processes(text: &str) -> Vec<FridaProcess> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #1095 follow-up: a device name with a multibyte character at the boundary is cut, not kept
+    /// whole.
+    #[test]
+    fn a_multibyte_character_at_the_cap_does_not_keep_the_whole_device_name() {
+        let prefix = "usb  usb  ";
+        let mut line = format!("{prefix}{}", "n".repeat(MAX_LINE - prefix.len() - 1));
+        line.push('é');
+        line.push_str(&"x".repeat(64));
+        let d = parse_devices(&format!("{line}\n"));
+        assert_eq!(d.len(), 1);
+        assert!(d[0].name.len() < MAX_LINE, "the line cap is kept: {}", d[0].name.len());
+    }
 
     #[test]
     fn selector_requires_exactly_one() {

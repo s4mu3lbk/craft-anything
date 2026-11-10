@@ -185,14 +185,52 @@ pub fn simple_db() -> Vec<u8> {
     file
 }
 
-/// A two-page database with one table named `t` and explicitly stored rowids and values.
+/// Write the database header and a one-row `sqlite_schema` leaf on page 1 for table `t` rooted
+/// at `root`. A record too long for the page spills over overflow pages appended to the file, as
+/// SQLite stores a long CREATE statement.
+fn write_schema(file: &mut Vec<u8>, root: u32, sql: &str) {
+    let record = build_record(&[Val::Text("table".into()), Val::Text("t".into()), Val::Text("t".into()), Val::Int(root.into()), Val::Text(sql.into())]);
+    let max_local = PAGE_SIZE - 35;
+    let min_local = (PAGE_SIZE - 12) * 32 / 255 - 23;
+    let local = if record.len() <= max_local {
+        record.len()
+    } else {
+        let candidate = min_local + (record.len() - min_local) % (PAGE_SIZE - 4);
+        if candidate <= max_local { candidate } else { min_local }
+    };
+    let mut cell = sqlite_varint(record.len() as u64);
+    cell.extend(sqlite_varint(1));
+    cell.extend_from_slice(&record[..local]);
+    if local < record.len() {
+        cell.extend_from_slice(&((file.len() / PAGE_SIZE + 1) as u32).to_be_bytes());
+        for (i, chunk) in record[local..].chunks(PAGE_SIZE - 4).enumerate() {
+            let base = file.len();
+            file.resize(base + PAGE_SIZE, 0);
+            if local + (i + 1) * (PAGE_SIZE - 4) < record.len() {
+                file[base..base + 4].copy_from_slice(&((base / PAGE_SIZE + 2) as u32).to_be_bytes());
+            }
+            file[base + 4..base + 4 + chunk.len()].copy_from_slice(chunk);
+        }
+    }
+    let pages = (file.len() / PAGE_SIZE) as u32;
+    write_db_header(&mut file[..PAGE_SIZE], pages);
+    // The leaf header starts after the 100-byte database header; its one cell pointer ends at 110.
+    let top = PAGE_SIZE.checked_sub(cell.len()).filter(|top| *top >= 110).expect("the schema cell fits on page 1");
+    let page = &mut file[..PAGE_SIZE];
+    page[100] = 0x0d;
+    page[103..105].copy_from_slice(&1u16.to_be_bytes());
+    page[105..107].copy_from_slice(&(top as u16).to_be_bytes());
+    page[108..110].copy_from_slice(&(top as u16).to_be_bytes());
+    page[top..].copy_from_slice(&cell);
+}
+
+/// A database with one table named `t` and explicitly stored rowids and values. Page 1 holds the
+/// schema and page 2 the table; a long CREATE statement adds overflow pages after them.
 pub fn table_db(sql: &str, rows: &[(i64, Vec<Val>)]) -> Vec<u8> {
     let mut file = vec![0u8; PAGE_SIZE * 2];
     let cells: Vec<_> = rows.iter().map(|(rowid, values)| (*rowid, build_record(values))).collect();
     write_table_leaf(&mut file[PAGE_SIZE..], 0, &cells);
-    let schema = build_record(&[Val::Text("table".into()), Val::Text("t".into()), Val::Text("t".into()), Val::Int(2), Val::Text(sql.into())]);
-    write_db_header(&mut file[..PAGE_SIZE], 2);
-    write_table_leaf(&mut file[..PAGE_SIZE], 100, &[(1, schema)]);
+    write_schema(&mut file, 2, sql);
     file
 }
 
@@ -326,10 +364,7 @@ pub fn without_rowid_db(sql: &str, rows: &[Vec<Val>]) -> Vec<u8> {
         capacity = capacity * 4 + 3;
     }
     let root = tree(&mut file, rows, height);
-    let schema = build_record(&[Val::Text("table".into()), Val::Text("t".into()), Val::Text("t".into()), Val::Int(root.into()), Val::Text(sql.into())]);
-    let pages = (file.len() / PAGE_SIZE) as u32;
-    write_db_header(&mut file[..PAGE_SIZE], pages);
-    write_table_leaf(&mut file[..PAGE_SIZE], 100, &[(1, schema)]);
+    write_schema(&mut file, root, sql);
     file
 }
 

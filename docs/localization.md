@@ -1,6 +1,6 @@
 # UI localisation
 
-The desktop app offers **Čeština** (`cs`), **Deutsch** (`de`), **Español** (`es`), **Italiano** (`it`), **ქართული** (`ka`),
+The desktop app offers **Čeština** (`cs`), **Deutsch** (`de`), **Eesti** (`et`), **Español** (`es`), **Italiano** (`it`), **ქართული** (`ka`),
 **한국어** (`ko`), **Русский** (`ru`), **Tiếng Việt** (`vi`), **Português (Brasil)** (`pt-br`), **Türkçe** (`tr`), **ไทย** (`th`), **简体中文** (`zh-hans`) and **繁體中文** (`zh-hant`), alongside
 English, French and Japanese, in **Settings → General → Language**. The choice is saved in the
 existing `language` setting. **System** uses the operating system's preferred
@@ -21,6 +21,22 @@ It was drafted with an AI and not yet reviewed by a native speaker; corrections 
 Product and technology names, tool ids and shortcuts keep their spelling. The kind detection that reads
 a request ("a game", "a website") also knows the German words *Spiel*, *Webseite* and *Internetseite*,
 so a translated suggestion keeps its project kind.
+
+## Estonian
+
+**Eesti** (`et`) is selected by `et` and `et-EE`, and by the system language when it is Estonian.
+`crates/ui-egui/src/i18n/et.tsv` has the same keys as the other catalogs, written from the English
+source. It was drafted with an AI from the English source, so corrections from native speakers are
+welcome. Product and technology names, tool ids and shortcuts keep their spelling. The glossary:
+*Puhas ruum* (Clean room), *Sügav* (Deep), *Uuri / Ehita / Kontrolli / Valmis* (Study / Build / Check /
+Ready), *Tõendid* (Evidence), *leid* (finding), *projekt* (Project), *sihtmärk* (target), *tööriist*
+(tool), *töölaud* (workbench), *ehitaja* (builder), *Seaded* (Settings) and *taasehitus* (rebuild).
+
+The kind detection that reads a request also knows *mäng* for a game and *veebileht*, *koduleht* and
+*veebisait* for a website, so a translated suggestion keeps its project kind. If a request names
+both, the head of the main clause wins: a complement case (*mängust*, *veebilehega*) marks the
+source or topic, not the thing to build, so *Tee sellest mängust veebileht* is a website while
+*Loo mäng nimega Veebileht* is a game.
 
 ## Georgian
 
@@ -69,7 +85,7 @@ Thai glyphs come from Noto Sans Thai in craft-fonts, which the script test in `t
 
 ## Scope and format
 
-`crates/ui-egui/src/i18n/cs.tsv`, `de.tsv`, `es.tsv`, `it.tsv`, `ka.tsv`, `ko.tsv`, `pt-br.tsv`, `ru.tsv`, `th.tsv`, `tr.tsv`, `vi.tsv`, `zh-hans.tsv` and
+`crates/ui-egui/src/i18n/cs.tsv`, `de.tsv`, `es.tsv`, `et.tsv`, `it.tsv`, `ka.tsv`, `ko.tsv`, `pt-br.tsv`, `ru.tsv`, `th.tsv`, `tr.tsv`, `vi.tsv`, `zh-hans.tsv` and
 `zh-hant.tsv` contain original
 translations under the repository's MIT OR Apache-2.0 licence. Each UTF-8 line
 has two columns: `English source<TAB>translation`. Comments begin with `#`;
@@ -86,7 +102,7 @@ descriptions, logs and exported reports retain their original text. The CLI,
 MCP, tool IDs, stored project data and the separate browser viewer are unchanged.
 
 Keep placeholders such as `{name}` and `{n}` intact, along with command IDs,
-shortcuts, escapes and trailing `…`. Update every catalog (`cs`, `de`, `es`, `it`, `ka`, `ko`, `pt-br`, `ru`, `th`, `tr`, `vi`, `zh-hans`, `zh-hant`)
+shortcuts, escapes and trailing `…`. Update every catalog (`cs`, `de`, `es`, `et`, `it`, `ka`, `ko`, `pt-br`, `ru`, `th`, `tr`, `vi`, `zh-hans`, `zh-hant`)
 when English source keys change; the tests require matching key sets. Common terms include 净室 / 淨室 (Clean room), 深度 (Deep),
 构建 / 建置 (Build), 证据 / 證據 (Evidence), and 项目 / 專案 (Project).
 The Korean catalog `ko.tsv` uses 클린룸 (Clean room), 심층 (Deep), 분석 / 만들기 / 검사 / 완성
@@ -140,7 +156,7 @@ cargo run -p craft-anything-ui-egui --example snapshot -- --lang zh-hant --only 
 ```
 
 Chinese, Korean and Georgian glyphs use the existing craft-fonts fallback, which release and CI builds
-Spanish is Latin script and needs no extra glyphs. Chinese and Korean glyphs use the existing craft-fonts fallback, which release and CI builds
+Spanish and Estonian are Latin script and need no extra glyphs. Chinese and Korean glyphs use the existing craft-fonts fallback, which release and CI builds
 Vietnamese needs craft-fonts too: the bundled DM Sans and egui's default fonts lack the letters with
 stacked marks (ạ, ả, ấ, ế, ơ, ư, ữ…), so a build without craft-fonts shows them as boxes. With
 craft-fonts, Noto Sans CJK SC supplies those letters (a different face from the DM Sans around them);

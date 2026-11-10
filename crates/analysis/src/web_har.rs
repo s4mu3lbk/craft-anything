@@ -414,6 +414,19 @@ fn entry_view(e: &HarEntry, red: &mut Redactor) -> Value {
     })
 }
 
+/// HAR uses -1 for an unknown size. A known zero (for example on a 304) still counts.
+fn response_sizes(entries: &[HarEntry], field: impl Fn(&har::HarResponse) -> Option<i64>) -> (u64, usize) {
+    let mut bytes = 0u64;
+    let mut missing = 0;
+    for entry in entries {
+        match field(&entry.response).and_then(|n| u64::try_from(n).ok()) {
+            Some(n) => bytes = bytes.saturating_add(n),
+            None => missing += 1,
+        }
+    }
+    (bytes, missing)
+}
+
 /// Inspect a HAR capture.
 pub fn inspect_har(bytes: &[u8], opts: &HarOptions) -> Result<Value, String> {
     let har = har::parse(bytes, opts.max_entries.max(1)).map_err(|e| e.to_string())?;
@@ -422,7 +435,8 @@ pub fn inspect_har(bytes: &[u8], opts: &HarOptions) -> Result<Value, String> {
     let mut statuses: BTreeMap<String, usize> = BTreeMap::new();
     let mut hosts: BTreeMap<String, usize> = BTreeMap::new();
     let mut mimes: BTreeMap<String, usize> = BTreeMap::new();
-    let mut total_bytes: i64 = 0;
+    let (body_bytes, missing_body) = response_sizes(&har.entries, |r| r.body_size);
+    let (content_bytes, missing_content) = response_sizes(&har.entries, |r| r.content_size);
     let mut first: Option<String> = None;
     let mut last: Option<String> = None;
     let mut slowest: Vec<(f64, usize)> = Vec::new();
@@ -436,7 +450,6 @@ pub fn inspect_har(bytes: &[u8], opts: &HarOptions) -> Result<Value, String> {
         *hosts.entry(red.text("/hosts", &host)).or_default() += 1;
         let mime = view["response_mime"].as_str().unwrap_or("").split(';').next().unwrap_or("").trim().to_string();
         *mimes.entry(mime.clone()).or_default() += 1;
-        total_bytes = total_bytes.saturating_add(e.response.body_size.unwrap_or(0).max(e.response.content_size.unwrap_or(0)).max(0));
         if let Some(s) = &e.started {
             if first.as_ref().is_none_or(|f| s < f) {
                 first = Some(s.clone());
@@ -505,7 +518,9 @@ pub fn inspect_har(bytes: &[u8], opts: &HarOptions) -> Result<Value, String> {
             "entries": har.entries.len(),
             "declared_entries": har.declared_entries,
             "methods": methods, "statuses": statuses, "hosts": hosts, "response_mimes": mimes,
-            "response_body_bytes": total_bytes, "first_request": first, "last_request": last, "slowest": slowest,
+            "response_body_bytes": body_bytes, "responses_without_body_size": missing_body,
+            "response_content_bytes": content_bytes, "responses_without_content_size": missing_content,
+            "first_request": first, "last_request": last, "slowest": slowest,
         },
         "api_surface": ops,
         "entries": selected,

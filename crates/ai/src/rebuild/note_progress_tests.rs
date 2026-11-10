@@ -44,6 +44,7 @@ impl Conversation for NotesDuringPoll {
     }
 }
 
+/// A consumed note is only acknowledged once the turn finishes, so progress isn't read mid-turn.
 #[test]
 fn consumed_notes_wait_for_turn_done_before_accessing_progress() {
     for directory in [false, true] {
@@ -60,7 +61,7 @@ fn consumed_notes_wait_for_turn_done_before_accessing_progress() {
             polls: 0,
             sends: 0,
         };
-        let result = worker.turn_with_wait(&mut ws, &mut agent, "Apply the notes", None, |_, _| panic!("a local record cannot retry the builder"));
+        let result = worker.turn_with_wait(&mut ws, &mut agent, "Apply the notes", true, None, |_, _| panic!("a local record cannot retry the builder"));
         assert_eq!(result.unwrap(), "Finished the edit");
         assert_eq!((agent.sends, agent.polls), (1, 2), "keep polling the existing request until TurnDone");
         assert!(!agent.is_busy());
@@ -135,7 +136,7 @@ fn consumed_note_progress_errors_preserve_the_completed_turn() {
             options: Default::default(),
         };
         let opts = RunOptions { message: Some("Apply the requested edits".into()), ..RunOptions::default() };
-        let error = worker.run(&mut ws, entry, Some(api), None, &opts).unwrap_err();
+        let error = worker.run(&mut ws, entry, Some(api), None, super::super::KeptHistory::default(), &opts).unwrap_err();
         let saved = Workspace::open(&ws.root).unwrap();
         assert!(saved.manifest.awaiting_check, "the finished turn must be recorded before a progress error: {error:?}");
         assert_eq!(saved.manifest.last_reply, "Finished the requested edit");
@@ -186,7 +187,7 @@ fn consumed_note_resets_survive_failed_and_cancelled_turns() {
 
     for cancelled in [false, true] {
         for text in ["Keep the header blue", "   "] {
-            for record in ["", "{ broken progress", r#"{"version":2,"fingerprint":null,"unchanged_turns":1}"#] {
+            for record in ["", "{ broken progress", r#"{"version":3,"fingerprint":null,"unchanged_turns":1}"#] {
                 let dir = tempfile::tempdir().unwrap();
                 let mut ws = Workspace::create(dir.path(), "Interrupted note", "Build an app", TargetRef::None).unwrap();
                 std::fs::create_dir_all(ws.capture_dir()).unwrap();
@@ -227,7 +228,7 @@ fn consumed_note_resets_survive_failed_and_cancelled_turns() {
                     options: Default::default(),
                 };
                 let opts = RunOptions { continuing: true, ..RunOptions::default() };
-                let error = worker.run(&mut ws, entry, Some(api), None, &opts).unwrap_err();
+                let error = worker.run(&mut ws, entry, Some(api), None, super::super::KeptHistory::default(), &opts).unwrap_err();
                 assert_eq!(calls.load(Ordering::SeqCst), 1, "an interrupted request must not be sent again");
                 if cancelled {
                     assert_eq!(error.code, ErrorCode::Cancelled, "retain cancellation even when the progress record is unreadable");

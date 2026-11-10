@@ -586,3 +586,11 @@ fn providers_follow_their_own_export_rule() {
     assert!(exported(16), "exported by default up to API 16");
     assert!(!exported(17));
 }
+
+#[test]
+fn plain_count_promotes_at_unit_boundary() {
+    assert_eq!(ai_model::plain_count(999_949), "999.9 thousand");
+    assert_eq!(ai_model::plain_count(999_999), "1.0 million");
+    assert_eq!(ai_model::plain_count(999_999_999), "1.0 billion");
+    assert_eq!(ai_model::plain_count(999_999_999_999), "1.0 trillion");
+}

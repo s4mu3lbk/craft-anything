@@ -78,3 +78,19 @@ fn a_short_middle_block_does_not_shift_later_file_bytes() {
         }
     }
 }
+
+#[test]
+fn directory_size_covers_the_whole_padded_name_even_when_only_a_prefix_is_requested() {
+    let mut data = craft_anything_testkit::firmware::cramfs_image();
+    for size in [11u32, 12, 23] {
+        data[68..72].copy_from_slice(&size.to_le_bytes());
+        let image = fsread::cramfs::read(&data, &Limits { max_name: 1, ..Limits::default() });
+        assert!(image.entries.is_empty(), "size {size}");
+        assert!(!image.complete);
+    }
+    data[68..72].copy_from_slice(&24u32.to_le_bytes());
+    let image = fsread::cramfs::read(&data, &Limits::default());
+    assert!(image.complete);
+    assert_eq!(image.entries.len(), 1);
+    assert_eq!(image.entries[0].path, "hello.txt");
+}

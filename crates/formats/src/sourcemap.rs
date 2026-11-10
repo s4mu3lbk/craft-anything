@@ -33,6 +33,8 @@ pub enum SourceMapError {
     BadVersion,
     #[error("source map mappings are malformed at segment {0}")]
     BadMappings(usize),
+    #[error("source map index has invalid sections")]
+    BadSections,
     #[error("source map has more than {0} segments")]
     TooManySegments(usize),
     #[error("source map sections nest deeper than {0}")]
@@ -81,7 +83,10 @@ impl SourceMap {
     pub fn source_path(&self, index: u32) -> Option<String> {
         let s = self.sources.get(index as usize)?.as_ref()?;
         Some(match self.source_root.as_deref().filter(|r| !r.is_empty()) {
-            Some(root) if !s.contains("://") && !s.starts_with('/') => format!("{}/{}", root.trim_end_matches('/'), s),
+            Some(root) if !s.contains("://") && !s.starts_with('/') => {
+                let join = if root.ends_with('/') { "" } else { "/" };
+                format!("{root}{join}{s}")
+            }
             _ => s.clone(),
         })
     }
@@ -94,8 +99,8 @@ impl SourceMap {
     pub fn original_positions(&self, line: u32, column: u32) -> Vec<OriginalPosition> {
         if !self.sections.is_empty() {
             // Last section that starts at or before the position.
-            let found = self.sections.iter().rev().find(|(l, c, _)| (*l, *c) <= (line, column));
-            let Some((l, c, map)) = found else { return Vec::new() };
+            let end = self.sections.partition_point(|(l, c, _)| (*l, *c) <= (line, column));
+            let Some((l, c, map)) = end.checked_sub(1).and_then(|i| self.sections.get(i)) else { return Vec::new() };
             let rel_line = line.saturating_sub(*l);
             let rel_col = if rel_line == 0 { column.saturating_sub(*c) } else { column };
             return map
@@ -114,8 +119,10 @@ impl SourceMap {
         let idx = segs.partition_point(|s| s.generated_column <= column);
         let Some(best) = idx.checked_sub(1).and_then(|i| segs.get(i)) else { return Vec::new() };
         let col = best.generated_column;
-        segs.iter()
-            .filter(|s| s.generated_column == col)
+        let first = segs.partition_point(|s| s.generated_column < col);
+        segs.get(first..idx)
+            .unwrap_or_default()
+            .iter()
             .filter_map(|s| {
                 let (src, l, c, n) = s.original?;
                 Some(OriginalPosition {
@@ -176,18 +183,25 @@ fn from_value(v: &Value, depth: usize, limits: Limits, budget: &mut usize) -> Re
             .unwrap_or_default(),
         ..Default::default()
     };
-    if let Some(sections) = v.get("sections").and_then(Value::as_array) {
-        for s in sections {
-            let line = s.pointer("/offset/line").and_then(Value::as_u64).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
-            let col = s.pointer("/offset/column").and_then(Value::as_u64).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
-            // Only inline maps; a `url` section would need a fetch, which a parser never does.
-            if let Some(m) = s.get("map") {
-                let sub = from_value(m, depth + 1, limits, budget)?;
-                map.segments = map.segments.saturating_add(sub.segments);
-                map.sections.push((line, col, sub));
+    if let Some(sections) = v.get("sections") {
+        let sections = sections.as_array().ok_or(SourceMapError::BadSections)?;
+        for section in sections {
+            let offset = |key: &str| section.get("offset")?.get(key)?.as_u64().and_then(|n| u32::try_from(n).ok());
+            let line = offset("line").ok_or(SourceMapError::BadSections)?;
+            let col = offset("column").ok_or(SourceMapError::BadSections)?;
+            if map.sections.last().is_some_and(|(l, c, _)| (*l, *c) > (line, col)) {
+                return Err(SourceMapError::BadSections);
             }
+            let sub = match (section.get("map"), section.get("url")) {
+                (Some(m), None) => from_value(m, depth + 1, limits, budget)?,
+                // External maps are never fetched here. Retain their start so a lookup
+                // cannot leak through to the previous inline map.
+                (None, Some(Value::String(_))) => SourceMap::default(),
+                _ => return Err(SourceMapError::BadSections),
+            };
+            map.segments = map.segments.saturating_add(sub.segments);
+            map.sections.push((line, col, sub));
         }
-        map.sections.sort_by_key(|(l, c, _)| (*l, *c));
         return Ok(map);
     }
     let mappings = v.get("mappings").and_then(Value::as_str).unwrap_or_default();
@@ -208,23 +222,30 @@ fn b64(c: u8) -> Option<i64> {
 
 /// Decode one VLQ field from `bytes` at `*pos`.
 fn vlq(bytes: &[u8], pos: &mut usize) -> Option<i64> {
-    let mut result: i64 = 0;
+    let mut result = 0u32;
     let mut shift = 0u32;
     loop {
-        let d = b64(*bytes.get(*pos)?)?;
+        let d = b64(*bytes.get(*pos)?)? as u32;
         *pos += 1;
-        if shift > 35 {
-            return None;
+        let bits = d & 31;
+        if bits != 0 {
+            if bits > u32::MAX.checked_shr(shift)? {
+                return None;
+            }
+            result |= bits << shift;
         }
-        result |= (d & 31) << shift;
         if d & 32 == 0 {
             break;
         }
-        shift += 5;
+        // Redundant zero groups do not change the value.
+        shift = shift.saturating_add(5);
     }
-    let neg = result & 1 == 1;
-    let v = result >> 1;
-    Some(if neg { -v } else { v })
+    let magnitude = i64::from(result >> 1);
+    Some(match (result & 1, magnitude) {
+        (1, 0) => i64::from(i32::MIN),
+        (1, n) => -n,
+        _ => magnitude,
+    })
 }
 
 fn decode_mappings(m: &str, map: &mut SourceMap, budget: &mut usize) -> Result<(), SourceMapError> {
@@ -295,7 +316,11 @@ pub fn find_source_mapping_url(js: &str) -> Option<String> {
 
 /// Decode a `data:` URL, including percent escapes and optional base64 content.
 pub fn decode_data_url(url: &str) -> Option<Vec<u8>> {
-    let rest = url.strip_prefix("data:")?;
+    let (scheme, rest) = url.split_once(':')?;
+    if !scheme.eq_ignore_ascii_case("data") {
+        return None;
+    }
+    let rest = rest.split_once('#').map_or(rest, |(body, _)| body);
     let (meta, payload) = rest.split_once(',')?;
     let decoded: std::borrow::Cow<'_, [u8]> = if payload.contains('%') {
         let hex = |b: u8| match b {
@@ -313,7 +338,11 @@ pub fn decode_data_url(url: &str) -> Option<Vec<u8>> {
     } else {
         std::borrow::Cow::Borrowed(payload.as_bytes())
     };
-    if meta.ends_with(";base64") { base64_decode(std::str::from_utf8(&decoded).ok()?) } else { Some(decoded.into_owned()) }
+    if meta.rsplit_once(';').is_some_and(|(_, flag)| flag.trim_matches(|c: char| c.is_ascii_whitespace()).eq_ignore_ascii_case("base64")) {
+        base64_decode(std::str::from_utf8(&decoded).ok()?)
+    } else {
+        Some(decoded.into_owned())
+    }
 }
 
 /// Standard or URL-safe base64, padding optional. `None` on any invalid character.
@@ -324,6 +353,30 @@ pub fn base64_decode(text: &str) -> Option<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lookup_keeps_coincident_mappings_and_stops_at_an_unmapped_segment() {
+        let map = parse(br#"{"version":3,"sources":["a","b"],"mappings":"EAAA,ACAA,E"}"#, Limits::default()).unwrap();
+        assert!(map.original_positions(0, 1).is_empty());
+        let matches = map.original_positions(0, 3);
+        assert_eq!(matches.iter().map(|p| p.source_index).collect::<Vec<_>>(), [0, 1]);
+        assert!(map.original_positions(0, 4).is_empty());
+    }
+
+    #[test]
+    fn relative_sources_keep_the_url_root_delimiter() {
+        for (root, expected) in [
+            ("webpack:///", "webpack:///src/main.js"),
+            ("file:///", "file:///src/main.js"),
+            ("https://host/scripts/", "https://host/scripts/src/main.js"),
+            ("src", "src/src/main.js"),
+        ] {
+            let json = serde_json::json!({"version":3,"sourceRoot":root,"sources":["src/main.js"],"mappings":"AAAA"});
+            let map = parse(json.to_string().as_bytes(), Limits::default()).unwrap();
+            assert_eq!(map.all_sources(), [expected]);
+            assert_eq!(map.original_positions(0, 0)[0].source.as_deref(), Some(expected));
+        }
+    }
 
     #[test]
     fn decodes_and_looks_up() {
@@ -344,6 +397,14 @@ mod tests {
     }
 
     #[test]
+    fn data_url_fragments_are_not_part_of_the_source_map() {
+        assert_eq!(decode_data_url("DATA:application/json;BASE64,e30=#section"), Some(b"{}".to_vec()));
+        assert_eq!(decode_data_url("data:text/plain,one%23two#ignored%"), Some(b"one#two".to_vec()));
+        assert_eq!(decode_data_url("data:,body?query#fragment"), Some(b"body?query".to_vec()));
+        assert!(decode_data_url("http:,payload").is_none());
+    }
+
+    #[test]
     fn indexed_maps() {
         let m = br#"{"version":3,"sections":[{"offset":{"line":0,"column":0},"map":{"version":3,"sources":["a.js"],"names":[],"mappings":"AAAA"}},{"offset":{"line":1,"column":0},"map":{"version":3,"sources":["b.js"],"names":[],"mappings":"AAAA"}}]}"#;
         let map = parse(m, Limits::default()).unwrap();
@@ -352,10 +413,58 @@ mod tests {
     }
 
     #[test]
+    fn validates_index_map_shape_and_offsets() {
+        let inline = serde_json::json!({"version":3,"mappings":"A"});
+        for sections in [
+            serde_json::json!({}),
+            serde_json::json!([{"map":inline}]),
+            serde_json::json!([{"offset":{"line":-1,"column":0},"map":inline}]),
+            serde_json::json!([{"offset":{"line":0,"column":4294967296_u64},"map":inline}]),
+            serde_json::json!([{"offset":{"line":0,"column":0}}]),
+            serde_json::json!([{"offset":{"line":0,"column":0},"map":inline,"url":"later.map"}]),
+            serde_json::json!([{"offset":{"line":0,"column":2},"map":inline},{"offset":{"line":0,"column":1},"map":inline}]),
+        ] {
+            let json = serde_json::json!({"version":3,"sections":sections}).to_string();
+            assert_eq!(parse(json.as_bytes(), Limits::default()), Err(SourceMapError::BadSections));
+        }
+    }
+
+    #[test]
+    fn an_external_section_ends_the_previous_inline_mapping() {
+        let inline = serde_json::json!({"version":3,"sources":["first.js"],"mappings":"AAAA"});
+        let sections = serde_json::json!([
+            {"offset":{"line":0,"column":0},"map":inline},
+            {"offset":{"line":0,"column":4},"url":"external.map"},
+            {"offset":{"line":1,"column":0},"map":inline}
+        ]);
+        let json = serde_json::json!({"version":3,"sections":sections}).to_string();
+        let map = parse(json.as_bytes(), Limits::default()).unwrap();
+        assert_eq!(map.original_positions(0, 3)[0].source.as_deref(), Some("first.js"));
+        assert!(map.original_positions(0, 4).is_empty());
+        assert_eq!(map.original_positions(1, 0)[0].generated_column, 0);
+    }
+
+    #[test]
     fn finds_comment_and_data_urls() {
         assert_eq!(find_source_mapping_url("x()\n//# sourceMappingURL=app.js.map\n").as_deref(), Some("app.js.map"));
         assert_eq!(base64_decode("aGVsbG8=").unwrap(), b"hello");
         assert_eq!(decode_data_url("data:application/json;base64,e30=").unwrap(), b"{}");
+    }
+
+    #[test]
+    fn vlq_signed_extremes_and_overflow() {
+        for (field, value) in [
+            ("B", Some(i64::from(i32::MIN))),
+            ("+/////D", Some(i64::from(i32::MAX))),
+            ("//////D", Some(-i64::from(i32::MAX))),
+            ("ggggggE", None),
+            ("ggggggggggA", Some(0)),
+        ] {
+            assert_eq!(vlq(field.as_bytes(), &mut 0), value, "{field}");
+        }
+        let map = parse(br#"{"version":3,"mappings":"+/////D,C,B"}"#, Limits::default()).unwrap();
+        assert_eq!(map.lines[0].iter().map(|s| s.generated_column).collect::<Vec<_>>(), [0, 2147483647, 2147483648]);
+        assert!(parse(br#"{"version":3,"mappings":"B"}"#, Limits::default()).is_err());
     }
 
     #[test]

@@ -285,8 +285,15 @@ impl<'a> Metadata<'a> {
             let r = self.record(TYPES, l.type_size, i).ok_or("a type record can't be read")?;
             let start = r.u32_le(l.type_method_start).ok_or("a type record can't be read")? as i32;
             let count = r.u16_le(l.type_method_count).ok_or("a type record can't be read")?;
-            if count > 0 && usize::try_from(start).ok().and_then(|s| s.checked_add(usize::from(count))).is_none_or(|end| end > methods) {
-                return Err(format!("type {i} points at methods outside the table"));
+            if count > 0 {
+                let range = usize::try_from(start).ok().and_then(|start| Some(start..start.checked_add(usize::from(count))?));
+                let Some(range) = range.filter(|r| r.end <= methods) else { return Err(format!("type {i} points at methods outside the table")) };
+                for method in range {
+                    let owner = self.record(METHODS, l.method_size, method).and_then(|r| r.u32_le(l.method_type));
+                    if owner.and_then(|id| usize::try_from(id).ok()) != Some(i) {
+                        return Err(format!("method {method} is in type {i}'s range but declares a different owner"));
+                    }
+                }
             }
             total = total.saturating_add(u64::from(count));
         }
@@ -385,8 +392,8 @@ impl<'a> Metadata<'a> {
         let length = r.u32_le(0)?;
         let start = r.u32_le(4)? as usize;
         let bytes = self.section(LITERAL_DATA).get(start..start.checked_add(length as usize)?)?;
-        let shown = bytes.get(..bytes.len().min(max_bytes))?;
-        Some(Literal { index, length, text: String::from_utf8_lossy(shown).into_owned(), complete: shown.len() == bytes.len() })
+        let (text, complete) = literal_text(bytes, max_bytes);
+        Some(Literal { index, length, text, complete })
     }
 
     /// The first image holding this type.
@@ -401,6 +408,38 @@ impl<'a> Metadata<'a> {
     pub fn field_count(&self) -> u64 {
         (0..self.type_count()).filter_map(|i| self.type_def(i)).map(|t| u64::from(t.field_count)).sum()
     }
+}
+
+fn literal_text(bytes: &[u8], max_bytes: usize) -> (String, bool) {
+    let shown = bytes.get(..bytes.len().min(max_bytes)).unwrap_or_default();
+    let mut text = String::new();
+    let mut consumed = 0;
+    for chunk in shown.utf8_chunks() {
+        let valid = chunk.valid();
+        let mut end = valid.len().min(max_bytes.saturating_sub(text.len()));
+        while !valid.is_char_boundary(end) {
+            end -= 1;
+        }
+        text.push_str(valid.get(..end).unwrap_or_default());
+        consumed += end;
+        if end < valid.len() {
+            break;
+        }
+        let invalid = chunk.invalid();
+        if invalid.is_empty() {
+            continue;
+        }
+        if consumed + invalid.len() == shown.len() && shown.len() < bytes.len() && std::str::from_utf8(invalid).is_err_and(|error| error.error_len().is_none())
+        {
+            break;
+        }
+        if max_bytes.saturating_sub(text.len()) < '\u{FFFD}'.len_utf8() {
+            break;
+        }
+        text.push('\u{FFFD}');
+        consumed += invalid.len();
+    }
+    (text, consumed == bytes.len())
 }
 
 /// Text a compiler would write as a name: not empty, no control characters, and valid UTF-8 (a bad
@@ -532,6 +571,24 @@ mod tests {
     fn read_section(data: &[u8], which: usize) -> (usize, usize) {
         let r = Reader::new(data);
         (r.u32_le(8 + which * 8).unwrap() as usize, r.u32_le(12 + which * 8).unwrap() as usize)
+    }
+
+    #[test]
+    fn method_owners_must_agree_with_the_declaring_types_range() {
+        for layout in LAYOUTS {
+            let original = sample(layout.version, layout.method_size);
+            let mut wrong_owner = original.clone();
+            let (methods, _) = read_section(&wrong_owner, METHODS);
+            let owner = methods + layout.method_type;
+            wrong_owner[owner..owner + 4].copy_from_slice(&2u32.to_le_bytes());
+            assert!(matches!(read(&wrong_owner), Reading::HeaderOnly { .. }));
+            let mut overlap = original;
+            let (types, _) = read_section(&overlap, TYPES);
+            let start = types + 2 * layout.type_size + layout.type_method_start;
+            overlap[start..start + 4].copy_from_slice(&0u32.to_le_bytes());
+            // Both ranges remain inside the method table and their counts still add up to four.
+            assert!(matches!(read(&overlap), Reading::HeaderOnly { .. }));
+        }
     }
 
     #[test]

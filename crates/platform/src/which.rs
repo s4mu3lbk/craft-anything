@@ -113,9 +113,13 @@ fn find_interpreter(dir: &Path, interpreter: &str, path: Option<OsString>) -> Op
 }
 
 /// What an npm (or pnpm) `.cmd` shim runs: its interpreter (`node`; none when the target is an
-/// `.exe`) and the target, relative to the shim's folder.
+/// `.exe`) and the target, relative to the shim's folder. A `.cmd` that only runs one `.exe` by its
+/// full path (see [`exe_wrapper_target`]) gives that path, with no interpreter.
 #[cfg(any(windows, test))]
 fn parse_npm_shim(text: &str) -> Option<(Option<String>, String)> {
+    if let Some(exe) = exe_wrapper_target(text) {
+        return Some((None, exe));
+    }
     let run = text.lines().find(|l| l.contains("%*"))?;
     let quoted: Vec<&str> = run.split('"').skip(1).step_by(2).collect();
     let target = quoted.iter().rev().find_map(|q| q.strip_prefix(r"%dp0%\").or_else(|| q.strip_prefix(r"%~dp0\")))?;
@@ -130,6 +134,32 @@ fn parse_npm_shim(text: &str) -> Option<(Option<String>, String)> {
         quoted.iter().any(|q| q.to_ascii_lowercase().ends_with(r"\node.exe")).then_some("node")?
     };
     Some((Some(interpreter.to_string()), target.to_string()))
+}
+
+/// The `.exe` a `.cmd` wrapper starts when that is all it does: `"C:\…\codex.exe" %*`, written by
+/// hand or by another tool, with only `@echo off`, comments and blank lines besides. Through
+/// `cmd.exe` an argument with a line break is refused ("batch file arguments are invalid", #1237),
+/// `%` is expanded and the line stops at 8191 characters, so starting the `.exe` is better and the
+/// same. Anything more in the file (a `set`, arguments before `%*`, a `%` in the path) and the
+/// wrapper is run as it is.
+#[cfg(any(windows, test))]
+fn exe_wrapper_target(text: &str) -> Option<String> {
+    let mut target = None;
+    for line in text.lines().map(str::trim) {
+        let lower = line.to_ascii_lowercase();
+        let lower = lower.strip_prefix('@').unwrap_or(&lower);
+        if line.is_empty() || lower == "echo off" || lower == "rem" || lower.starts_with("rem ") || lower.starts_with("::") {
+            continue;
+        }
+        let (path, rest) = line.strip_prefix('@').unwrap_or(line).strip_prefix('"')?.split_once('"')?;
+        let drive = path.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) && path.get(1..3) == Some(":\\");
+        let full = drive || path.starts_with(r"\\");
+        if target.is_some() || rest.trim() != "%*" || !full || path.contains('%') || !path.to_ascii_lowercase().ends_with(".exe") {
+            return None;
+        }
+        target = Some(path.to_string());
+    }
+    target
 }
 
 /// The `bin` folders of the Node versions nvm installed, newest first: npm puts the agents it
@@ -255,11 +285,16 @@ pub fn cli_file_name() -> String {
 /// Absolute path of the installed `craft-anything-cli`: this executable when it is the CLI, else
 /// a sibling of this executable (the desktop app ships next to it), else the first one on `PATH`.
 pub fn self_cli_path() -> Option<PathBuf> {
+    // The prefix is dropped from the path found, not from this executable's: a sibling is longer,
+    // and only its own length says whether it still fits without the prefix.
+    find_cli().map(plain)
+}
+
+fn find_cli() -> Option<PathBuf> {
     let name = cli_file_name();
-    let exe = std::env::current_exe().ok().map(|p| std::fs::canonicalize(&p).unwrap_or(p));
-    if let Some(exe) = &exe {
+    if let Some(exe) = std::env::current_exe().ok().map(|p| std::fs::canonicalize(&p).unwrap_or(p)) {
         if exe.file_name().is_some_and(|n| n == name.as_str()) {
-            return Some(exe.clone());
+            return Some(exe);
         }
         if let Some(dir) = exe.parent() {
             let sib = dir.join(&name);
@@ -275,6 +310,45 @@ pub fn self_cli_path() -> Option<PathBuf> {
         }
     }
     which("craft-anything-cli")
+}
+
+/// `path` without the `\\?\` prefix `canonicalize` adds on Windows, so clients that can't start
+/// a program from the extended-length form (Hermes, #1167) get a path they can. Elsewhere, and
+/// whenever the plain form could name another file (see [`plain_form`]), the path is unchanged.
+fn plain(path: PathBuf) -> PathBuf {
+    if !cfg!(windows) {
+        return path;
+    }
+    path.to_str().and_then(plain_form).map_or(path, PathBuf::from)
+}
+
+/// The plain form of an extended-length path: `\\?\C:\x` is `C:\x` and `\\?\UNC\server\share\x`
+/// is `\\server\share\x`. `None` (keep the prefix) for any other text, or when dropping it would
+/// change what the path names: it is 260 characters or longer (MAX_PATH), or a component ends
+/// with a dot or space, is `.` or `..`, holds a `/`, `?` or `:`, or is a device name (`CON`,
+/// `NUL`, `CONOUT$`, `COM0`, `LPT²`…), all of which only the prefixed form keeps literally.
+fn plain_form(path: &str) -> Option<String> {
+    let (plain, rest) = if let Some(rest) = path.strip_prefix(r"\\?\UNC\") {
+        (format!(r"\\{rest}"), rest)
+    } else {
+        let rest = path.strip_prefix(r"\\?\")?;
+        let b = rest.as_bytes();
+        let drive = b.first().is_some_and(u8::is_ascii_alphabetic) && b.get(1) == Some(&b':') && b.get(2) == Some(&b'\\');
+        if !drive {
+            return None;
+        }
+        (rest.to_string(), rest.get(3..)?)
+    };
+    let device = |c: &str| {
+        let stem = c.split('.').next().unwrap_or(c).trim_end().to_ascii_uppercase();
+        let numbered = |p: &str| stem.strip_prefix(p).is_some_and(|n| matches!(n, "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"));
+        matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$") || numbered("COM") || numbered("LPT")
+    };
+    let odd = |c: &str| c.is_empty() || c == "." || c == ".." || c.ends_with('.') || c.ends_with(' ') || c.contains(['/', '?', ':']) || device(c);
+    if rest.is_empty() || rest.split('\\').any(odd) || plain.encode_utf16().count() >= 260 {
+        return None;
+    }
+    Some(plain)
 }
 
 #[cfg(windows)]
@@ -315,6 +389,83 @@ fn is_executable(p: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plain_form_drops_the_extended_length_prefix_only_when_it_names_the_same_file() {
+        assert_eq!(plain_form(r"\\?\C:\Apps\craft-anything-cli.exe").as_deref(), Some(r"C:\Apps\craft-anything-cli.exe"));
+        assert_eq!(plain_form(r"\\?\UNC\server\share\bin\cli.exe").as_deref(), Some(r"\\server\share\bin\cli.exe"));
+        // Not extended-length, or not a drive or UNC path behind the prefix: left alone.
+        for p in [
+            r"C:\Apps\cli.exe",
+            r"\\server\share\cli.exe",
+            "/opt/bin/cli",
+            r"\\.\pipe\x",
+            r"\\?\Volume{1234}\x.exe",
+            "",
+            r"\\?\",
+            r"\\?\C:",
+            r"\\?\C:\",
+            r"\\?\UNC\",
+        ] {
+            assert_eq!(plain_form(p), None, "{p}");
+        }
+        // Components only the prefixed form keeps literally.
+        for p in [
+            r"\\?\C:\Tools.\cli.exe",
+            r"\\?\C:\Tools \cli.exe",
+            r"\\?\C:\a\..\cli.exe",
+            r"\\?\C:\a\.\cli.exe",
+            r"\\?\C:\a\\cli.exe",
+            r"\\?\C:\a/b\cli.exe",
+            r"\\?\C:\NUL\cli.exe",
+            r"\\?\C:\x\con.txt",
+            r"\\?\C:\x\COM1",
+            r"\\?\C:\x\lpt9.exe",
+            r"\\?\UNC\srv\share\aux",
+            r"\\?\C:\x\COM¹",
+            r"\\?\C:\x\lpt³.txt",
+            r"\\?\C:\x\CONOUT$",
+            r"\\?\C:\x\conin$.log",
+            r"\\?\UNC\?\C:\x.exe",
+            r"\\?\C:\a?b\x.exe",
+            r"\\?\C:\x\LPT0",
+            r"\\?\C:\x\com0.exe",
+            r"\\?\C:\x\NUL:s",
+            r"\\?\C:\x\cli.exe:stream",
+        ] {
+            assert_eq!(plain_form(p), None, "{p}");
+        }
+        assert_eq!(plain_form(r"\\?\C:\x\COM10\console.exe").as_deref(), Some(r"C:\x\COM10\console.exe"));
+        // Long paths need the prefix (MAX_PATH is 260 with its terminator).
+        let at = |n: usize| format!(r"\\?\C:\{}", "a".repeat(n - 3));
+        assert_eq!(plain_form(&at(259)).map(|p| p.len()), Some(259));
+        assert_eq!(plain_form(&at(260)), None);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn this_executable_comes_back_plain_and_still_names_itself() {
+        let exe = std::fs::canonicalize(std::env::current_exe().unwrap()).unwrap();
+        assert!(exe.to_string_lossy().starts_with(r"\\?\"), "canonicalize adds the prefix: {exe:?}");
+        let p = plain(exe.clone());
+        if exe.to_str().and_then(plain_form).is_none() {
+            assert_eq!(p, exe, "a checkout only the prefixed form names keeps it");
+            return;
+        }
+        assert!(!p.to_string_lossy().starts_with(r"\\?\"), "{p:?}");
+        assert!(p.is_file() && std::fs::canonicalize(&p).unwrap() == exe, "{p:?}");
+    }
+
+    /// #1167: what setup registers is the plain path whenever that names the same file.
+    #[cfg(windows)]
+    #[test]
+    fn self_cli_path_is_plain_when_it_can_be() {
+        let Some(p) = self_cli_path() else { return };
+        let canon = std::fs::canonicalize(&p).unwrap();
+        if canon.to_str().and_then(plain_form).is_some() {
+            assert!(!p.to_string_lossy().starts_with(r"\\?\"), "{p:?}");
+        }
+    }
 
     #[test]
     fn finds_sh_and_misses_nonsense() {
@@ -493,6 +644,45 @@ mod tests {
         // Not a shim we know: the batch file is run as it is.
         assert_eq!(parse_npm_shim("@echo off\r\n\"%NODE_EXE%\" \"%NPM_CLI_JS%\" %*\r\n"), None);
         assert_eq!(parse_npm_shim("@echo off\r\necho hi\r\n"), None);
+    }
+
+    /// #1237: a hand-written `codex.cmd` that runs Codex's own `codex.exe` by its full path.
+    const EXE_WRAPPER: &str = "@echo off\r\nrem Points \"codex\" at the real binary.\r\n:: and a second comment\r\n\r\n\"C:\\npm\\node_modules\\@openai\\codex\\bin\\codex.exe\" %*\r\n";
+
+    #[test]
+    fn a_cmd_that_only_runs_an_exe_names_it() {
+        let exe = r"C:\npm\node_modules\@openai\codex\bin\codex.exe";
+        assert_eq!(exe_wrapper_target(EXE_WRAPPER).as_deref(), Some(exe));
+        assert_eq!(parse_npm_shim(EXE_WRAPPER), Some((None, exe.into())));
+        assert_eq!(exe_wrapper_target("@\"\\\\server\\share\\tool.EXE\"   %*\n").as_deref(), Some(r"\\server\share\tool.EXE"), "a UNC path, and @ before it");
+        // Anything more and the wrapper is run as it is, so nothing it does is lost.
+        for (text, why) in [
+            ("@echo off\nset CODEX_HOME=C:\\x\n\"C:\\x\\codex.exe\" %*\n", "it sets something first"),
+            ("@echo off\n\"C:\\x\\codex.exe\" --profile work %*\n", "arguments before %*"),
+            ("@echo off\n\"C:\\x\\codex.exe\" %* --extra\n", "arguments after %*"),
+            ("@echo off\n\"C:\\x\\codex.exe\"\n", "it drops the arguments"),
+            ("@echo off\n\"%LOCALAPPDATA%\\x\\codex.exe\" %*\n", "a % in the path"),
+            ("@echo off\n\"x\\codex.exe\" %*\n", "a relative path"),
+            ("@echo off\n\"C:\\x\\codex.cmd\" %*\n", "not an .exe"),
+            ("@echo off\n\"C:\\x\\a.exe\" %*\n\"C:\\x\\b.exe\" %*\n", "two programs"),
+            ("@echo off\nrem nothing here\n", "nothing runs"),
+        ] {
+            assert_eq!(exe_wrapper_target(text), None, "{why}");
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_cmd_that_only_runs_an_exe_starts_the_exe() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = tempfile::tempdir().unwrap();
+        let exe = bin.path().join("codex.exe");
+        let wrapper = |exe: &Path| format!("@echo off\r\nrem a wrapper\r\n\"{}\" %*\r\n", exe.display());
+        std::fs::write(dir.path().join("codex.cmd"), wrapper(&exe)).unwrap();
+        // The .exe isn't there: the wrapper itself, as before.
+        assert_eq!(launch_target(dir.path().join("codex").as_os_str()), (dir.path().join("codex.cmd").into_os_string(), Vec::new()));
+        std::fs::write(&exe, "").unwrap();
+        assert_eq!(launch_target(dir.path().join("codex").as_os_str()), (exe.into_os_string(), Vec::new()));
     }
 
     #[cfg(windows)]

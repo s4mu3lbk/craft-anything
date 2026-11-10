@@ -213,6 +213,7 @@ pub fn detected() -> Vec<Detected> {
     ]
 }
 
+/// A demo workspace with the given fields and no saved session.
 fn workspace(slug: &str, name: &str, request: &str, target: TargetRef, status: Status, age_min: u64) -> Workspace {
     let at = craft_anything_engine::inbox::now_ms().saturating_sub(age_min * 60_000);
     Workspace {
@@ -230,6 +231,7 @@ fn workspace(slug: &str, name: &str, request: &str, target: TargetRef, status: S
             checks: Vec::new(),
             agent_session: None,
             agent_session_by: None,
+            agent_session_deep: None,
             allowed_actions: Vec::new(),
             last_reply: String::new(),
             asset_budget_usd: craft_anything_engine::workspace::ASSET_BUDGET_USD,
@@ -241,6 +243,7 @@ fn workspace(slug: &str, name: &str, request: &str, target: TargetRef, status: S
             approvals: Default::default(),
             awaiting_check: false,
             not_working_checks: 0,
+            decompiled: false,
         },
     }
 }

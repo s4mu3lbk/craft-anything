@@ -41,7 +41,10 @@ impl TurnFailure {
     pub(crate) fn from_api(error: &ToolError) -> Self {
         let status = error.details.as_ref().and_then(|d| d.get("status")).and_then(serde_json::Value::as_u64);
         let provider = error.details.as_ref().and_then(|d| d.get("provider_error")).and_then(serde_json::Value::as_str);
+        // A request too long for the server's context is refused the same way however often it's sent.
+        let overflow = error.details.as_ref().and_then(|d| d.get("context_overflow")).and_then(serde_json::Value::as_bool) == Some(true);
         let kind = match (status, provider) {
+            _ if overflow => FailureKind::Configuration,
             (Some(401 | 403), _) | (_, Some("authentication_error" | "permission_error" | "invalid_api_key")) => FailureKind::Authentication,
             (Some(402), _) | (_, Some("billing_error" | "insufficient_quota")) => FailureKind::Billing,
             (Some(429), _) | (_, Some("rate_limit_error" | "rate_limit_exceeded")) => FailureKind::RateLimited,

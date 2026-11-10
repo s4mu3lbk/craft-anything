@@ -1,0 +1,1472 @@
+# et: original Estonian UI translations. Licensed MIT OR Apache-2.0.
+# UTF-8: English source<TAB>translation. Keep placeholders and escapes intact.
+OpenCode default	OpenCode'i vaikimisi
+Model default	Mudeli vaikimisi
+Thinking depth	Mõtlemise sügavus
+OpenCode model	OpenCode'i mudel
+Remote program	Kaugprogramm
+Reload models	Laadi mudelid uuesti
+Apply	Rakenda
+No chat models are visible in {agent}. Check its setup, then reload.	{agent} ei näita ühtegi vestlusmudelit. Kontrolli seadistust ja laadi siis uuesti.
+The saved model is no longer visible. Choose another model or the {agent} default.	Salvestatud mudel pole enam nähtav. Vali mõni teine mudel või {agent} vaikemudel.
+OpenCode has no visible chat models. Connect a provider in OpenCode, then reload.	OpenCode'is pole nähtavaid vestlusmudeleid. Ühenda OpenCode'is teenusepakkuja ja laadi siis uuesti.
+The saved model is no longer visible. Choose another model or the OpenCode default.	Salvestatud mudel pole enam nähtav. Vali mõni teine mudel või OpenCode'i vaikemudel.
+The saved thinking depth is unavailable for this model. Choose its default or an offered depth.	Salvestatud mõtlemise sügavus pole selle mudeli jaoks saadaval. Vali mudeli vaikimisi väärtus või pakutud sügavus.
+List an agent's models	Loetle agenti mudelid
+Choose an agent's model and thinking	Vali agenti mudel ja mõtlemise sügavus
+ GB	 GB
+ and {n} more	 ja veel {n}
+ {ascii}	 {ascii}
+ · ${c:.2}	 · ${c:.2}
+ · ssh {h}	 · ssh {h}
+(1 picture attached)	(1 pilt lisatud)
+({n} pictures attached)	({n} pilti lisatud)
+, ${c:.4}	, ${c:.4}
+.NET application graph	.NET-rakenduse graaf
+.NET apps	.NET-rakendused
+.NET assembly overview	.NET-assembly ülevaade
+.NET native calls	.NET-i natiivkutsed
+.NET types and methods	.NET-i tüübid ja meetodid
+/btw {}	/btw {}
+0x… or number	0x… või number
+A .NET program (C#, F# or VB)	.NET-programm (C#, F# või VB)
+A DOS program	DOS-i programm
+A Java program	Java programm
+A Linux (or Unix) program	Linuxi (või Unixi) programm
+A Mac or iPhone program	Maci või iPhone'i programm
+A SQLite database (how an app stores its data)	SQLite-andmebaas (kuidas rakendus oma andmeid hoiab)
+A WebAssembly module (code that runs in a browser)	WebAssembly-moodul (kood, mis töötab brauseris)
+A Windows program	Windowsi programm
+A ZIP archive	ZIP-arhiiv
+A bundle of ready-made code that many programs share.	Valmis koodikogum, mida paljud programmid jagavad.
+A coding agent such as Claude Code builds it, and an AI answers your questions in plain words. Change this any time in Settings → AI.	Selle ehitab programmeerimisagent nagu Claude Code ja sinu küsimustele vastab AI lihtsas keeles. Seda saab igal ajal muuta jaotises Seaded → AI.
+A command's output shows here when it finishes.	Käsurea väljund kuvatakse siin, kui see lõpeb.
+A copy to try something else from here.	Koopia, et siit midagi muud proovida.
+A file of machine code that a computer can run directly, like an .exe or an app.	Masinkoodifail, mida arvuti saab otse käivitada, näiteks .exe või rakendus.
+A file that a computer can run as a program.	Fail, mida arvuti saab programmina käivitada.
+A file that links packed web code back to the original, readable source files.	Fail, mis seob pakitud veebikoodi algsete loetavate lähtefailidega.
+A file we don't recognise yet	Fail, mida me veel ei tunne
+A first look at a file you're unsure about, without running it.	Esimene pilk failile, milles sa pole kindel, ilma seda käivitamata.
+A folder	Kaust
+A folder has no bytes of its own	Kaustal pole oma baite
+A free reverse-engineering tool from the NSA. Deep mode uses it for extra detail; Clean room mode never does.	NSA tasuta pöördprojekteerimise tööriist. Sügav režiim kasutab seda lisadetailide jaoks; puhas ruum ei kasuta seda kunagi.
+A frozen copy (recommended)	Külmutatud koopia (soovitatav)
+A frozen copy takes {size}. That's a lot of space: a light copy takes {light}.	Külmutatud koopia võtab {size}. See on palju ruumi: kerge koopia võtab {light}.
+A frozen copy takes {size}; a light copy takes {light}.	Külmutatud koopia võtab {size}; kerge koopia võtab {light}.
+A game	Mäng
+A game's files	Mängu failid
+A light copy	Kerge koopia
+A locked room for running a program so it can't touch the rest of your computer.	Lukustatud ruum programmi käivitamiseks, et see ei saaks ülejäänud arvutit puutuda.
+A map of which functions call which other functions.	Kaart, mis näitab, millised funktsioonid kutsuvad milliseid teisi funktsioone.
+A name the program's author gave to a function or variable that survived in the file.	Nimi, mille programmi autor andis funktsioonile või muutujale ja mis on failis alles.
+A named piece of a program that does one job, like "add two numbers" or "save the file".	Programmi nimetatud osa, mis teeb üht asja, näiteks „liida kaks arvu“ või „salvesta fail“.
+A number that says where something is in a program's memory, like a house number.	Arv, mis ütleb, kus miski programmi mälus asub, nagu maja number.
+A piece of text stored inside a program, like a message, a web address or a file name.	Programmi sees hoitav tekstilõik, näiteks teade, veebiaadress või failinimi.
+A program, an app bundle, an APK, a JavaScript bundle, a folder… or drop it on the window.	Programm, rakendusepakett, APK, JavaScripti kimp, kaust… või lohista see aknale.
+A recording of network traffic	Võrguliikluse salvestis
+A region of a program as it sits in memory while running.	Programmi piirkond nii, nagu see töötamise ajal mälus paikneb.
+A region of a program file with one purpose: code, text, pictures, settings.	Programmifaili piirkond ühe otstarbega: kood, tekst, pildid, seaded.
+A rule of thumb. Usually right, sometimes wrong, so we label the result as a best guess.	Rusikareegel. Tavaliselt õige, mõnikord vale, seega märgime tulemuse parimaks oletuseks.
+A saved, checkable record of something we found, with how sure we are and where we found it.	Salvestatud ja kontrollitav kirje millestki, mille leidsime, koos kindlusastme ja leidmiskohaga.
+A script or web page	Skript või veebileht
+A set of commands a program offers to other programs.	Käskude kogum, mida programm pakub teistele programmidele.
+A simple snake game	Lihtne usumäng
+A small download (under 200 MB). Free, no account needed.	Väike allalaadimine (alla 200 MB). Tasuta, kontot pole vaja.
+A small file that lists what an app is called, what it needs and what it's allowed to do.	Väike fail, kus on kirjas rakenduse nimi, vajadused ja lubatud tegevused.
+A smart contract (EVM bytecode)	Nutileping (EVM-i baitkood)
+A way of writing bytes as two-character codes (00 to FF). The rawest view of a file.	Viis kirjutada baidid kahekohaliste koodidena (00 kuni FF). Faili kõige toorem vaade.
+A way to build desktop apps out of web pages. The app is basically a website with its own browser.	Viis ehitada töölauarakendusi veebilehtedest. Rakendus on põhimõtteliselt veebileht oma brauseriga.
+A website	Veebileht
+A website for my bakery	Veebileht minu pagaritöökojale
+AI	AI
+AI cost	AI kulu
+AI cost (estimate)	AI kulu (hinnang)
+AI cost (part estimate)	AI kulu (osaliselt hinnatud)
+AI model file	AI mudelifail
+AI name	AI nimi
+AI use this session	AI kasutus selles seansis
+API boundary	API piir
+API key	API võti
+API key (stored in your system keychain)	API võti (hoitakse süsteemi võtmehoidlas)
+API key, if it needs one	API võti, kui seda vaja on
+About 10 GB. Free for personal use with a Unity account.	Umbes 10 GB. Isiklikuks kasutuseks tasuta Unity kontoga.
+About 60 GB, an Epic Games account, and Visual Studio's C++ tools.	Umbes 60 GB, Epic Gamesi konto ja Visual Studio C++ tööriistad.
+Add	Lisa
+Add Visual Studio's C++ tools	Lisa Visual Studio C++ tööriistad
+Add a brain	Lisa aju
+Add a fal.ai key	Lisa fal.ai võti
+Add a folder…	Lisa kaust…
+Add a plugin	Lisa plugin
+Add an AI brain and I'll read this evidence for you, answer follow-up questions and point at the proof.	Lisa AI aju ja ma loen selle tõendusmaterjali sinu eest läbi, vastan järelküsimustele ja osutan tõestusele.
+Add an AI by its address	Lisa AI selle aadressi järgi
+Add another	Lisa veel üks
+Add it again, to choose another account's folder for it.	Lisa see uuesti, et valida sellele teise konto kaust.
+Add more info. The builder reads it at its next step.	Lisa rohkem teavet. Ehitaja loeb seda oma järgmises etapis.
+Add pictures	Lisa pilte
+Add pictures of the original	Lisa pilte originaalist
+Add pictures of the original (optional: screenshots help it look right)	Lisa pilte originaalist (valikuline: ekraanipildid aitavad õige väljanägemise eest)
+Add to a running build	Lisa jooksvale ehitusele
+Added	Lisatud
+Added {n} picture(s). The builder uses them from your next change.	Lisatud {n} pilt(i). Ehitaja kasutab neid alates sinu järgmisest muudatusest.
+Address to file offset	Aadress failinihkeni
+Adds its decompiler to Deep mode. Craft Anything can download and set it up for you.	Lisab oma dekompilaatori sügavasse režiimi. Craft Anything saab selle sinu eest alla laadida ja seadistada.
+Advanced	Täpsem
+After installing one, look for it again.	Pärast selle installimist otsi uuesti.
+Agent	Agent
+Allow generated assets	Luba genereeritud varasid
+Allow once	Luba üks kord
+Allowed for this project	Selle projekti jaoks lubatud
+Allowed for this project.	Selle projekti jaoks lubatud.
+Allowed in	Lubatud asukohas
+Allowed once	Lubatud üks kord
+Allowed once.	Lubatud üks kord.
+Also list projects from	Loetle ka projekte asukohast
+Always for this project	Alati selle projekti jaoks
+An Android app	Androidi rakendus
+An Android app package: the file you install on a phone.	Androidi rakendusepakett: fail, mille paigaldad telefonile.
+An Apple settings file (plist)	Apple'i seadistusfail (plist)
+An app	Rakendus
+An app or a file	Rakendus või fail
+Analyse a JavaScript app	Analüüsi JavaScripti rakendust
+Analyse a page's JavaScript	Analüüsi lehe JavaScripti
+Android app code (DEX)	Androidi rakenduse kood (DEX)
+Android app components	Androidi rakenduse komponendid
+Android app package	Androidi rakendusepakett
+Android apps	Androidi rakendused
+Android class	Androidi klass
+Android method bytecode	Androidi meetodi baitkood
+Android resources	Androidi ressursid
+Annotate function	Lisa funktsioonile annotatsioon
+Another build is working, so this one waits its turn.	Teine ehitus töötab, seega see ootab oma järge.
+Answer a project's question	Vasta projekti küsimusele
+Answer any of them in a message below.	Vasta neist ükskõik millisele allolevas sõnumis.
+Answered by {name}	Vastas {name}
+Answers come from {brain}. To build, set up a coding agent in Settings → AI.	Vastused tulevad allikast {brain}. Ehitamiseks seadista programmeerimisagent jaotises Seaded → AI.
+App	Rakendus
+App details on device	Rakenduse üksikasjad seadmes
+Apple apps	Apple'i rakendused
+Apply model options	Rakenda mudeli valikud
+Approve an agent action	Kinnita agenti tegevus
+Apps and games: keep refining until they look this alike to your pictures. Off, the likeness is only reported.	Rakendused ja mängud: jätka täiustamist, kuni need näevad sinu piltidega nii sarnased välja. Väljas: sarnasusest ainult teatatakse.
+Architectures	Arhitektuurid
+Archive	Arhiiv
+Archives	Arhiivid
+Ask a question	Esita küsimus
+Ask about a build	Küsi ehituse kohta
+Ask about the build	Küsi ehituse kohta
+Ask about the build, e.g. "where are the latest files?" Nothing changes and no build starts.	Küsi ehituse kohta, nt „kus on uusimad failid?“ Miski ei muutu ja ehitus ei käivitu.
+Ask about this game	Küsi selle mängu kohta
+Ask anything, e.g. "What does this program do?"	Küsi ükskõik mida, nt „mida see programm teeb?“
+Ask before running anything	Küsi enne iga käivitamist
+Ask each time	Küsi iga kord
+Ask first	Küsi enne
+Ask for a change	Palu muudatust
+Ask for a change, e.g. "bigger buttons" or "add a dark mode"	Palu muudatust, nt „suuremad nupud“ või „lisa tume režiim“
+Ask for a change, e.g. "make it faster" or "add a high-score table"	Palu muudatust, nt „tee kiiremaks“ või „lisa edetabel“
+Ask for a change, e.g. "make the header blue" or "add a contact form"	Palu muudatust, nt „tee päis siniseks“ või „lisa kontaktvorm“
+Ask in your own words. Every answer shows how sure we are, and the proof.	Küsi omal sõnadel. Iga vastus näitab, kui kindlad me oleme, ja tõestust.
+Ask me	Küsi minult
+Ask the agent about this	Küsi agenti selle kohta
+Ask the agent about this target. It cites evidence for every claim.	Küsi agenti selle sihtmärgi kohta. Ta viitab iga väite kohta tõenditele.
+Ask the agent…	Küsi agendilt…
+Ask the person	Küsi inimeselt
+Ask: "How does the % key work?"	Küsi: „Kuidas % klahv töötab?“
+Ask: "Is it safe to run?"	Küsi: „Kas seda on turvaline käivitada?“
+Ask: "What does it send over the internet?"	Küsi: „Mida see interneti kaudu saadab?“
+Asking for its models…	Mudelite küsimine…
+Asset catalog	Varakataloog
+At most this many rounds of fixes after the first build.	Kõige rohkem nii palju parandusringe pärast esimest ehitust.
+Attach pictures	Lisa pilte
+Attach pictures (or drop or paste them here)	Lisa pilte (või lohista või kleebi need siia)
+Auto mode	Automaatrežiim
+Automatic	Automaatne
+Automatic ({name})	Automaatne ({name})
+Back	Tagasi
+Best guess	Parim oletus
+Best guess: a reasonable reading, but not proven.	Parim oletus: mõistlik tõlgendus, kuid pole tõestatud.
+Binary layout	Binaarfaili paigutus
+Blocked	Blokeeritud
+Bookmark	Järjehoidja
+Budget for a new project	Uue projekti eelarve
+Bug report	Veaaruanne
+Build	Ehita
+Build a rebuild ledger	Koosta taasehituse päevik
+Build a stand-in backend	Ehita asendustaustarakendus
+Build with	Ehita koos
+Build with this	Ehita sellega
+Build with {name}	Ehita {name} abil
+Build with {name} instead	Ehita selle asemel {name} abil
+Build without it	Ehita ilma selleta
+Builder's questions:	Ehitaja küsimused:
+Building	Ehitan
+Building needs a coding agent on this computer (Claude Code, Codex or Gemini CLI: install one and sign in to it once in its own window), or an AI with an API key. Craft Anything never sees your account.	Ehitamiseks on vaja selles arvutis programmeerimisagenti (Claude Code, Codex või Gemini CLI: paigalda üks ja logi selle oma aknas üks kord sisse) või AI-d API võtmega. Craft Anything ei näe kunagi sinu kontot.
+Building needs a coding agent such as Claude Code, or an AI with an API key.	Ehitamiseks on vaja programmeerimisagenti nagu Claude Code või AI-d API võtmega.
+Builds	Ehitused
+Builds and answers may use it again.	Ehitused ja vastused võivad seda uuesti kasutada.
+Builds at once	Samaaegsed ehitused
+Builds keep going without stopping to ask you before an action. The builder still never deletes outside its project, changes system settings or publishes anything, and stays within each project's asset budget.	Ehitused jätkuvad ilma, et enne toimingut sinult küsitaks. Ehitaja ei kustuta ikkagi midagi väljaspool oma projekti, ei muuda süsteemiseadeid ega avalda midagi ning jääb iga projekti varade eelarve piiresse.
+Builds use this one. Click to choose automatically again.	Ehitused kasutavad seda. Automaatseks valimiseks klõpsa uuesti.
+Built by	Ehitanud
+Built with	Ehitatud kasutades
+Built with {stack}, as you asked, so no game engine is needed.	Ehitatud kasutades {stack}, nagu soovisid, seega pole mängumootorit vaja.
+Call graph	Kutsete graaf
+Call path	Kutseahel
+Call the build done	Kuuluta ehitus valmis
+Called done. A new message carries on from here.	Valmis kuulutatud. Uus sõnum jätkab siit.
+Cancel	Tühista
+Cancel: don't use this folder	Tühista: ära kasuta seda kausta
+Capture a website for rebuilding	Salvesta veebileht taasehituseks
+Capture inventories	Salvesta loendid
+Capture menus, dialogs and tabs	Salvesta menüüd, dialoogid ja vahekaardid
+Change	Muuda
+Change a setting	Muuda seadet
+Change an AI's model	Muuda AI mudelit
+Change how hard an AI thinks	Muuda, kui põhjalikult AI mõtleb
+Change it	Muuda seda
+Change…	Muuda…
+Check	Kontrolli
+Check .NET native calls	Kontrolli .NET-i natiivkutseid
+Check a rebuild claim	Kontrolli taasehituse väidet
+Check a scripted web session	Kontrolli skriptitud veebiseanssi
+Check an answer	Kontrolli vastust
+Check decompiled C#	Kontrolli dekompileeritud C#-i
+Check my build	Kontrolli minu ehitust
+Check the JEB connection	Kontrolli JEB-ühendust
+Check the asset keys	Kontrolli varade võtmeid
+Check the setup	Kontrolli seadistust
+Check {n}	Kontroll {n}
+Check {n}: about {s}% like the original	Kontroll {n}: umbes {s}% originaaliga sarnane
+Checked against Godot's official checksums before it's used.	Enne kasutamist kontrollitakse Godoti ametlike kontrollsummadega.
+Checking	Kontrollin
+Choose a file	Vali fail
+Choose a folder…	Vali kaust…
+Choose a function, string or section to see it here.	Vali funktsioon, sõne või sektsioon, et see siin näha oleks.
+Choose an AI's job	Vali AI ülesanne
+Choose the folder Ghidra is installed in.	Vali kaust, kuhu Ghidra on paigaldatud.
+Choose what the builder's questions get	Vali, mida ehitaja küsimused saavad
+Choose what to recreate, say what you want, then press Start.	Vali, mida uuesti luua, ütle, mida soovid, ja vajuta Start.
+Choose…	Vali…
+Classes	Klassid
+Claude Code folder (CLAUDE_CONFIG_DIR)	Claude Code'i kaust (CLAUDE_CONFIG_DIR)
+Clean room	Puhas ruum
+Clean room / Deep	Puhas ruum / Sügav
+Clean room never reads the original's code, files or page source. Deep mode reads them with every tool Craft Anything has.	Puhas ruum ei loe kunagi originaali koodi, faile ega lehe lähteteksti. Sügav režiim loeb neid kõigi Craft Anything'i tööriistadega.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with Ghidra when it's installed. Every finding records which was used.	Puhas ruum ei loe kunagi originaali koodi, faile ega lehe lähteteksti: see töötab selle põhjal, mida sa näed. Sügav loeb neid kõigi tööriistadega ja Ghidraga, kui see on paigaldatud. Iga leid registreerib, mida kasutati.
+Clean room on	Puhas ruum sees
+Clean room or Deep	Puhas ruum või sügav
+Clean room: nothing inside the original is read. We work from what you can see: pictures, the page as a visitor sees it, and watching it run.	Puhas ruum: originaali sees ei loeta midagi. Töötame selle põhjal, mida sa näed: pildid, leht nii, nagu külastaja seda näeb, ja selle töötamise jälgimine.
+Clear finished	Eemalda lõpetatud
+Close	Sulge
+Close a Frida session	Sulge Frida seanss
+Close a GDB session	Sulge GDB seanss
+Close a Rizin debug session	Sulge Rizini silumisseanss
+Close a pinned build	Sulge kinnitatud ehitus
+Close it	Sulge see
+Close it first.	Sulge see esmalt.
+Close the website	Sulge veebileht
+Code reconstructed from a program that looks like the C language. Close to what the program does, but not its original source.	Kood, mis on rekonstrueeritud programmist, mis näeb välja nagu C-keel. Lähedane sellele, mida programm teeb, kuid pole selle algne lähtekood.
+Code signature	Koodiallkiri
+Coding agent app	Programmeerimisagendi rakendus
+Command palette (Ctrl/⌘ K)	Käsupalett (Ctrl/⌘ K)
+Commands:	Käsud:
+Compare WebAssembly interfaces	Võrdle WebAssembly-liideseid
+Compare module exports	Võrdle mooduli eksporte
+Compare two .NET builds	Võrdle kahte .NET-ehitust
+Compare two app versions	Võrdle kahte rakenduse versiooni
+Compare two artifacts	Võrdle kahte artefakti
+Compare two evidence bundles	Võrdle kahte tõendikogumit
+Compare two functions	Võrdle kahte funktsiooni
+Compare two page captures	Võrdle kahte lehe salvestist
+Compare two runs	Võrdle kahte käivitust
+Compare two screenshots	Võrdle kahte ekraanipilti
+Comparing and rebuilding	Võrdlemine ja taasehitamine
+Compiled Python file	Kompileeritud Pythoni fail
+Connect	Ühenda
+Connect agent apps	Ühenda agendirakendused
+Connect to a browser	Ühenda brauseriga
+Connect {name}	Ühenda {name}
+Connected devices	Ühendatud seadmed
+Connected phone	Ühendatud telefon
+Context window	Kontekstiaken
+Continue	Jätka
+Contradicted	Vastuolus
+Control-flow graph: a map of every path a function can take, like a flowchart.	Juhtimisvoogude graaf: kaart kõigist teedest, mida funktsioon võib võtta, nagu vooskeem.
+Copies share the files it saves beside itself.	Koopiad jagavad faile, mille see enda kõrvale salvestab.
+Copy a file off the phone	Kopeeri fail telefonist
+Copy a file to the phone	Kopeeri fail telefoni
+Copy an app off the phone	Kopeeri rakendus telefonist
+Copy the command	Kopeeri käsk
+Copy the evidence id	Kopeeri tõendi ID
+Couldn't add the pictures:	Pilte ei õnnestunud lisada:
+Couldn't answer:	Ei õnnestunud vastata:
+Couldn't attach the pictures:	Pilte ei õnnestunud manustada:
+Couldn't look through that folder.	Seda kausta ei õnnestunud läbi vaadata.
+Couldn't open it.	Seda ei õnnestunud avada.
+Couldn't open the folder.	Kausta ei õnnestunud avada.
+Couldn't open {}: {}	Ei õnnestunud avada {}: {}
+Couldn't start a worker thread: {e}	Töölõime ei õnnestunud käivitada: {e}
+Couldn't start it.	Seda ei õnnestunud käivitada.
+Coverage unknown	Katvus teadmata
+Craft Anything	Craft Anything
+Craft Anything can't build with {engine}, so Unity is the closest match.	Craft Anything ei saa ehitada mootoriga {engine}, seega Unity on lähim valik.
+Craft Anything or the computer closed while it was working. Everything so far is kept; Continue picks up where it stopped.	Craft Anything või arvuti suleti töö ajal. Kõik senine on alles; Jätka jätkab sealt, kus pooleli jäi.
+Craft Anything reads its code and files with every tool it has. For your private use.	Craft Anything loeb selle koodi ja faile kõigi oma tööriistadega. Sinu isiklikuks kasutuseks.
+Craft Anything reads the original's code, files and page source with every tool it has, and with Ghidra when it's installed.	Craft Anything loeb originaali koodi, faile ja lehe lähteteksti kõigi oma tööriistadega ning Ghidraga, kui see on paigaldatud.
+Craft Anything report.md	Craft Anything'i aruanne.md
+Craft Anything's records, checks and anything it built in app/ are deleted. Your own files in the folder stay as they are.	Craft Anything'i kirjed, kontrollid ja kõik, mis see kausta app/ ehitas, kustutatakse. Sinu enda failid kaustas jäävad puutumata.
+Crash dump	Krahhidump
+Create the project	Loo projekt
+Critical	Kriitiline
+Cross-reference: a place in the program that uses or calls the thing you're looking at.	Ristviide: koht programmis, mis kasutab või kutsub seda, mida sa vaatad.
+Cross-references	Ristviited
+Cross-references: the places in the program that use or call the thing you're looking at.	Ristviited: kohad programmis, mis kasutavad või kutsuvad seda, mida sa vaatad.
+Current document	Praegune dokument
+Cursor address	Kursori aadress
+Cursor function	Kursori funktsioon
+Custom	Kohandatud
+Cutter command	Cutteri käsk
+DOS load image	DOS-i laadimiskujutis
+Databases	Andmebaasid
+Decide yourself	Otsusta ise
+Decode a radio recording	Dekodeeri raadiosalvestis
+Decompile	Dekompileeri
+Decompile Java with Vineflower	Dekompileeri Java Vinefloweriga
+Decompile many	Dekompileeri palju
+Decompile with JEB	Dekompileeri JEB-iga
+Deep	Sügav
+Deep mode now decompiles with Ghidra. The first look at a large program can take several minutes.	Sügav režiim dekompileerib nüüd Ghidraga. Esimene pilk suurele programmile võib võtta mitu minutit.
+Deep mode on	Sügav režiim sees
+Deep: we read its code, files and page source with every tool we have, and with Ghidra when it's installed. Click to switch.	Sügav: loeme selle koodi, faile ja lehe lähteteksti kõigi oma tööriistadega ning Ghidraga, kui see on paigaldatud. Klõpsa vahetamiseks.
+Default	Vaikimisi
+Delete a project	Kustuta projekt
+Delete it	Kustuta see
+Delete the project	Kustuta projekt
+Delete {name}?	Kustuta {name}?
+Deleted.	Kustutatud.
+Deleted. Your own files are still in the folder.	Kustutatud. Sinu enda failid on veel kaustas.
+Delete…	Kustuta…
+Deliberately scrambled to make it hard to read, without changing what it does.	Tahtlikult segatud, et seda oleks raske lugeda, ilma et muudetaks seda, mida see teeb.
+Demangle Swift symbols	Taasta Swifti sümbolite nimed
+Details	Üksikasjad
+Details about the selected item appear here.	Valitud üksuse üksikasjad kuvatakse siin.
+Detect	Tuvasta
+Device details	Seadme üksikasjad
+Device features	Seadme funktsioonid
+Device folder	Seadme kaust
+Device log	Seadme logi
+Disassemble sBPF code	Disassembleeri sBPF-kood
+Disassembly	Disassembler
+Disconnect agent apps	Ühenda agendirakendused lahti
+Dismiss	Sulge
+Dispatch metadata	Dispatchi metaandmed
+Display info	Kuva info
+Do you have permission?	Kas sul on luba?
+Does it talk to the internet?	Kas see suhtleb internetiga?
+Does it track me?	Kas see jälitab mind?
+Don't allow	Ära luba
+Don't ask again (you can change this in Settings)	Ära küsi uuesti (seda saab muuta seadetes)
+Done	Valmis
+Download	Laadi alla
+Download Godot {v}	Laadi alla Godot {v}
+Download Unity Hub	Laadi alla Unity Hub
+Download and use Ghidra	Laadi alla ja kasuta Ghidrat
+Download it from unity.com and install it.	Laadi see alla saidilt unity.com ja paigalda.
+Download it from unrealengine.com and install it.	Laadi see alla saidilt unrealengine.com ja paigalda.
+Download the Epic Games Launcher	Laadi alla Epic Games Launcher
+Downloads keep going in the background.	Allalaadimised jätkuvad taustal.
+Drive an app's screen	Juhi rakenduse ekraani
+Drop a calculator app (or any small program) on the window.	Lohista kalkulaatori rakendus (või mõni väike programm) aknale.
+Drop a file or app anywhere in this window.	Lohista fail või rakendus kuhu tahes sellesse aknasse.
+Drop the file on the window. We only read it; nothing runs.	Lohista fail aknale. Me ainult loeme seda; miski ei käivitu.
+Drop to attach	Lohista manustamiseks
+Drop to open it	Lohista avamiseks
+Duplicate	Duplikeeri
+Duplicate a project	Duplikeeri projekt
+Duplicate the project	Duplikeeri projekt
+Each answer says how sure we are: Seen it, Worked it out or Best guess.	Iga vastus ütleb, kui kindlad me oleme: Nähtud, Tuletatud või Parim oletus.
+Edit a project file	Muuda projektifaili
+Edit them in place	Muuda neid kohapeal
+Effort:	Pingutus:
+Electron and JavaScript	Electron ja JavaScript
+Electron fuses	Electroni kaitsmed
+Engines	Mootorid
+Engines and settings	Mootorid ja seaded
+Enter a full web address, like example.com or https://example.com/page.	Sisesta täielik veebiaadress, näiteks example.com või https://example.com/page.
+Enter to send · Shift+Enter for a new line	Enter saadab · Shift+Enter uus rida
+Epic's own installer. It only opens if Epic's signature checks out.	Epicu enda paigaldaja. See avaneb ainult siis, kui Epicu allkiri on kehtiv.
+Essentials	Põhialused
+Every build of this project.	Selle projekti iga ehitus.
+Every finding is saved here with how sure we are.	Iga leid salvestatakse siia koos meie kindlusastmega.
+Every tool as well: a workbench with functions, bytes, references and evidence.	Ka iga tööriist: töölaud funktsioonide, baitide, viidete ja tõenditega.
+Everything found so far, as a Markdown file.	Kõik seni leitu Markdown-failina.
+Everything so far is kept. Continue picks up where it stopped.	Kõik senine on alles. Jätka jätkab sealt, kus pooleli jäi.
+Evidence	Tõendid
+Evidence ledger	Tõendite register
+Evidence so far	Senised tõendid
+Explain a function	Selgita funktsiooni
+Explain like I'm new	Selgita nii, nagu oleksin uus
+Export a report	Ekspordi aruanne
+Export a report (Markdown)	Ekspordi aruanne (Markdown)
+Export captured scripts	Ekspordi salvestatud skriptid
+Export evidence	Ekspordi tõendid
+Export report	Ekspordi aruanne
+Extended	Laiendatud
+Extract an archive	Paki arhiiv lahti
+Extract firmware	Paki püsivara lahti
+Extract with this	Paki sellega lahti
+Extracts	Väljavõtted
+File formats	Failivormingud
+Files packed inside a file	Faili sisse pakitud failid
+Filter	Filter
+Filter by name	Filtreeri nime järgi
+Filter the files	Filtreeri failid
+Filter…	Filtreeri…
+Find Android classes	Otsi Androidi klasse
+Find Java classes	Otsi Java klasse
+Find a call path	Otsi kutseahel
+Find a game's files	Otsi mängu failid
+Find an app	Otsi rakendus
+Find in-page MCP tools	Otsi lehesiseseid MCP tööriistu
+Find it automatically	Leia see automaatselt
+Find out how any software works, then craft your own.	Uuri, kuidas ükskõik milline tarkvara töötab, ja loo siis oma.
+Find the original source line	Leia algne lähtekoodirida
+Firmware regions	Püsivara piirkonnad
+Fold the sidebar	Ahenda külgriba
+Folders of projects, and projects started in a folder you picked. Removing one only takes it off the list.	Projektide kaustad ja projektid, mis algatati sinu valitud kaustas. Eemaldamine võtab need ainult loendist välja.
+Follow the installer that opened. Come back here when it's done.	Järgi avanenud paigaldajat. Tule siia tagasi, kui see on valmis.
+Follow the steps on rustup.rs, then come back here.	Järgi saidi rustup.rs juhiseid ja tule siis siia tagasi.
+For everything you make, like the switch in the title bar.	Kõigele, mida lood, nagu pealkirjariba lüliti.
+For example: a website for my bakery	Näiteks: veebileht minu pagaritöökojale
+For example: recreate this website	Näiteks: loo see veebileht uuesti
+For example: the same app, but simpler	Näiteks: sama rakendus, aga lihtsam
+For example: the same game, with a high-score table	Näiteks: sama mäng, aga edetabeliga
+Force-stop an app	Peata rakendus sundkorras
+Forget the key	Unusta võti
+Found on this computer	Leitud sellest arvutist
+Found {} AI option(s) on this computer	Sellest arvutist leitud AI valikuid: {}
+Frida devices	Frida seadmed
+Frida instrumentation	Frida instrumenteerimine
+Frida processes	Frida protsessid
+Frida session status	Frida seansi olek
+From	Allikas
+Frozen copy	Külmutatud koopia
+Function address	Funktsiooni aadress
+Function assembly	Funktsiooni assembler
+Function dossier	Funktsiooni toimik
+Function info	Funktsiooni info
+Function instructions	Funktsiooni instruktsioonid
+Function references	Funktsiooni viited
+Functions	Funktsioonid
+GDB command	GDB käsk
+GDB session status	GDB seansi olek
+Game assets	Mängu varad
+Game engines	Mängumootorid
+Game files	Mängufailid
+General	Üldine
+Generate a 3D model	Genereeri 3D-mudel
+Generate a picture	Genereeri pilt
+Generate custom pictures and models	Genereeri kohandatud pildid ja mudelid
+Generated art (games)	Genereeritud graafika (mängud)
+Generated assets	Genereeritud varad
+Generated pictures and 3D models are made with fal.ai.	Genereeritud pildid ja 3D-mudelid luuakse fal.ai abil.
+Get Ghidra	Hangi Ghidra
+Get Ghidra for Deep mode	Hangi Ghidra sügava režiimi jaoks
+Get Unity Hub	Hangi Unity Hub
+Get a key at {name}	Hangi võti saidilt {name}
+Get the Epic Games Launcher	Hangi Epic Games Launcher
+Get {name}	Hangi {name}
+Getting Ghidra	Ghidra hankimine
+Getting Godot	Godoti hankimine
+Getting Unity Hub	Unity Hubi hankimine
+Getting the Epic Games Launcher	Epic Games Launcheri hankimine
+Ghidra	Ghidra
+Ghidra folder	Ghidra kaust
+Ghidra is ready	Ghidra on valmis
+Ghidra is ready. Deep mode uses it from now on.	Ghidra on valmis. Sügav režiim kasutab seda edaspidi.
+Ghidra isn't installed, so the built-in decompiler stands in. Get it in Settings → Engines.	Ghidra pole paigaldatud, seega kasutatakse sisseehitatud dekompilaatorit. Hangi see jaotisest Seaded → Mootorid.
+Ghidra isn't on this computer yet, so the built-in decompiler stands in.	Ghidra pole selles arvutis veel, seega kasutatakse sisseehitatud dekompilaatorit.
+Ghidra will use half of this computer's memory (up to {gb} GB).	Ghidra kasutab pool selle arvuti mälust (kuni {gb} GB).
+Ghidra will use up to {gb} GB of memory.	Ghidra kasutab kuni {gb} GB mälu.
+Ghidra, a free reverse-engineering tool from the NSA, gives Deep mode richer decompiled code and types.	Ghidra, NSA tasuta pöördprojekteerimise tööriist, annab sügavale režiimile rikkalikuma dekompileeritud koodi ja tüübid.
+Go home	Mine avalehele
+Go program details	Go programmi üksikasjad
+Go to address	Mine aadressile
+Go to offset (0x…)	Mine nihkele (0x…)
+Go to the project	Mine projekti juurde
+Good enough	Piisavalt hea
+Got it	Sain aru
+Graph	Graaf
+Half of this computer's memory, up to {gb} GB.	Pool selle arvuti mälust, kuni {gb} GB.
+Here's a first look:	Siin on esimene pilk:
+Here's what I found on that page:	Siin on, mida ma sellelt lehelt leidsin:
+Hex	Hex
+Hide pinned builds	Peida kinnitatud ehitused
+Hide the answer	Peida vastus
+Hide the console	Peida konsool
+High	Kõrge
+Home	Avaleht
+How alike a rebuild must look to the original before refining stops.	Kui sarnane peab taasehitus originaaliga välja nägema, enne kui täiustamine lõpeb.
+How closely may Craft Anything look at it?	Kui lähedalt tohib Craft Anything seda vaadata?
+How complete is the rebuild	Kui täielik on taasehitus
+How do I open an app?	Kuidas rakendust avada?
+How do the window and the page talk to each other?	Kuidas aken ja leht omavahel suhtlevad?
+How does the % key work?	Kuidas % klahv töötab?
+How is this app built?	Kuidas see rakendus on ehitatud?
+How is this app put together?	Millest see rakendus koosneb?
+How many projects may build at the same time. More wait their turn.	Kui paljud projektid tohivad korraga ehitada. Ülejäänud ootavad oma järge.
+How should the builder use them?	Kuidas peaks ehitaja neid kasutama?
+I have Ghidra	Mul on Ghidra
+I have permission	Mul on luba
+I want to make things work together	Tahan asju koos tööle panna
+I'm checking whether it's safe	Kontrollin, kas see on turvaline
+I'm keeping old software alive	Hoian vana tarkvara elus
+I'm learning how things work	Õpin, kuidas asjad töötavad
+I'm new to this	Olen selles uus
+ILSpy decompile	ILSpy dekompileerimine
+Ideas:	Ideed:
+Identify a Flutter build	Tuvasta Flutteri ehitus
+Import a source folder	Impordi lähtekaust
+Import evidence	Impordi tõendid
+Imports / Exports	Impordid / ekspordid
+In Deep mode this one takes a game's own files out after the study. Click to stop.	Sügavas režiimis võtab see pärast uuringut mängu enda failid välja. Klõpsa peatamiseks.
+In Unity Hub: sign in (or make a free account) and accept the free Personal licence. Then open Installs, press Install Editor and choose the recommended version. About 10 GB.	Unity Hubis: logi sisse (või loo tasuta konto) ja võta vastu tasuta Personal-litsents. Seejärel ava Installs, vajuta Install Editor ja vali soovitatud versioon. Umbes 10 GB.
+In the launcher: sign in, open Unreal Engine, then Library, and press + next to Engine Versions to install one. About 60 GB.	Launcheris: logi sisse, ava Unreal Engine, seejärel Library, ja vajuta Engine Versions kõrval +, et üks paigaldada. Umbes 60 GB.
+In use	Kasutusel
+Inside	Sees
+Inspect a Dart AOT snapshot	Uuri Dari AOT-snapshoti
+Inspect a network recording	Uuri võrgusalvestist
+Inspect a web page	Uuri veebilehte
+Inspect an Electron page	Uuri Electroni lehte
+Inspect data	Uuri andmeid
+Inspect instruction	Uuri instruktsiooni
+Inspector	Inspektor
+Install Rust	Paigalda Rust
+Install Unity Hub	Paigalda Unity Hub
+Install Visual Studio Community (free) and tick "Game development with C++".	Paigalda Visual Studio Community (tasuta) ja märgi „Game development with C++“.
+Install Xcode	Paigalda Xcode
+Install an app	Paigalda rakendus
+Install an engine	Paigalda mootor
+Install the launcher	Paigalda launcher
+Installed	Paigaldatud
+Installed apps	Paigaldatud rakendused
+Inter-process communication: how two parts of an app (or two apps) send messages to each other.	Protsessidevaheline suhtlus: kuidas rakenduse kaks osa (või kaks rakendust) üksteisele sõnumeid saadavad.
+Interface Builder documents	Interface Builderi dokumendid
+Interrupted	Katkestatud
+Inventory an archive or app bundle	Koosta arhiivi või rakendusepaketi loend
+Investigating	Uurin
+Investigation so far	Senine uurimine
+Is Apktool available?	Kas Apktool on saadaval?
+Is adb available?	Kas adb on saadaval?
+Is an asset key set up?	Kas varade võti on seadistatud?
+Is anything in here a program?	Kas siin sees on midagi programmi?
+Is anything sensitive saved in plain text?	Kas midagi tundlikku on salvestatud lihttekstina?
+Is it safe to look inside programs?	Kas programmidesse sisse vaadata on turvaline?
+Is it safe to run?	Kas seda on turvaline käivitada?
+Is there any readable text inside?	Kas sees on loetavat teksti?
+Is this file safe to open?	Kas seda faili on turvaline avada?
+It closed straight away.	See sulgus kohe.
+It closed straight away. It said:	See sulgus kohe. See ütles:
+It isn't on this computer yet. Craft Anything can download Ghidra {version} and the Java runtime it needs (about {mb} MB), check both against their publishers' checksums, and set them up in its own folder. Nothing else on your computer changes.	See pole selles arvutis veel. Craft Anything saab alla laadida Ghidra {version} ja vajaliku Java käituskeskkonna (umbes {mb} MB), kontrollida mõlemad nende avaldajate kontrollsummadega ja seadistada need oma kausta. Midagi muud sinu arvutis ei muutu.
+It isn't on this computer yet. Install Ghidra {version} from its release page, then choose its folder.	See pole selles arvutis veel. Paigalda Ghidra {version} selle väljalaskelehelt ja vali siis selle kaust.
+It's already open.	See on juba avatud.
+It's already open. Right-click it to open another copy.	See on juba avatud. Teise koopia avamiseks tee sellel paremklõps.
+It's done	See on valmis
+It's mine, or I'm allowed to look	See on minu või tohin sisse vaadata
+Its copy is deleted, with anything it saved there. The project itself stays as it is.	Selle koopia kustutatakse koos kõigega, mis see sinna salvestas. Projekt ise jääb muutumatuks.
+Its folder is deleted with everything in it: what was built, the checks and the conversation.	Selle kaust kustutatakse koos kõigega: ehitatud asjad, kontrollid ja vestlus.
+Its own code	Selle enda kood
+Its own sign-in, settings and conversations: another folder is another account. Empty: its usual folder.	Oma sisselogimine, seaded ja vestlused: teine kaust on teine konto. Tühi: selle tavaline kaust.
+Java archive overview	Java-arhiivi ülevaade
+Java class	Java klass
+Java method bytecode and pseudo-Java	Java meetodi baitkood ja pseudo-Java
+Java program code (one class)	Java programmikood (üks klass)
+Java programs	Java programmid
+Java runtime	Java käituskeskkond
+Jobs	Tööd
+Jobs ({n_jobs})	Tööd ({n_jobs})
+Jobs ({n})	Tööd ({n})
+Just a question: nothing was changed. Answered by	Ainult küsimus: midagi ei muudetud. Vastas
+Just ask	Küsi lihtsalt
+Just look inside	Vaata lihtsalt sisse
+Work on my project	Tööta minu projekti kallal
+Work on a project you already have	Tööta projektiga, mis sul juba on
+Pick its folder, say what you want, then press Start.	Vali selle kaust, ütle, mida soovid, ja vajuta Start.
+Where is your project?	Kus on sinu projekt?
+Choose your project's folder…	Vali oma projekti kaust…
+For example: add a dark mode	Näiteks: lisa tume režiim
+Pick your project's folder first.	Vali esmalt oma projekti kaust.
+Pick your project's folder	Vali oma projekti kaust
+That folder is empty. Pick the folder your project's files are in.	See kaust on tühi. Vali kaust, kus sinu projekti failid asuvad.
+Keep going without asking	Jätka ilma küsimata
+Keep it	Jäta alles
+Keep it in the sidebar to open any time, whatever later builds change.	Jäta see külgribale, et seda igal ajal avada, ükskõik mida hilisemad ehitused muudavad.
+Keep the build as it is and stop offering to carry on.	Jäta ehitus selliseks, nagu see on, ja ära enam paku jätkamist.
+Keep this version in the sidebar to open any time.	Jäta see versioon külgribale, et seda igal ajal avada.
+Keeps this version exactly as it is now. Later builds can't change or break it, and anything it saves stays with the copy.	Jätab selle versiooni täpselt sellisena, nagu see praegu on. Hilisemad ehitused ei saa seda muuta ega rikkuda ning kõik, mida see salvestab, jääb koopia juurde.
+Key saved	Võti salvestatud
+Keyed archive	Võtmestatud arhiiv
+Kind	Liik
+Language	Keel
+Last: {what}	Viimane: {what}
+Launch an app	Käivita rakendus
+Leave a few GB for the rest of your computer.	Jäta mõned GB ülejäänud arvutile.
+Leave a path empty to use the managed install. We never need environment variables.	Jäta tee tühjaks, et kasutada hallatavat paigaldust. Keskkonnamuutujaid pole meil kunagi vaja.
+Leave empty to use the one Craft Anything sets up.	Jäta tühjaks, et kasutada seda, mille Craft Anything seadistab.
+Let a project generate assets	Luba projektil varasid genereerida
+Let's go	Lähme
+Lets the builder make realistic 3D models and textures for games, {model} a model, with a {budget} budget per project.	Laseb ehitajal luua realistlikke 3D-mudeleid ja tekstuure mängudele, hinnaga {model} mudeli eest, eelarvega {budget} projekti kohta.
+Library resolution	Teekide lahendamine
+Light copy: shares big files with the project	Kerge koopia: jagab suuri faile projektiga
+Likeness	Sarnasus
+Line up code and behaviour	Võrdle koodi ja käitumist
+Line up source with the bundle	Võrdle lähtekoodi kimbuga
+List Electron pages	Loetle Electroni lehed
+List JEB units	Loetle JEB üksused
+List JS runtime targets	Loetle JS käitusaja sihtmärgid
+List a Unity assets file	Loetle Unity varafail
+List a Unity bundle	Loetle Unity kimp
+List a game's archives	Loetle mängu arhiivid
+List a node's event listeners	Loetle sõlme sündmusekuulajad
+List an AI's models	Loetle AI mudelid
+List an Unreal IoStore container	Loetle Unreal IoStore konteiner
+List an Unreal pak	Loetle Unreal pak
+List bookmarks	Loetle järjehoidjad
+List browser pages	Loetle brauserilehed
+List documents	Loetle dokumendid
+List engines	Loetle mootorid
+List functions	Loetle funktsioonid
+List names	Loetle nimed
+List open targets	Loetle avatud sihtmärgid
+List pinned builds	Loetle kinnitatud ehitused
+List plugins	Loetle pluginad
+List project files	Loetle projektifailid
+List projects	Loetle projektid
+List questions about a build	Loetle ehituse kohta käivad küsimused
+List radio decoders	Loetle raadiodekooderid
+List segments	Loetle segmendid
+List shared Cutter sessions	Loetle jagatud Cutteri seansid
+List strings	Loetle sõned
+Live: the project's latest build	Reaalajas: projekti uusim ehitus
+Load a picture	Laadi pilt
+Load a screenshot	Laadi ekraanipilt
+Load model options	Laadi mudeli valikud
+Loading…	Laadin…
+Log	Logi
+Look again	Vaata uuesti
+Look at a game	Vaata mängu
+Look at a website	Vaata veebilehte
+Look at the game	Vaata mängu
+Look for AI on this computer	Otsi AI-d sellest arvutist
+Look for game engines	Otsi mängumootoreid
+Look for projects again	Otsi projekte uuesti
+Looked at everything	Vaadati kõike
+Looked at part of it	Vaadati osa sellest
+Looked at {a} of {b}	Vaadati {a}/{b}
+Looking for AI on this computer…	Otsin AI-d sellest arvutist…
+Looking for game engines on this computer…	Otsin mängumootoreid sellest arvutist…
+Looking for the game's files…	Otsin mängu faile…
+Looking inside needs Deep mode	Sissevaatamiseks on vaja sügavat režiimi
+Looking inside software you own or are allowed to examine is normal and often protected (learning, compatibility, security). Saying why helps you keep to it; it stays on this computer.	Sulle kuuluva või uurimiseks lubatud tarkvara sisse vaatamine on tavaline ja sageli kaitstud (õppimine, ühilduvus, turvalisus). Põhjuse ütlemine aitab sul sellest kinni pidada; see jääb sellesse arvutisse.
+Looking on this computer…	Otsin sellest arvutist…
+Low	Madal
+Mach-O structure	Mach-O struktuur
+Made a copy: {name}	Koopia tehtud: {name}
+Made with fal.ai and paid from your account: {model} a 3D model, {picture} a picture. Off, the game is built without them.	Loodud fal.ai abil ja sinu konto eest tasutud: {model} 3D-mudeli eest, {picture} pildi eest. Väljas: mäng ehitatakse ilma nendeta.
+Made with {engine}	Loodud mootoriga {engine}
+Made without looking inside the original.	Loodud ilma originaali sisse vaatamata.
+Make a game that plays like this	Loo mäng, mis mängib nii
+Make a simpler version of this game	Loo selle mängu lihtsam versioon
+Make my own version	Loo oma versioon
+Make my own version of this app	Loo selle rakenduse oma versioon
+Making my own thing talk to something else.	Loon oma asja, mis suhtleb millegi muuga.
+Many source files packed into one big file so an app or web page loads faster.	Paljud lähtefailid on pakitud ühte suurde faili, et rakendus või veebileht laadiks kiiremini.
+Map a HarmonyOS app	Kaardista HarmonyOS-i rakendus
+Map a page's module graph	Kaardista lehe mooduligraaf
+Map an Android app	Kaardista Androidi rakendus
+Map an Apple app	Kaardista Apple'i rakendus
+Markdown	Markdown
+Match functions between two builds	Sobita funktsioonid kahe ehituse vahel
+Match my pictures	Sobita minu piltidega
+Match static code to what ran	Sobita staatiline kood töötanuga
+Maximise	Maksimeeri
+May I run "{title}"?	Kas tohin käivitada „{title}“?
+May I {action}?	Kas tohin {action}?
+Measure which code ran	Mõõda, milline kood töötas
+Medium	Keskmine
+Memory for Ghidra	Mälu Ghidrale
+Minimise	Minimeeri
+Mode	Režiim
+Model	Mudel
+Model options	Mudeli valikud
+Model: {model}	Mudel: {model}
+Modules	Moodulid
+More detail	Rohkem detaile
+More makes a big program's first look faster.	Rohkem teeb suure programmi esimese pilgu kiiremaks.
+More memory makes Ghidra's first look at a big program faster; leave some for the rest of the computer. Used from the next time Ghidra starts.	Rohkem mälu teeb Ghidra esimese pilgu suurele programmile kiiremaks; jäta osa ülejäänud arvutile. Mõjub Ghidra järgmisest käivitamisest.
+Name (optional)	Nimi (valikuline)
+Name an address	Nimeta aadress
+Name at address	Nimi aadressil
+Name many addresses	Nimeta palju aadresse
+Names the program's author gave to functions or variables that survived in the file.	Nimed, mille programmi autor andis funktsioonidele või muutujatele ja mis on failis alles.
+Needs a fal.ai key. Until then the game is built without them.	Vajab fal.ai võtit. Seni ehitatakse mäng ilma nendeta.
+Needs you	Vajab sind
+Network	Võrk
+New	Uus
+New project	Uus projekt
+New projects go in	Uued projektid lähevad kausta
+Next address	Järgmine aadress
+No AI (built-in engines only)	AI-ta (ainult sisseehitatud mootorid)
+No AI brain is set up, so answers come straight from the built-in engines. Add one any time for plain-words explanations.	AI aju pole seadistatud, seega tulevad vastused otse sisseehitatud mootoritest. Lisa see igal ajal, et saada selgitusi lihtsas keeles.
+No AI for now	Esialgu AI-ta
+No AI is set up yet. The built-in engines still work; an AI adds plain-words answers.	AI-d pole veel seadistatud. Sisseehitatud mootorid töötavad endiselt; AI lisab vastused lihtsas keeles.
+No Unreal or Unity archives were found. Pick the folder the game is installed in.	Unreal- ega Unity-arhiive ei leitud. Vali kaust, kuhu mäng on paigaldatud.
+No coding agent was found on this computer yet.	Selles arvutis ei leitud veel ühtegi programmeerimisagenti.
+No evidence yet	Tõendeid veel pole
+No game files here	Siin pole mängufaile
+No jobs yet. Long tasks show their progress here, and you can cancel them.	Töid veel pole. Pikad ülesanded näitavad siin edenemist ja neid saab tühistada.
+No matches	Vasteid pole
+No open questions	Lahtisi küsimusi pole
+No plugins yet.	Pluginaid veel pole.
+No result yet	Tulemust veel pole
+No targets	Sihtmärke pole
+No tool named {tool}	Tööriista nimega {tool} pole
+None	Puudub
+None yet. Screenshots help it look right.	Veel mitte ühtegi. Ekraanipildid aitavad õige väljanägemise eest.
+Not allowed	Pole lubatud
+Not allowed.	Pole lubatud.
+Not available yet	Veel pole saadaval
+Not compared yet: {what}	Veel pole võrreldud: {what}
+Not installed	Pole paigaldatud
+Not now	Mitte praegu
+Nothing allowed yet.	Veel pole midagi lubatud.
+Nothing can build yet: install Claude Code (and sign in to it once), or add an AI with an API key below.	Veel ei saa midagi ehitada: paigalda Claude Code (ja logi sinna üks kord sisse) või lisa allpool AI API võtmega.
+Nothing found	Midagi ei leitud
+Nothing found yet. We look for API keys, local model servers (Ollama, LM Studio) and agent apps you already have. One on another port or computer can be added by its address below.	Veel ei leitud midagi. Otsime API võtmeid, kohalikke mudeliservereid (Ollama, LM Studio) ja agendirakendusi, mis sul juba on. Teise pordi või arvuti oma saab allpool aadressi järgi lisada.
+Nothing inside it is read.	Selle sees ei loeta midagi.
+Nothing inside it is read; Craft Anything works from what you can see. Your version gets its own art.	Selle sees ei loeta midagi; Craft Anything töötab selle põhjal, mida sa näed. Sinu versioon saab oma graafika.
+Nothing inside the original is read: not its code, files or page source. Craft Anything works from what you can see: pictures, the page as a visitor sees it, and watching it run.	Originaali sees ei loeta midagi: ei koodi, faile ega lehe lähteteksti. Craft Anything töötab selle põhjal, mida sa näed: pildid, leht nii, nagu külastaja seda näeb, ja selle töötamise jälgimine.
+Nothing made yet. What you make shows up here.	Veel pole midagi loodud. See, mida lood, ilmub siia.
+Nothing matches the filter.	Filtriga ei vasta miski.
+Nothing matches.	Miski ei vasta.
+Nothing new for {time}. Long steps can be quiet; if it stays like this, press Pause.	{time} pole midagi uut. Pikad sammud võivad olla vaiksed; kui see nii jääb, vajuta Paus.
+Nothing open	Midagi pole avatud
+Nothing open yet	Veel pole midagi avatud
+Nothing selected	Midagi pole valitud
+Nothing to show	Pole midagi näidata
+Nothing uses it until it's on again; it keeps its key.	Miski ei kasuta seda enne, kui see uuesti sisse lülitatakse; võti jääb alles.
+Nothing — start fresh	Mitte midagi — alusta nullist
+Now	Praegu
+Now: {what} ({time})	Praegu: {what} ({time})
+Objective-C classes	Objective-C klassid
+Objective-C protocols	Objective-C protokollid
+Observe a JS runtime	Jälgi JS käitusaega
+Of this, {cost} was charged to an API key.	Sellest {cost} võeti API võtmelt.
+Off	Väljas
+Ollama or LM Studio on another computer, or any service that speaks the OpenAI API.	Ollama või LM Studio teises arvutis või mis tahes teenus, mis räägib OpenAI API-t.
+On	Sees
+One line, in plain words. It stays on this computer and is never sent anywhere.	Üks rida lihtsate sõnadega. See jääb sellesse arvutisse ega saadeta kuhugi.
+One-shot instrumentation	Ühekordne instrumenteerimine
+Only for Ghidra. Empty = managed.	Ainult Ghidra jaoks. Tühi = hallatav.
+Only its name changes; its folder stays where it is.	Muutub ainult selle nimi; kaust jääb sinna, kus see on.
+Only take pictures out of games you made, or whose owner allows it. A game's art is usually protected by copyright and by the game's licence.	Võta pilte ainult mängudest, mille oled ise teinud või mille omanik seda lubab. Mängu graafika on tavaliselt autoriõiguse ja mängu litsentsiga kaitstud.
+Only the pin goes; the project and its app stay as they are.	Eemaldatakse ainult kinnitus; projekt ja selle rakendus jäävad muutumatuks.
+Open	Ava
+Open "Show me the proof" to see the exact code we found, and how sure we are.	Ava „Näita mulle tõestust“, et näha täpset leitud koodi ja kui kindlad me oleme.
+Open Ghidra's release page	Ava Ghidra väljalaskeleht
+Open Unity Hub	Ava Unity Hub
+Open a calculator app and find the code behind one button.	Ava kalkulaatori rakendus ja leia ühe nupu taga olev kood.
+Open a file in JEB	Ava fail JEB-is
+Open a file or drop one here.	Ava fail või lohista üks siia.
+Open a file…	Ava fail…
+Open a folder or app bundle	Ava kaust või rakendusepakett
+Open a folder or app bundle…	Ava kaust või rakendusepakett…
+Open a folder…	Ava kaust…
+Open a pinned build	Ava kinnitatud ehitus
+Open a project's folder	Ava projekti kaust
+Open a website	Ava veebileht
+Open an app or file	Ava rakendus või fail
+Open an engine's app	Ava mootori rakendus
+Open another copy	Ava teine koopia
+Open another target	Ava teine sihtmärk
+Open files, folders or apps; you can have several open at once.	Ava faile, kaustu või rakendusi; sul võib korraga avatud olla mitu.
+Open folder	Ava kaust
+Open in the workbench	Ava töölaual
+Open it	Ava see
+Open log	Ava logi
+Open one of the files inside it to see its bytes.	Ava üks selle sees olevatest failidest, et näha selle baite.
+Open questions	Lahtised küsimused
+Open something	Ava midagi
+Open something first: drop a file or app here, or choose "Just look inside" on New project. Then I can look inside it.	Ava esmalt midagi: lohista fail või rakendus siia või vali uue projekti juures „Vaata lihtsalt sisse“. Siis saan sisse vaadata.
+Open something to start	Ava midagi, et alustada
+Open the Epic Games Launcher	Ava Epic Games Launcher
+Open the app	Ava rakendus
+Open the app you're curious about.	Ava rakendus, mis sind huvitab.
+Open the download page	Ava allalaadimisleht
+Open the folder	Ava kaust
+Open the installer app	Ava paigaldusprogramm
+Open the website	Ava veebileht
+Open {name}	Ava {name}
+Opened {name}	Avatud {name}
+Opened {name}. Taking a first look…	Avatud {name}. Heidan esimese pilgu…
+Opened {}	Avatud {}
+Opening {name}…	Avan {name}…
+Open…	Ava…
+Or type your answer…	Või kirjuta oma vastus…
+Original	Originaal
+Other pages of a website studied and compared besides the one you gave.	Teised veebilehe lehed, mida uuriti ja võrreldi lisaks sellele, mille sa andsid.
+Overview	Ülevaade
+Packet capture overview	Paketisalvestise ülevaade
+Packet fields	Paketi väljad
+Page through evidence	Lehitse tõendeid
+Part of the app got stuck, so it was stopped and the rest carried on. Your work is kept.	Osa rakendusest jäi kinni, seega see peatati ja ülejäänud jätkas. Sinu töö on alles.
+Part of the app is stuck. Restarting clears it, and your work is kept.	Osa rakendusest on kinni. Taaskäivitamine puhastab selle ja sinu töö jääb alles.
+Part of this screen hit a bug and was skipped. Your work is safe.	Osa sellest vaatest tabas viga ja see jäeti vahele. Sinu töö on turvaliselt alles.
+Paste pictures	Kleebi pildid
+Paste your API key (kept in your system keychain)	Kleebi oma API võti (hoitakse süsteemi võtmehoidlas)
+Paste your {name} key	Kleebi oma {name} võti
+Path	Tee
+Pause	Paus
+Pausing…	Pausin…
+Pause the build first, then delete the project.	Peata esmalt ehitus, seejärel kustuta projekt.
+Pause the build first.	Peata esmalt ehitus.
+Paused	Pausil
+Paused.	Pausil.
+Pick a folder with projects in it	Vali kaust, milles on projektid
+Pick a game's folder	Vali mängu kaust
+Pick another folder…	Vali teine kaust…
+Pick another game	Vali teine mäng
+Pick something on the left	Vali midagi vasakult
+Pick the app or game folder	Vali rakenduse või mängu kaust
+Pick the app, game or file to rebuild	Vali rakendus, mäng või fail, mida uuesti ehitada
+Pick the folder for this project	Vali selle projekti kaust
+Pick the game's folder	Vali mängu kaust
+Picture a program's window	Tee programmi aknast pilt
+Picture model	Pildimudel
+Pictures	Pildid
+Pictures can't be saved from IoStore containers yet; you can see what's inside.	Pilte ei saa veel IoStore-konteineritest salvestada; näha on, mis seal sees on.
+Pictures of the original	Originaali pildid
+Pieces of text stored inside a program, like messages, web addresses or file names.	Programmi sees hoitavad tekstilõigud, näiteks teated, veebiaadressid või failinimed.
+Pin a build	Kinnita ehitus
+Pin a project's build	Kinnita projekti ehitus
+Pin it	Kinnita see
+Pin name	Kinnituse nimi
+Pin removed.	Kinnitus eemaldatud.
+Pin this build	Kinnita see ehitus
+Pinned	Kinnitatud
+Pinned builds	Kinnitatud ehitused
+Pinned: {name}. Open it from the sidebar any time.	Kinnitatud: {name}. Ava see igal ajal külgribalt.
+Plain words, big buttons, and I'll explain everything.	Lihtsad sõnad, suured nupud ja ma selgitan kõike.
+Plain words, short sentences, and every technical word explained.	Lihtsad sõnad, lühikesed laused ja iga tehniline sõna on selgitatud.
+Plan	Plaan
+Plan connecting agent apps	Planeeri agendirakenduste ühendamine
+Play a project's result	Mängi projekti tulemust
+Play the game	Mängi mängu
+Plugin added. Read its tools to start using them.	Plugin lisatud. Loe selle tööriistad sisse, et neid kasutama hakata.
+Plugin arguments	Plugina argumendid
+Plugin command or address	Plugina käsk või aadress
+Plugin id	Plugina ID
+Plugin removed.	Plugin eemaldatud.
+Plugins	Pluginad
+Plugins add tools Craft Anything offers as its own: MCP servers (a command or an address; read their tools after adding) or WebAssembly components (a .wasm file, which can't touch your files or the network).	Pluginad lisavad tööriistu, mida Craft Anything pakub omadena: MCP-serverid (käsk või aadress; pärast lisamist loe nende tööriistad sisse) või WebAssembly komponendid (.wasm fail, mis ei pääse sinu failidele ega võrgule ligi).
+Plugins added here always ask before each call.	Siin lisatud pluginad küsivad enne iga kutset.
+Plugins read. Their new tools are offered from the next start.	Pluginad loetud. Nende uusi tööriistu pakutakse järgmisest käivitamisest.
+Preserving software that's no longer supported.	Tarkvara säilitamine, mida enam ei toetata.
+Preview a project's website	Vaata projekti veebilehte eelvaates
+Preview the website	Vaata veebilehte eelvaates
+Previous address	Eelmine aadress
+Program: found automatically	Programm: leitud automaatselt
+Program: {path}	Programm: {path}
+Programs (native code)	Programmid (natiivne kood)
+Progress	Edenemine
+Project details	Projekti üksikasjad
+Project name	Projekti nimi
+Projects	Projektid
+Projects and builds	Projektid ja ehitused
+Property list	Property list
+Pseudo-C	Pseudo-C
+Purpose	Eesmärk
+Raise the asset budget	Suurenda varade eelarvet
+Raise the budget by {amount}	Suurenda eelarvet {amount} võrra
+Raw machine code	Töötlemata masinkood
+Read AI settings	Loe AI seadeid
+Read a Unity game's IL2CPP metadata	Loe Unity mängu IL2CPP metaandmeid
+Read a game's files	Loe mängu faile
+Read a project file	Loe projektifaili
+Read a setting	Loe seadet
+Read an app's screen	Loe rakenduse ekraani
+Read bytes	Loe baite
+Read comment	Loe kommentaari
+Read inline comment	Loe reasisest kommentaari
+Read its tools	Loe selle tööriistad
+Read pinned builds	Loe kinnitatud ehitused
+Read projects	Loe projekte
+Read the journal	Loe päevikut
+Read the plugin's tools	Loe plugina tööriistad
+Read the project	Loe projekt
+Reading what's inside…	Loen, mis sees on…
+Ready	Valmis
+Ready: {what} is on this computer.	Valmis: {what} on selles arvutis.
+Reasoning	Arutlemine
+Rebuild status	Taasehituse olek
+Record a finding	Salvesta leid
+Record a hypothesis	Salvesta hüpotees
+Record an open question	Salvesta lahtine küsimus
+Recover readable sources	Taasta loetavad lähtefailid
+Recreate it with darker colours	Loo see tumedamates värvides uuesti
+Recreate just its main feature	Loo uuesti ainult selle põhifunktsioon
+Recreate this website	Loo see veebileht uuesti
+Recreated games are built with the original's own engine when it's here (Unity, Unreal or Godot), else Unity, and Rust as the last resort.	Taasloodud mängud ehitatakse originaali enda mootoriga, kui see on olemas (Unity, Unreal või Godot), muidu Unityga ja viimase abinõuna Rustiga.
+References to a name	Viited nimele
+Refining rounds	Täiustamisringid
+Refresh plugins	Värskenda pluginad
+Regions of a program file, each with one purpose: code, text, pictures, settings.	Programmifaili piirkonnad, igaühel üks otstarve: kood, tekst, pildid, seaded.
+Reload	Laadi uuesti
+Remember permission	Jäta luba meelde
+Remove	Eemalda
+Remove a pin	Eemalda kinnitus
+Remove a pinned build	Eemalda kinnitatud ehitus
+Remove a plugin	Eemalda plugin
+Remove an AI	Eemalda AI
+Remove an app	Eemalda rakendus
+Remove an asset key	Eemalda varade võti
+Remove bookmark	Eemalda järjehoidja
+Remove it	Eemalda see
+Remove it and its key	Eemalda see ja selle võti
+Remove {name}	Eemalda {name}
+Remove {name}?	Eemalda {name}?
+Remove…	Eemalda…
+Rename	Nimeta ümber
+Rename a pinned build	Nimeta kinnitatud ehitus ümber
+Rename a project	Nimeta projekt ümber
+Rename the pin	Nimeta kinnitus ümber
+Rename the project	Nimeta projekt ümber
+Rename…	Nimeta ümber…
+Reset	Lähtesta
+Resolve a call	Tuvasta kutse sihtkoht
+Resolved	Tuvastatud
+Resources	Ressursid
+Restart	Taaskäivita
+Restore	Taasta
+Result	Tulemus
+Resume a Frida session	Jätka Frida seanssi
+Rizin command	Rizini käsk
+Rizin debug command	Rizini silumiskäsk
+Rizin debug session status	Rizini silumisseansi olek
+Rough guide:	Ligikaudne juhend:
+Run	Käivita
+Run a Frida script	Käivita Frida skript
+Run a build command	Käivita ehituse käsk
+Run a scripted Electron session	Käivita skriptitud Electroni seanss
+Run a scripted web session	Käivita skriptitud veebiseanss
+Run a tool from the command palette (Ctrl/⌘ K), or pick a finding in the Evidence panel.	Käivita tööriist käsupaletist (Ctrl/⌘ K) või vali leid tõendite paneelil.
+Run and watch a program	Käivita ja jälgi programmi
+Run to study	Käivita uurimiseks
+Running	Töötab
+Running processes	Töötavad protsessid
+Running programs	Töötavad programmid
+Running {id}	Töötab {id}
+Runs its tools without asking	Käivitab oma tööriistad ilma küsimata
+Runs the first-run steps next time.	Käivitab järgmisel korral esmakäivituse sammud.
+Rust program details	Rust programmi üksikasjad
+SHA-256	SHA-256
+SQLite database contents	SQLite andmebaasi sisu
+Safety	Turvalisus
+Save	Salvesta
+Save a picture	Salvesta pilt
+Save a report	Salvesta aruanne
+Save an asset key	Salvesta varade võti
+Save picture	Salvesta pilt
+Save settings	Salvesta seaded
+Save the key	Salvesta võti
+Save the picture	Salvesta pilt
+Save the report	Salvesta aruanne
+Saved	Salvestatud
+Saved in	Salvestatud asukohta
+Saves space: copies the program and code, and shares dependencies and media with the project. A shared file rewritten in place changes here too.	Säästab ruumi: kopeerib programmi ja koodi ning jagab projekti sõltuvusi ja meediat. Kohapeal üle kirjutatud jagatud fail muutub ka siin.
+Say what you want	Ütle, mida soovid
+Say what you want first.	Ütle esmalt, mida soovid.
+Say what you want to make, or drop an app or file on the window to look inside it. Everything runs in Clean room mode unless you switch on Deep.	Ütle, mida soovid luua, või lohista rakendus või fail aknale, et sisse vaadata. Kõik töötab puhta ruumi režiimis, kuni lülitad sisse sügava.
+Screenshot	Ekraanipilt
+Screenshot a page	Tee lehest ekraanipilt
+Screenshots of how it should look. The builder opens each one and matches it.	Ekraanipildid, kuidas see peaks välja nägema. Ehitaja avab iga pildi ja võrdleb sellega.
+Search for bytes	Otsi baite
+Search functions	Otsi funktsioone
+Search strings	Otsi sõnesid
+Sections	Sektsioonid
+Security research on software I'm allowed to examine.	Turvauuring tarkvaral, mida tohin uurida.
+See how a page is built: its layout, styles, scripts and the requests it makes.	Vaata, kuidas leht on üles ehitatud: selle paigutus, stiilid, skriptid ja päringud, mida see teeb.
+See how a program works: what it does, what it talks to, what's inside.	Vaata, kuidas programm töötab: mida see teeb, millega suhtleb, mis seal sees on.
+See what a game packs and save its pictures as PNG files. Only for games you made, or whose owner lets you.	Vaata, mida mäng pakub, ja salvesta selle pildid PNG-failidena. Ainult mängudele, mille oled teinud või mille omanik lubab.
+See what a game packs, and save its pictures as PNG files.	Vaata, mida mäng pakib, ja salvesta selle pildid PNG-failidena.
+See what a stand-in was asked	Vaata, mida asenduselt küsiti
+See which servers an app talks to, and what it says.	Vaata, milliste serveritega rakendus suhtleb ja mida see ütleb.
+Seen it	Nähtud
+Seen it: read directly from the file, page or capture.	Nähtud: loetud otse failist, lehelt või salvestisest.
+Selected	Valitud
+Selection	Valik
+Send	Saada
+Send (Enter)	Saada (Enter)
+Send now	Saada kohe
+Server address	Serveri aadress
+Session status	Seansi olek
+Set a project's asset budget	Määra projekti varade eelarve
+Set an AI's folder	Määra AI kaust
+Set an AI's program	Määra AI programm
+Set model options	Määra mudeli valikud
+Set one up	Seadista üks
+Set up a brain…	Seadista aju…
+Set up a builder	Seadista ehitaja
+Settings	Seaded
+Show a build's activity	Näita ehituse tegevust
+Show a project	Näita projekti
+Show folder	Näita kausta
+Show me everything	Näita mulle kõike
+Show me the proof	Näita mulle tõestust
+Show model options	Näita mudeli valikuid
+Show pinned builds	Näita kinnitatud ehitused
+Show settings	Näita seadeid
+Show the answer	Näita vastust
+Show the console	Näita konsooli
+Show the folder	Näita kausta
+Show the ones that are met	Näita täidetuid
+Show the sidebar	Näita külgriba
+Show the welcome again	Näita tervitust uuesti
+Showing	Näitan
+Sign in and add the Unity Editor	Logi sisse ja lisa Unity Editor
+Sign in and install Unreal Engine	Logi sisse ja paigalda Unreal Engine
+Simple	Lihtne
+Simple: say what you want and it's handled for you. Advanced: every tool, the evidence and the logs.	Lihtne: ütle, mida soovid, ja see tehakse sinu eest. Täpsem: iga tööriist, tõendid ja logid.
+Since Craft Anything opened.	Alates Craft Anything'i avamisest.
+Size	Suurus
+Skip setup	Jäta seadistamine vahele
+Smart contract interface	Nutilepingu liides
+Software I made, bought, or have permission to examine.	Tarkvara, mille tegin, ostsin või mida tohin uurida.
+Solana program (sBPF)	Solana programm (sBPF)
+Some plugins couldn't be read:	Mõnda pluginat ei õnnestunud lugeda:
+Something a program borrows from the operating system or a library, like "open a file".	Midagi, mida programm laenab operatsioonisüsteemilt või teegist, näiteks „ava fail“.
+Something a program or library offers for other programs to use.	Midagi, mida programm või teek pakub teistele programmidele kasutamiseks.
+Source	Allikas
+Standard	Standard
+Start	Start
+Start a Frida session	Alusta Frida seanssi
+Start a GDB session	Alusta GDB seanssi
+Start a Rizin debug session	Alusta Rizini silumisseanssi
+Start a rebuild	Alusta taasehitust
+Start a stand-in backend	Käivita asendustaustarakendus
+Start an activity	Käivita tegevus
+Start building	Alusta ehitamist
+Start from them	Alusta nendega
+Start it	Käivita see
+Start with Simple mode; you can set up AI later in Settings.	Alusta lihtsast režiimist; AI saad hiljem seadetes seadistada.
+Starting…	Käivitan…
+Starting… it opens in its own window.	Käivitan… see avaneb oma aknas.
+Still working. Bigger jobs can take a few minutes.	Töötab veel. Suuremad tööd võivad võtta mitu minutit.
+Stop	Peata
+Stop a pinned build	Peata kinnitatud ehitus
+Stop a rebuild	Peata taasehitus
+Stop a stand-in backend	Peata asendustaustarakendus
+Stop generated assets	Peata genereeritud varad
+Stop listing {folder}	Lõpeta {folder} loetlemine
+Stopped here	Peatus siin
+Stops the current step and sends your notes straight away.	Peatab praeguse sammu ja saadab sinu märkmed kohe.
+Strings	Sõned
+Studio	Studio
+Studio (dark)	Studio (tume)
+Studio Light	Studio hele
+Study	Uuri
+Study apps by running them	Uuri rakendusi neid käivitades
+Studying	Uurin
+Studying software to understand it.	Tarkvara uurimine selle mõistmiseks.
+Summarise what changed	Tee kokkuvõte, mis muutus
+Swift types	Swifti tüübid
+Switch Beginner / Experienced	Vaheta algaja ja kogenud vahel
+Switch Clean room / Deep	Vaheta puhta ruumi ja sügava vahel
+Switch light / dark theme	Vaheta hele ja tume teema
+Switch target	Vaheta sihtmärki
+System	Süsteem
+System services	Süsteemiteenused
+Take a texture out of an Unreal game	Võta tekstuur Unreali mängust välja
+Take an asset out of a Unity game	Võta vara Unity mängust välja
+Take back a note	Võta märge tagasi
+Take back: puts it in the box again	Võta tagasi: paneb selle uuesti kasti
+Take files out of an Unreal pak	Võta failid Unreali pakist välja
+Take out packed files	Võta pakitud failid välja
+Target	Sihtmärk
+Targets	Sihtmärgid
+That folder already has {names}, where Craft Anything keeps its own files. Pick another folder, or move those out first.	Selles kaustas on juba {names}, kus Craft Anything hoiab oma faile. Vali teine kaust või liiguta need esmalt välja.
+That folder is already a project, so it's open now.	See kaust on juba projekt, seega on see nüüd avatud.
+The Rust toolchain (rustup.rs).	Rusti tööriistakomplekt (rustup.rs).
+The builder answers its own questions and says what it chose ("I decided: …"), so you can change it.	Ehitaja vastab oma küsimustele ise ja ütleb, mida valis („Otsustasin: …“), et saaksid seda muuta.
+The builder makes the game's 3D models and textures from descriptions of original designs, paid from your fal.ai account. Models are low-poly so the game runs fast. A textured model costs {model} and a picture {picture}. Each project has a {budget} budget, and you're asked before it goes over. The key is kept in your system keychain.	Ehitaja loob mängu 3D-mudelid ja tekstuurid originaalkavandite kirjelduste põhjal, sinu fal.ai konto eest. Mudelid on madala polügoonide arvuga, et mäng töötaks kiiresti. Tekstuuriga mudel maksab {model} ja pilt {picture}. Igal projektil on eelarve {budget} ja enne selle ületamist küsitakse sinult. Võti hoitakse sinu süsteemi võtmehoidlas.
+The builder reads them (code, notes, pictures) and builds the app in a new app folder beside them. Your files stay as they are.	Ehitaja loeb neid (kood, märkmed, pildid) ja ehitab rakenduse nende kõrvale uude app-kausta. Sinu failid jäävad puutumata.
+The builder will decide its questions and tell you what it chose.	Ehitaja otsustab oma küsimused ja ütleb sulle, mida valis.
+The builder works on these files directly and keeps what works. Craft Anything adds a few records of its own beside them.	Ehitaja töötab nende failidega otse ja hoiab selle, mis töötab. Craft Anything lisab nende kõrvale mõned omad kirjed.
+The builder's questions	Ehitaja küsimused
+The builder's questions come to you as cards, and it waits for your answer.	Ehitaja küsimused tulevad sinuni kaartidena ja ta ootab sinu vastust.
+The builder's questions will come to you.	Ehitaja küsimused tulevad sinuni.
+The built-in engines still show you everything they find.	Sisseehitatud mootorid näitavad sulle ikkagi kõike, mida leiavad.
+The clipboard can't be read:	Lõikelauda ei saa lugeda:
+The code	Kood
+The code format Android apps use.	Koodivorming, mida Androidi rakendused kasutavad.
+The coding agent's estimate at API prices, not your bill. A subscription isn't charged this.	Programmeerimisagendi hinnang API hindades, mitte sinu arve. Tellimust sellega ei koormata.
+The download keeps going in the background.	Allalaadimine jätkub taustal.
+The first instruction a program runs when it starts.	Esimene instruktsioon, mille programm käivitamisel täidab.
+The full toolset, evidence and logs.	Täielik tööriistakomplekt, tõendid ja logid.
+The installer is open. Follow its steps, then come back here.	Paigaldusprogramm on avatud. Järgi selle samme ja tule siis siia tagasi.
+The lowest-level human-readable form of machine code: one small instruction per line.	Masinkoodi madalaim inimloetav vorm: üks väike instruktsioon rea kohta.
+The names were removed from the program before it was shipped, so we have to work them out.	Nimed eemaldati programmist enne selle väljastamist, seega peame need välja mõtlema.
+The packed contents of an Electron app (a website inside a desktop app)	Electroni rakenduse pakitud sisu (veebileht töölauarakenduse sees)
+The pasted picture wasn't attached: another screen was opened meanwhile.	Kleebitud pilti ei manustatud: vahepeal avati teine vaade.
+The picture on the clipboard is too large.	Lõikelaua pilt on liiga suur.
+The program's machine code written out as one tiny instruction per line.	Programmi masinkood, kirjutatud ühe pisikese instruktsioonina rea kohta.
+The project's name and round	Projekti nimi ja ring
+The raw result	Töötlemata tulemus
+The smallest unit of data in a file: a number from 0 to 255.	Väikseim andmeühik failis: arv vahemikus 0 kuni 255.
+The smallest units of data in a file: numbers from 0 to 255.	Väikseimad andmeühikud failis: arvud vahemikus 0 kuni 255.
+The {name} view isn't available yet in this build.	Vaade „{name}“ pole selles ehituses veel saadaval.
+The {} view isn't available yet in this build.	Vaade „{}“ pole selles ehituses veel saadaval.
+Theme	Teema
+There's no /{name} command. You can use {commands}.	Käsku /{name} pole. Võid kasutada {commands}.
+There's no AI brain set up yet, so here's what the built-in engines found:	AI aju pole veel seadistatud, seega siin on, mida sisseehitatud mootorid leidsid:
+There's no picture on the clipboard to paste.	Lõikelaual pole pilti, mida kleebida.
+They're my app: edit them in place	Need on minu rakendus: muuda neid kohapeal
+Things a program borrows from the operating system or libraries, like "open a file" or "draw a window".	Asjad, mida programm laenab operatsioonisüsteemilt või teekidest, näiteks „ava fail“ või „joonista aken“.
+Things a program or library offers for other programs to use.	Asjad, mida programm või teek pakub teistele programmidele kasutamiseks.
+Things we couldn't establish yet are listed here, with what would settle them.	Asjad, mida me pole veel suutnud kindlaks teha, on loetletud siin koos sellega, mis need selgitaks.
+This answer won't be there after a restart:	See vastus ei ole pärast taaskäivitamist enam alles:
+This build stopped part-way	See ehitus peatus poolel teel
+This can't be undone.	Seda ei saa tagasi võtta.
+This folder already has files	Selles kaustas on juba failid
+This is a big one. You can leave this open and come back later.	See on suur töö. Võid selle avatuks jätta ja hiljem tagasi tulla.
+This is outside what the builder may do on its own. Nothing happens until you say so.	See on väljaspool seda, mida ehitaja tohib ise teha. Midagi ei juhtu enne, kui sa ütled.
+This keeps going in the background, and each download is checked against its publisher's checksum before it's used.	See jätkub taustal ja iga allalaadimine kontrollitakse enne kasutamist selle avaldaja kontrollsummaga.
+This project is waiting its turn. Send your message once it starts.	See projekt ootab oma järge. Saada oma sõnum, kui see algab.
+This runs code from the target or changes a device. Clicking Run is your OK.	See käivitab sihtmärgi koodi või muudab seadet. Käivitamisele klõpsamine on sinu nõusolek.
+This runs code from the target or changes a device. Nothing runs until you say so.	See käivitab sihtmärgi koodi või muudab seadet. Miski ei käivitu enne, kui sa ütled.
+This tool takes no settings.	Sellel tööriistal pole seadeid.
+This updates by itself when it's done.	See värskendub ise, kui valmis saab.
+This view arrives with the next engines. The Hex and Result views work today.	See vaade tuleb järgmiste mootoritega. Hex- ja Tulemuse vaated töötavad juba praegu.
+Those aren't pictures we can use (PNG, JPEG, WebP or GIF, up to 20 MB).	Need pole pildid, mida saame kasutada (PNG, JPEG, WebP või GIF, kuni 20 MB).
+Time spent	Kulutatud aeg
+Tip: press Ctrl/⌘ K to run any tool.	Nipp: vajuta Ctrl/⌘ K, et käivitada ükskõik milline tööriist.
+Tokens	Tokenid
+Tools may now run code from what you open without asking. Turn this back on unless you're sure.	Tööriistad võivad nüüd käivitada koodi sellest, mille avad, ilma küsimata. Lülita see tagasi sisse, kui pole kindel.
+Tools that run code from a target or change a phone always ask first, unless you allowed them for a project.	Tööriistad, mis käivitavad sihtmärgi koodi või muudavad telefoni, küsivad alati enne, kui pole neid projekti jaoks lubanud.
+Trace a UI action	Jälgi UI toimingut
+Trace a feature	Jälgi funktsiooni
+Try again	Proovi uuesti
+Try asking	Proovi küsida
+Try it out, then ask below for any changes.	Proovi järele ja küsi allpool muudatusi.
+Turn a program's machine code back into something that reads like source code. It's a reconstruction, not the original.	Muuda programmi masinkood tagasi millekski, mis loeb nagu lähtekood. See on rekonstruktsioon, mitte originaal.
+Turn off	Lülita välja
+Turn off an AI	Lülita AI välja
+Turn on	Lülita sisse
+Turn on Deep mode	Lülita sügav režiim sisse
+Turn on an AI	Lülita AI sisse
+Turning a plugin on or off takes effect from the next start.	Plugina sisse- või väljalülitamine mõjub järgmisest käivitamisest.
+Type a command or tool…	Kirjuta käsk või tööriist…
+Type the website's address:	Kirjuta veebilehe aadress:
+Type your question after /btw.	Kirjuta oma küsimus pärast /btw.
+Unity assets	Unity varad
+Unity bundle	Unity kimp
+Unity's own installer. It only opens if Unity's signature checks out.	Unity enda paigaldaja. See avaneb ainult siis, kui Unity allkiri on kehtiv.
+Unknown	Teadmata
+Unknown: we couldn't establish this yet.	Teadmata: me ei suutnud seda veel kindlaks teha.
+Unknowns	Teadmata asjad
+Unload a Frida script	Laadi Frida skript maha
+Unreal IoStore	Unreal IoStore
+Unreal builds games with Apple's Xcode, free in the App Store.	Unreal ehitab mänge Apple'i Xcode'iga, mis on App Store'is tasuta.
+Unreal is here, but it also needs Visual Studio's C++ tools.	Unreal on olemas, kuid vajab ka Visual Studio C++ tööriistu.
+Unreal pak	Unreal pak
+Update a finding	Värskenda leidu
+Update a hypothesis	Värskenda hüpoteesi
+Update an open question	Värskenda lahtist küsimust
+Update the checklist	Värskenda kontrollnimekirja
+Update the plan	Värskenda plaani
+Use	Kasuta
+Use an API key…	Kasuta API võtit…
+Use as a goal	Kasuta eesmärgina
+Use the projects folder	Kasuta projektide kausta
+Use this	Kasuta seda
+Use {name}	Kasuta {name}
+Value flow	Väärtuste voog
+Version	Versioon
+Waiting	Ootab
+Waiting for another build to finish: this one starts next.	Ootab teise ehituse lõppu: see algab järgmisena.
+Waiting for other builds to finish: {n} in line.	Ootab teiste ehituste lõppu: {n} järjekorras.
+Waiting: the builder reads it at its next step. Up arrow to edit.	Ootab: ehitaja loeb seda oma järgmises etapis. Muutmiseks ülesnool.
+Waiting: the builder reads these at its next step. Up arrow to edit the last.	Ootab: ehitaja loeb neid oma järgmises etapis. Viimase muutmiseks ülesnool.
+Want answers in plain words?	Soovid vastuseid lihtsate sõnadega?
+Watch a Mac app's calls	Jälgi Maci rakenduse kutseid
+Watch a page over time	Jälgi lehte aja jooksul
+We didn't find an AI on this computer yet	Me ei leidnud sellest arvutist veel AI-d
+We list the web addresses and messages we can see inside it. Watching it live needs your OK first.	Loetleme veebiaadressid ja sõnumid, mida selle sees näeme. Reaalajas jälgimiseks on esmalt vaja sinu nõusolekut.
+We only read it; nothing runs. Every answer shows how sure we are.	Me ainult loeme seda; miski ei käivitu. Iga vastus näitab, kui kindlad me oleme.
+WebAssembly module	WebAssembly moodul
+WebAssembly: fast compiled code that runs inside web browsers.	WebAssembly: kiire kompileeritud kood, mis töötab veebibrauserites.
+Website address	Veebilehe aadress
+Website pages	Veebilehe lehed
+Websites	Veebilehed
+Welcome	Tere tulemast
+What a new game may spend on generated pictures and 3D models before you're asked. Each project keeps its own.	Mida uus mäng tohib genereeritud piltidele ja 3D-mudelitele kulutada, enne kui sinult küsitakse. Igal projektil on oma.
+What a program exports	Mida programm ekspordib
+What a program imports	Mida programm impordib
+What are its main parts?	Millised on selle põhiosad?
+What brings you here?	Mis sind siia tõi?
+What can Craft Anything do?	Mida Craft Anything suudab?
+What data was sent?	Milliseid andmeid saadeti?
+What do you want to look inside?	Millesse soovid sisse vaadata?
+What do you want to make?	Mida soovid luua?
+What do you want to recreate?	Mida soovid uuesti luua?
+What does it need from the page?	Mida see lehelt vajab?
+What does it send over the internet?	Mida see interneti kaudu saadab?
+What does this app do?	Mida see rakendus teeb?
+What does this app store?	Mida see rakendus salvestab?
+What does this contract do?	Mida see leping teeb?
+What does this module do?	Mida see moodul teeb?
+What does this program do?	Mida see programm teeb?
+What does {what} do?	Mida {what} teeb?
+What happened in this build	Mis selles ehituses juhtus
+What is it	Mis see on
+What is this?	Mis see on?
+What it calls	Mida see kutsub
+What kind of file is this?	Mis tüüpi fail see on?
+What permissions does it ask for?	Milliseid õigusi see küsib?
+What pictures and textures are made with.	Millega pildid ja tekstuurid luuakse.
+What settings are in here?	Millised seaded siin sees on?
+What tables are in here?	Millised tabelid siin sees on?
+What we couldn't check	Mida me ei suutnud kontrollida
+What would you like to find out?	Mida sooviksid teada saada?
+What would you like to know about {name}?	Mida sooviksid {name} kohta teada?
+What's at this address	Mis sellel aadressil on
+What's in this folder?	Mis selles kaustas on?
+What's inside this archive?	Mis selle arhiivi sees on?
+Whatever Settings → AI builds with.	Millega iganes Seaded → AI ehitab.
+When a folder you pick has files	Kui valitud kaustas on faile
+When the builder needs a choice made: show it to you and wait, or let it decide and say what it chose. Each project can choose for itself under its prompt box.	Kui ehitaja vajab otsust: näita seda sulle ja oota või lase tal otsustada ja öelda, mida valis. Iga projekt saab selle valida oma viiba kasti all.
+When you rebuild an app or game, start it once to picture its window and compare the rebuild with it. It runs that program.	Kui ehitad rakenduse või mängu uuesti, käivita see üks kord, et teha selle aknast pilt ja võrrelda taasehitust sellega. See käivitab selle programmi.
+Where am I	Kus ma olen
+Where is Ghidra installed?	Kuhu on Ghidra paigaldatud?
+Where is the program?	Kus on programm?
+Where should new projects go?	Kuhu peaksid uued projektid minema?
+Where we found it	Kust me selle leidsime
+Whether they're the app to edit in place, or material the app starts from beside them.	Kas need on rakendus, mida kohapeal muuta, või materjal, millest rakendus nende kõrval algab.
+Which AI answers your questions	Milline AI vastab sinu küsimustele
+Which file is the main program?	Milline fail on põhiprogramm?
+Which files does it read or write?	Milliseid faile see loeb või kirjutab?
+Which function is this in	Millises funktsioonis see on
+Which servers does it talk to?	Milliste serveritega see suhtleb?
+Which servers were contacted?	Millistega serveritest ühendust võeti?
+Which websites does it load?	Milliseid veebilehti see laadib?
+Who builds what you make	Kes ehitab selle, mida lood
+Who calls it	Kes seda kutsub
+Who can move funds?	Kes saab raha liigutada?
+Who signed this Windows program	Kes selle Windowsi programmi allkirjastas
+Who uses this Android class?	Kes kasutab seda Androidi klassi?
+Who uses this Java class?	Kes kasutab seda Java klassi?
+Why we ask	Miks me küsime
+Window / focus info	Akna / fookuse info
+Windows resources	Windowsi ressursid
+Wireshark tools check	Wireshargi tööriistade kontroll
+Without it, Deep mode uses Craft Anything's own decompiler, which is rougher.	Ilma selleta kasutab sügav režiim Craft Anything'i enda dekompilaatorit, mis on karedam.
+Work out a copy's size	Arvuta koopia suurus
+Work out what an installed app is built on	Tee kindlaks, millele paigaldatud rakendus on ehitatud
+Workbench	Töölaud
+Worked it out	Tuletatud
+Worked it out: computed step by step from things we saw.	Tuletatud: arvutatud samm-sammult asjadest, mida nägime.
+Worked through {n} steps	Läbitud {n} sammu
+Working on it	Töötan selle kallal
+Working on your answer	Töötan sinu vastuse kallal
+Working out how much space a copy takes…	Arvutan, kui palju ruumi koopia võtab…
+Working…	Töötan…
+Working… ({n} steps so far)	Töötan… (seni {n} sammu)
+Write a project file	Kirjuta projektifail
+Write a readable report	Kirjuta loetav aruanne
+Write comment	Kirjuta kommentaar
+Write inline comment	Kirjuta reasisene kommentaar
+Write pseudo-C to a folder	Kirjuta pseudo-C kausta
+Write the brief	Kirjuta kokkuvõte
+Write the handoff	Kirjuta üleandmine
+Wrote {what} to {}	Kirjutasin {what} asukohta {}
+You answered: {a}	Vastasid: {a}
+You can add a Claude, ChatGPT or OpenRouter key, a local model (Ollama, LM Studio) or an agent you already use, later in Settings → AI.	Hiljem saad jaotises Seaded → AI lisada Claude'i, ChatGPT või OpenRouteri võtme, kohaliku mudeli (Ollama, LM Studio) või agendi, mida juba kasutad.
+You chose:	Valisid:
+You're all set	Kõik on valmis
+Your app is ready	Sinu rakendus on valmis
+Your brains	Sinu ajud
+Your fal.ai key	Sinu fal.ai võti
+Your game is ready	Sinu mäng on valmis
+Your message wasn't sent: another project was opened while its pictures were copied.	Sinu sõnumit ei saadetud: piltide kopeerimise ajal avati teine projekt.
+Your own tool installs (optional)	Sinu enda tööriistapaigaldused (valikuline)
+Your project starts as soon as it's done.	Sinu projekt algab kohe, kui see valmis saab.
+Your version	Sinu versioon
+Your website is ready	Sinu veebileht on valmis
+a new folder in {dir}	uus kaust asukohas {dir}
+a picture	pilt
+about ${n}	umbes ${n}
+address, e.g. http://192.168.1.20:11434/v1	aadress, nt http://192.168.1.20:11434/v1
+and {n} more	ja veel {n}
+arguments (optional)	argumendid (valikuline)
+call graph	kutsete graaf
+clean room	puhas ruum
+command, https:// address or .wasm file	käsk, https:// aadress või .wasm fail
+deep mode	sügav režiim
+entry point	sisenemispunkt
+files	failid
+findings	leiud
+first run	esmakäivitus
+found on this computer; set up when you start	leitud sellest arvutist; seadistatakse käivitamisel
+from the builder's own memory of the build	ehitaja enda mälust ehituse kohta
+from the project's files	projekti failidest
+id, e.g. docs	ID, nt docs
+is required	on kohustuslik
+isn't available yet	pole veel saadaval
+job result	töö tulemus
+job {title} panicked: {what}	töö {title} kukkus kokku: {what}
+just now	äsja
+managed	hallatav
+model (optional)	mudel (valikuline)
+must be a number	peab olema arv
+must be a whole number	peab olema täisarv
+name, e.g. Studio box	nimi, nt Studio box
+number	arv
+objdump output	objdumpi väljund
+or start with /btw to just ask	või alusta /btw-ga, et lihtsalt küsida
+pinned builds couldn't be read: {}	kinnitatud ehitisi ei õnnestunud lugeda: {}
+say how to use the files there	ütle, kuidas seal faile kasutada
+scene	stseen
+scenes	stseenid
+source map	lähtekaart
+start page	avaleht
+the app is built beside your files, starting from them	rakendus ehitatakse sinu failide kõrvale, alustades neist
+the built-in engines	sisseehitatud mootorid
+the prompt box changed height	viiba kast muutis kõrgust
+title bar	pealkirjariba
+under $0.01	alla $0.01
+yesterday	eile
+your files there are the app, edited in place	sinu failid seal on rakendus, mida muudetakse kohapeal
+{:.1} GB	{:.1} GB
+{:.1}M	{:.1}M
+{backend}: {input_tokens} in / {output_tokens} out{cost}	{backend}: {input_tokens} sisse / {output_tokens} välja{cost}
+{cost} (estimate)	{cost} (hinnang)
+{c} · {size}	{c} · {size}
+{done} of {all} done	{done}/{all} tehtud
+{gb} GB for bigger ones	{gb} GB suuremate jaoks
+{gb} GB for programs up to {size}	{gb} GB programmidele kuni {size}
+{gb} GB up to {size}	{gb} GB kuni {size}
+{held} of {n} requirements met	{held}/{n} nõuet täidetud
+{id} · {summary}	{id} · {summary}
+{in} in, {out} out.	{in} sisse, {out} välja.
+{k}: {s}	{k}: {s}
+{lbl}  {}	{lbl}  {}
+{line}, and {n} more	{line}, ja veel {n}
+{mb} MB	{mb} MB
+{name} builds what you make.	{name} ehitab selle, mida lood.
+{name} builds what you make; answers come from {brain}.	{name} ehitab selle, mida lood; vastused tulevad allikast {brain}.
+{name} can't be attached: a message takes pictures up to 20 MB.	{name} ei saa manustada: sõnum võtab pilte kuni 20 MB.
+{name} can't be attached: it isn't a PNG, JPEG, GIF or WebP picture.	{name} ei saa manustada: see pole PNG-, JPEG-, GIF- ega WebP-pilt.
+{name} is ready	{name} on valmis
+{name} is ready.	{name} on valmis.
+{name} isn't available yet in this build.	{name} pole selles ehituses veel saadaval.
+{name} isn't on this computer yet.	{name} pole selles arvutis veel.
+{name} key	{name} võti
+{n} actions done so far	seni {n} toimingut tehtud
+{n} days ago	{n} päeva tagasi
+{n} h ago	{n} h tagasi
+{n} item(s)	{n} üksus(t)
+{n} job(s) running	{n} tööd käimas
+{n} min ago	{n} min tagasi
+{n} picture(s) to match.	{n} pilt(i) sobitamiseks.
+{n} step(s) didn't work and were retried or skipped.	{n} sammu ei õnnestunud ja neid korrati või jäeti vahele.
+{n} tokens	{n} tokenit
+{n} · ${spent:.2} of ${budget:.2}	{n} · ${spent:.2} / ${budget:.2}
+{n} · ${spent} of ${budget}	{n} · ${spent} / ${budget}
+{scenes} {}	{scenes} {}
+{text}, {}	{text}, {}
+{title} hit a bug and stopped safely. ({what})	{title} kohtas viga ja peatus turvaliselt. ({what})
+{title} {id}	{title} {id}
+{title} · {:.0}%	{title} · {:.0}%
+{tool} finished	{tool} on valmis
+{tool}: {}	{tool}: {}
+{what} panicked: {msg}	{what} kukkus kokku: {msg}
+{} GB	{} GB
+{} isn't available yet in this build.	{} pole selles ehituses veel saadaval.
+{} item(s)	{} üksus(t)
+{} key	{} võti
+{} report.md	{} aruanne.md
+{} {name}	{} {name}
+{} {said}	{} {said}
+{} {then}	{} {then}
+{} {v}	{} {v}
+{} {why}	{} {why}
+{} {} · {}{cost}	{} {} · {}{cost}
+{} · {mode}	{} · {mode}
+{}: {e}	{}: {e}
+{}: {some}{more}.	{}: {some}{more}.
+{}: {state}	{}: {state}
+{}h {:02}m	{}h {:02}m
+{}m {:02}s	{}m {:02}s
+— use the filter to find the rest.	— ülejäänu leidmiseks kasuta filtrit.
+… {n} more	… veel {n}
+… {n} older	… veel {n} vanemat
+… {} more	… veel {}
+… {} older	… veel {} vanemat
+← Back	← Tagasi
+↑↓ to move · Enter to run · Esc to close	↑↓ liikumiseks · Enter käivitamiseks · Esc sulgemiseks
+Providers	Teenusepakkujad
+Harnesses	Agendid
+Nothing of this kind was found.	Seda liiki midagi ei leitud.
+Another model	Teine mudel
+Fold a project's plan	Ahenda projekti plaan
+Fold the plan	Ahenda plaan
+The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.	Claude'i töölauarakendus on paigaldatud, kuid ehitamiseks on vaja Claude Code'i, selle eraldi käsureatööriista. Paigalda Claude Code, logi terminalis üks kord sisse ja otsi siis uuesti.
+Unreal is here, but its bundled Clang C++ toolchain wasn't found.	Unreal on olemas, kuid selle kaasas olevat Clang C++ tööriistakomplekti ei leitud.
+Add Unreal's Linux C++ toolchain	Lisa Unreali Linuxi C++ tööriistakomplekt
+Run Engine/Build/BatchFiles/Linux/SetupToolchain.sh in the engine folder to install its bundled Clang toolchain. If you built Unreal from source, Setup.sh downloads the native toolchain instead. A system Clang may not match the engine's version.	Paigalda mootori kaasas olev Clang tööriistakomplekt, käivitades mootori kaustas Engine/Build/BatchFiles/Linux/SetupToolchain.sh. Kui ehitasid Unreali allikast, laadib Setup.sh selle asemel alla natiivse tööriistakomplekti. Süsteemi Clang ei pruugi mootori versiooniga sobida.
+Unreal is here, but it also needs Xcode.	Unreal on olemas, kuid vajab ka Xcode'i.
+About 60 GB, an Epic Games account, and Xcode.	Umbes 60 GB, Epic Gamesi konto ja Xcode.
+File	Fail
+View	Vaade
+Window	Aken
+Help	Abi
+Command palette	Käsupalett
+Craft Anything on GitHub	Craft Anything GitHubis
+Report a problem…	Teata probleemist…
+Quit Craft Anything	Välju Craft Anything'ist
+About Craft Anything	Craft Anything'ist
+Services	Teenused
+Hide Craft Anything	Peida Craft Anything
+Hide others	Peida teised
+Show all	Näita kõiki
+Close window	Sulge aken
+Full screen	Täisekraan
+Zoom	Suumi
+Bring all to front	Too kõik ette
+Drag to give the plan more or less room; double-click to reset	Lohista, et anda plaanile rohkem või vähem ruumi; lähtestamiseks tee topeltklõps
+Copy the message	Kopeeri sõnum
+Choose what the builder's approvals get	Määra ehitaja kinnituste käitumine
+Reading the web	Veebist lugemine
+Other commands	Muud käsud
+Files outside the project	Failid väljaspool projekti
+Pushing and publishing	Pushimine ja avaldamine
+Deleting outside the project	Kustutamine väljaspool projekti
+System changes	Süsteemimuudatused
+Other tools	Muud tööriistad
+Allow	Luba
+Ask	Küsi
+Refuse	Keela
+After /approvals, type a kind and allow, ask, refuse or default, like /approvals publish ask. Kinds: {kinds}.	Pärast /approvals kirjuta liik ja seejärel allow, ask, refuse või default, näiteks /approvals publish ask. Liigid: {kinds}.
+There's no kind called {name}. Kinds: {kinds}.	Liiki nimega {name} pole. Liigid: {kinds}.
+Approvals	Kinnitused
+In this project, {kind}: {choice}.	Selles projektis {kind}: {choice}.
+Couldn't change the approvals:	Kinnitusi ei õnnestunud muuta:
+What the builder may do without asking you, in this project.	Mida ehitaja tohib selles projektis sinult küsimata teha.
+Default follows Auto mode: with it on, what can be undone goes ahead and the rest is refused; with it off, the builder asks.	Vaikimisi järgib automaatrežiimi: kui see on sees, tehakse tagasipööratavad toimingud ära ja ülejäänud keeldutakse; kui see on väljas, küsib ehitaja.
+Clean room never reads the original's code, files or page source: it works from what you can see. Deep reads them with every tool, and with IDA or Ghidra when one is installed. Every finding records which was used.	Puhas ruum ei loe kunagi originaali koodi, faile ega lehe lähteteksti: see töötab selle põhjal, mida sa näed. Sügav loeb neid kõigi tööriistadega ning IDA või Ghidraga, kui üks neist on paigaldatud. Iga leid registreerib, mida kasutati.
+Deep decompiler	Sügav dekompilaator
+Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automaatne valik eelistab IDA-t, seejärel Ghidrat. Võid ka ühe otse valida.
+Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Sügav: loeme selle koodi, faile ja lehe lähteteksti kõigi oma tööriistadega ning välise dekompilaatoriga, kui see on paigaldatud. Klõpsa vahetamiseks.
+{engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} pole paigaldatud, seega kasutatakse sisseehitatud dekompilaatorit. Vali mootor jaotises Seaded → Mootorid.
+{engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} pole selles arvutis veel, seega kasutatakse sisseehitatud dekompilaatorit.
+Connecting to {name}… {seconds} s	Ühendamine: {name}… {seconds} s
+Stopped adding {name}.	{name} lisamine peatati.

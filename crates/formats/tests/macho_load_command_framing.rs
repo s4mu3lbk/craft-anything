@@ -91,3 +91,16 @@ fn complete_build_commands_are_read_in_both_byte_orders() {
         assert!(parsed.warnings.is_empty());
     }
 }
+
+/// The binary view names every platform the dependency view does, DriverKit and the visionOS
+/// simulator included, and an unlisted number the same way too.
+#[test]
+fn the_binary_and_dependency_views_name_platforms_alike() {
+    for (platform, name) in [(1u32, "macos"), (10, "driverkit"), (11, "visionos"), (12, "visionos-simulator"), (99, "platform-99")] {
+        let mut build = apple::lc_build_version();
+        build[8..12].copy_from_slice(&platform.to_le_bytes());
+        let data = apple::macho_min(apple::CPU_ARM64, 2, &[build], &[]);
+        assert_eq!(enriched(&data).info.get("platform").map(String::as_str), Some(name), "platform {platform}");
+        assert_eq!(macho_deps::parse_thin(&data).unwrap().build_versions[0].platform, name, "platform {platform}");
+    }
+}

@@ -214,6 +214,9 @@ fn percent_decode(s: &str) -> Option<String> {
         match b.get(i) {
             Some(b'%') => {
                 let hex = s.get(i + 1..i + 3)?;
+                if !hex.bytes().all(|h| h.is_ascii_hexdigit()) {
+                    return None;
+                }
                 out.push(u8::from_str_radix(hex, 16).ok()?);
                 i += 3;
             }
@@ -308,6 +311,15 @@ mod stream_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn percent_decode_rejects_signs_in_escapes() {
+        assert_eq!(percent_decode("a%+41"), None);
+        assert_eq!(percent_decode("%+4"), None);
+        assert_eq!(percent_decode("%-4"), None);
+        assert_eq!(percent_decode("%G1"), None);
+        assert_eq!(percent_decode("%41").as_deref(), Some("A"));
+    }
 
     fn get(port: u16, path: &str) -> String {
         let mut s = TcpStream::connect(("127.0.0.1", port)).unwrap();

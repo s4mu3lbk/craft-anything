@@ -1,5 +1,6 @@
-//! Pure, standalone file-format parsers. No workspace dependencies, no I/O, no panics on any input.
+//! Pure, standalone file-format parsers. No workspace dependencies, no panics on any input.
 //! Every parser takes bytes and returns a `Result`; sizes and offsets from the input are checked.
+//! The one exception to bytes in memory is [`zip_file`], which reads an entry from a seekable file.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod ai_model;
@@ -66,6 +67,7 @@ pub mod unreal_texture;
 pub mod verify;
 pub mod wasm;
 pub mod zip;
+pub mod zip_file;
 
 // Native executable formats (ELF, PE, Mach-O, DOS) and their shared helpers.
 pub use binary::{Arch, Binary, Export, Format, Import, ImportSlot, Mitigations, Relocation, Section, Segment, Symbol, SymbolKind, parse_binary};

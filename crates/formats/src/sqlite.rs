@@ -29,6 +29,13 @@ const MAX_DEPTH: usize = 64;
 pub const MAX_ROWS: usize = 100_000;
 /// Most schema objects listed.
 const MAX_SCHEMA_OBJECTS: usize = 100_000;
+/// Longest schema text read whole (SQLite's own default limit on a statement is 1,000,000
+/// bytes). A CREATE statement is parsed whole, so the columns, rowid alias and `WITHOUT ROWID`
+/// after its first [`MAX_TEXT`] bytes still count; the statement shown is cut at [`MAX_TEXT`].
+const MAX_SCHEMA_TEXT: usize = 1 << 20;
+/// Schema text one walk keeps whole in all. Past it, schema text is cut at [`MAX_TEXT`] like other
+/// text, so schema rows that share an overflow chain can't multiply the file's size.
+const MAX_SCHEMA_TEXT_TOTAL: usize = 32 << 20;
 
 const MAGIC: &[u8; 16] = b"SQLite format 3\0";
 
@@ -82,7 +89,8 @@ pub struct SchemaObject {
     pub tbl_name: String,
     /// Root b-tree page (0 for views and triggers, which have no b-tree).
     pub rootpage: u32,
-    /// The original CREATE statement, truncated to a sane length.
+    /// The original CREATE statement, cut at 4 KiB for display; `columns` come from the whole
+    /// statement.
     pub sql: String,
     /// Columns parsed from the CREATE statement (tables only, best effort).
     pub columns: Vec<Column>,
@@ -199,11 +207,36 @@ struct RowWalk {
     notes: Vec<String>,
     /// Stop once this many rows are collected (0 = no limit, used for the schema walk).
     want: usize,
+    /// Longest text value decoded whole, and the whole text still allowed above [`MAX_TEXT`].
+    text_cap: usize,
+    text_budget: usize,
 }
 
 impl RowWalk {
     fn new(want: usize) -> Self {
-        RowWalk { index_tree: false, visited: Vec::new(), budget: MAX_PAGES_WALKED, out: Vec::new(), notes: Vec::new(), want }
+        RowWalk {
+            index_tree: false,
+            visited: Vec::new(),
+            budget: MAX_PAGES_WALKED,
+            out: Vec::new(),
+            notes: Vec::new(),
+            want,
+            text_cap: MAX_TEXT,
+            text_budget: 0,
+        }
+    }
+
+    /// Keep a row. While text past [`MAX_TEXT`] is read, the row's text spends the budget; once it
+    /// is spent, later rows are cut at [`MAX_TEXT`].
+    fn keep(&mut self, row: Row) {
+        if self.text_cap > MAX_TEXT {
+            let text: usize = row.values.iter().map(|value| if let CellValue::Text { text, .. } = value { text.len() } else { 0 }).sum();
+            self.text_budget = self.text_budget.saturating_sub(text);
+            if self.text_budget == 0 {
+                self.text_cap = MAX_TEXT;
+            }
+        }
+        self.out.push(row);
     }
 }
 
@@ -401,10 +434,25 @@ impl<'a> SqliteDb<'a> {
         Overview { header: self.header.clone(), file_size, page_count_from_size, integrity_notes: notes, schema, schema_truncated }
     }
 
-    /// Walk the `sqlite_schema` b-tree (rooted at page 1) and return its objects.
+    /// Walk the `sqlite_schema` b-tree (rooted at page 1) and return its objects. Columns are
+    /// parsed from the whole CREATE statement; the text shown is cut at [`MAX_TEXT`] bytes.
     pub fn schema(&self) -> (Vec<SchemaObject>, bool) {
+        let (mut objects, truncated) = self.whole_schema();
+        for object in &mut objects {
+            for text in [&mut object.obj_type, &mut object.name, &mut object.tbl_name, &mut object.sql] {
+                cut_at_max_text(text);
+            }
+        }
+        (objects, truncated)
+    }
+
+    /// The schema objects with their whole text (up to [`MAX_SCHEMA_TEXT`] while
+    /// [`MAX_SCHEMA_TEXT_TOTAL`] lasts), for reading rows.
+    fn whole_schema(&self) -> (Vec<SchemaObject>, bool) {
         let mut out = Vec::new();
         let mut w = RowWalk::new(MAX_SCHEMA_OBJECTS);
+        w.text_cap = MAX_SCHEMA_TEXT;
+        w.text_budget = MAX_SCHEMA_TEXT_TOTAL;
         self.collect_table_rows(&mut w, 1, 0);
         let truncated = w.out.len() >= MAX_SCHEMA_OBJECTS;
         for row in w.out {
@@ -434,7 +482,7 @@ impl<'a> SqliteDb<'a> {
     }
 
     fn without_rowid_table(&self, rootpage: u32) -> Option<SchemaObject> {
-        self.schema().0.into_iter().find(|obj| obj.obj_type == "table" && obj.rootpage == rootpage && is_without_rowid(&obj.sql))
+        self.whole_schema().0.into_iter().find(|obj| obj.obj_type == "table" && obj.rootpage == rootpage && is_without_rowid(&obj.sql))
     }
 
     /// Count the rows of the table rooted at `rootpage`, including interior index records.
@@ -458,8 +506,20 @@ impl<'a> SqliteDb<'a> {
         self.collect_table_rows(&mut w, rootpage, 0);
         if let Some(table) = table {
             if let Some(order) = without_rowid_order(&table) {
+                // A row stored before ALTER TABLE ADD COLUMN ends early, and added columns come last
+                // in both orders. Keep every stored field, and leave off the columns after the last
+                // one so the defaults below fill them.
                 for row in &mut w.out {
-                    row.values = order.iter().map(|&i| row.values.get(i).cloned().unwrap_or(CellValue::Null)).collect();
+                    let stored = row.values.len();
+                    let keep = order.iter().rposition(|slot| slot.is_some_and(|i| i < stored)).map_or(0, |last| last.saturating_add(1));
+                    row.values = order
+                        .iter()
+                        .take(keep)
+                        .map(|slot| match slot {
+                            Some(i) => row.values.get(*i).cloned().unwrap_or(CellValue::Null),
+                            None => CellValue::NotRead,
+                        })
+                        .collect();
                 }
             } else {
                 w.notes.push("Could not determine the primary-key column order; values remain in storage order.".into());
@@ -468,12 +528,26 @@ impl<'a> SqliteDb<'a> {
         let hit_cap = w.out.len() >= want && want > 0;
         let skipped = offset.min(w.out.len());
         let mut page: Vec<Row> = w.out.into_iter().skip(offset).take(limit).collect();
-        let (schema, _) = self.schema();
+        let (schema, _) = self.whole_schema();
         if let Some(table) = schema.iter().find(|o| o.obj_type == "table" && o.rootpage == rootpage) {
-            let defaults: Vec<_> = column_definitions(&table.sql).into_iter().map(|(_, rest)| column_default(rest)).collect();
+            let definitions = column_definitions(&table.sql);
+            let generated: Vec<bool> = definitions.iter().map(|(_, rest)| is_virtual_column(rest)).collect();
+            let strict = is_strict(&table.sql);
+            let affinities: Vec<Affinity> = definitions.iter().map(|(column, _)| column_affinity(&column.type_name, strict)).collect();
+            // WITHOUT ROWID rows were already placed in declaration order above.
+            if !w.index_tree && generated.contains(&true) {
+                for row in &mut page {
+                    row.values = place_stored_values(std::mem::take(&mut row.values), &generated);
+                }
+            }
+            let defaults: Vec<_> = definitions.into_iter().zip(&affinities).map(|((_, rest), affinity)| column_default(rest, *affinity)).collect();
             let mut unsupported = vec![false; defaults.len()];
             for row in &mut page {
-                for ((value, supported), disclosed) in defaults.iter().zip(&mut unsupported).skip(row.values.len()) {
+                for (((value, supported), disclosed), is_virtual) in defaults.iter().zip(&mut unsupported).zip(&generated).skip(row.values.len()) {
+                    if *is_virtual {
+                        row.values.push(CellValue::NotRead);
+                        continue;
+                    }
                     row.values.push(value.clone());
                     if !supported {
                         *disclosed = true;
@@ -485,10 +559,27 @@ impl<'a> SqliteDb<'a> {
                     w.notes.push(format!("Column {} has an unsupported DEFAULT expression; missing values were filled as NULL.", i + 1));
                 }
             }
+            for (i, is_virtual) in generated.iter().enumerate() {
+                if *is_virtual {
+                    w.notes.push(format!(
+                        "Column {} is a VIRTUAL generated column; SQLite computes it when a row is read and stores no value, so it is shown as not read.",
+                        i + 1
+                    ));
+                }
+            }
             if let Some(index) = rowid_alias_index(&table.sql) {
                 for row in &mut page {
                     if let (Some(rowid), Some(value @ CellValue::Null)) = (row.rowid, row.values.get_mut(index)) {
                         *value = CellValue::Int(rowid);
+                    }
+                }
+            }
+            // SQLite stores a REAL with no fractional part as an integer and turns it back into a
+            // REAL when it reads a REAL column; a filled-in default is read the same way.
+            for row in &mut page {
+                for (value, _) in row.values.iter_mut().zip(&affinities).filter(|(_, affinity)| **affinity == Affinity::Real) {
+                    if let CellValue::Int(n) = *value {
+                        *value = CellValue::Real(n as f64);
                     }
                 }
             }
@@ -567,13 +658,13 @@ impl<'a> SqliteDb<'a> {
                     }
                     let row = page.cell_offset(i).and_then(|cell_off| {
                         if w.index_tree {
-                            self.read_index_cell(page.data, cell_off, &mut w.notes)
+                            self.read_index_cell(page.data, cell_off, w.text_cap, &mut w.notes)
                         } else {
-                            self.read_table_leaf_cell(page.data, cell_off, &mut w.notes)
+                            self.read_table_leaf_cell(page.data, cell_off, w.text_cap, &mut w.notes)
                         }
                     });
                     match row {
-                        Some(row) => w.out.push(row),
+                        Some(row) => w.keep(row),
                         None => w.notes.push(format!("Skipped an unreadable row on page {pageno}.")),
                     }
                 }
@@ -592,9 +683,12 @@ impl<'a> SqliteDb<'a> {
                         if w.want != 0 && w.out.len() >= w.want {
                             return;
                         }
-                        let row = page.cell_offset(i).and_then(|off| off.checked_add(4)).and_then(|off| self.read_index_cell(page.data, off, &mut w.notes));
+                        let row = page
+                            .cell_offset(i)
+                            .and_then(|off| off.checked_add(4))
+                            .and_then(|off| self.read_index_cell(page.data, off, w.text_cap, &mut w.notes));
                         match row {
-                            Some(row) => w.out.push(row),
+                            Some(row) => w.keep(row),
                             None => w.notes.push(format!("Skipped an unreadable row on page {pageno}.")),
                         }
                     }
@@ -613,23 +707,23 @@ impl<'a> SqliteDb<'a> {
     }
 
     /// Decode one table-leaf cell into a row, following overflow pages if needed.
-    fn read_table_leaf_cell(&self, page: &[u8], cell_off: usize, notes: &mut Vec<String>) -> Option<Row> {
+    fn read_table_leaf_cell(&self, page: &[u8], cell_off: usize, text_cap: usize, notes: &mut Vec<String>) -> Option<Row> {
         let (payload_len, n1) = varint(page, cell_off)?;
         let (rowid, n2) = varint(page, cell_off.checked_add(n1)?)?;
         let body_off = cell_off.checked_add(n1)?.checked_add(n2)?;
         let payload_len = usize::try_from(payload_len).ok()?;
         let payload = self.assemble_payload(page, body_off, payload_len, true, notes)?;
-        let values = parse_record(&payload, self.header.text_encoding);
+        let values = parse_record(&payload, self.header.text_encoding, text_cap);
         let rowid = i64::from_le_bytes(rowid.to_le_bytes());
         Some(Row { rowid: Some(rowid), values })
     }
 
     /// Index cells hold a whole row, without a rowid, using the index local-payload formula.
-    fn read_index_cell(&self, page: &[u8], cell_off: usize, notes: &mut Vec<String>) -> Option<Row> {
+    fn read_index_cell(&self, page: &[u8], cell_off: usize, text_cap: usize, notes: &mut Vec<String>) -> Option<Row> {
         let (payload_len, n) = varint(page, cell_off)?;
         let payload_len = usize::try_from(payload_len).ok()?;
         let payload = self.assemble_payload(page, cell_off.checked_add(n)?, payload_len, false, notes)?;
-        Some(Row { rowid: None, values: parse_record(&payload, self.header.text_encoding) })
+        Some(Row { rowid: None, values: parse_record(&payload, self.header.text_encoding, text_cap) })
     }
 
     /// Assemble a cell payload: the local part plus any overflow-page chain, capped.
@@ -683,8 +777,8 @@ impl<'a> SqliteDb<'a> {
     }
 }
 
-/// Decode a SQLite record (the "payload") into column values.
-fn parse_record(payload: &[u8], text_encoding: &str) -> Vec<CellValue> {
+/// Decode a SQLite record (the "payload") into column values, cutting text at `text_cap` bytes.
+fn parse_record(payload: &[u8], text_encoding: &str, text_cap: usize) -> Vec<CellValue> {
     let mut out = Vec::new();
     let Some((hdr_len, n)) = varint(payload, 0) else { return out };
     let hdr_len = hdr_len as usize;
@@ -708,7 +802,7 @@ fn parse_record(payload: &[u8], text_encoding: &str) -> Vec<CellValue> {
     // Then read each value from the body region.
     let mut body = hdr_len;
     for st in types {
-        let (val, size) = decode_serial(st, payload, body, text_encoding);
+        let (val, size) = decode_serial(st, payload, body, text_encoding, text_cap);
         out.push(val);
         body = body.saturating_add(size);
     }
@@ -716,7 +810,7 @@ fn parse_record(payload: &[u8], text_encoding: &str) -> Vec<CellValue> {
 }
 
 /// Decode one serial-typed value at `off`; returns the value and its byte size.
-fn decode_serial(serial: u64, data: &[u8], off: usize, text_encoding: &str) -> (CellValue, usize) {
+fn decode_serial(serial: u64, data: &[u8], off: usize, text_encoding: &str, text_cap: usize) -> (CellValue, usize) {
     let size = match serial {
         1..=4 => serial as usize,
         5 => 6,
@@ -755,7 +849,7 @@ fn decode_serial(serial: u64, data: &[u8], off: usize, text_encoding: &str) -> (
             // Odd and >= 13: text of (n-13)/2 bytes, using the database's declared encoding.
             let len = size;
             let slice = data.get(off..off.saturating_add(len).min(data.len())).unwrap_or(&[]);
-            let mut value = encoded_text_value(slice, text_encoding);
+            let mut value = capped_text_value(slice, text_encoding, text_cap);
             if slice.len() < len
                 && let CellValue::Text { truncated, .. } = &mut value
             {
@@ -779,20 +873,53 @@ fn text_value(slice: &[u8]) -> CellValue {
     encoded_text_value(slice, "utf-8")
 }
 
+/// Decode a TEXT value, cutting at [`MAX_TEXT`] bytes.
 fn encoded_text_value(slice: &[u8], encoding: &str) -> CellValue {
-    let truncated = slice.len() > MAX_TEXT;
-    let take = slice.get(..MAX_TEXT.min(slice.len())).unwrap_or(slice);
+    capped_text_value(slice, encoding, MAX_TEXT)
+}
+
+/// Decode a TEXT value, cutting at `cap` bytes. A truncated value ends at a character boundary,
+/// so its shown prefix never gains a replacement character it didn't have; the flag still says
+/// the value was cut.
+fn capped_text_value(slice: &[u8], encoding: &str, cap: usize) -> CellValue {
+    let truncated = slice.len() > cap;
+    let cut = cap.min(slice.len());
     let text = match encoding {
         "utf-16le" | "utf-16be" => {
+            let mut bytes = cut;
+            if truncated && !bytes.is_multiple_of(2) {
+                bytes -= 1; // a cut inside a code unit drops the half unit
+            }
+            let take = slice.get(..bytes).unwrap_or_default();
             let (pairs, _) = take.as_chunks::<2>();
-            let units: Vec<u16> = pairs.iter().map(|&pair| if encoding == "utf-16le" { u16::from_le_bytes(pair) } else { u16::from_be_bytes(pair) }).collect();
+            let mut units: Vec<u16> =
+                pairs.iter().map(|&pair| if encoding == "utf-16le" { u16::from_le_bytes(pair) } else { u16::from_be_bytes(pair) }).collect();
+            // A cut inside a surrogate pair leaves the high half alone: drop it rather than
+            // render a replacement character that wasn't in the value.
+            if truncated && units.last().is_some_and(|u| (0xD800..=0xDBFF).contains(u)) {
+                units.pop();
+            }
             let mut text = String::from_utf16_lossy(&units);
-            if !take.len().is_multiple_of(2) {
+            if !truncated && !bytes.is_multiple_of(2) {
                 text.push(char::REPLACEMENT_CHARACTER);
             }
             text
         }
-        _ => String::from_utf8_lossy(take).into_owned(),
+        _ => {
+            let take = slice.get(..cut).unwrap_or_default();
+            // A cut can land inside a character: `from_utf8` reports an incomplete trailing
+            // sequence (not an invalid byte), and its `valid_up_to` is the boundary to keep.
+            // Genuinely invalid bytes keep the lossy prefix they had before.
+            let end = if truncated {
+                match std::str::from_utf8(take) {
+                    Err(e) if e.error_len().is_none() => e.valid_up_to(),
+                    _ => cut,
+                }
+            } else {
+                cut
+            };
+            String::from_utf8_lossy(slice.get(..end).unwrap_or_default()).into_owned()
+        }
     };
     CellValue::Text { text, truncated }
 }
@@ -804,17 +931,53 @@ fn blob_value(slice: &[u8], len: usize) -> CellValue {
     CellValue::Blob { len, sha256_prefix: prefix }
 }
 
-fn is_without_rowid(sql: &str) -> bool {
-    let Some(close) = sql.rfind(')') else { return false };
+/// Cut text shown to the reader at [`MAX_TEXT`] bytes, on a character boundary.
+fn cut_at_max_text(text: &mut String) {
+    if text.len() > MAX_TEXT {
+        let end = (0..=MAX_TEXT).rev().find(|&i| text.is_char_boundary(i)).unwrap_or(0);
+        text.truncate(end);
+    }
+}
+
+/// The words after a CREATE TABLE's column list, such as `WITHOUT ROWID` and `STRICT`.
+fn table_options(sql: &str) -> Vec<&str> {
+    let Some(close) = column_list_close(sql) else { return Vec::new() };
     sql_tokens(close.checked_add(1).and_then(|start| sql.get(start..)).unwrap_or(""))
+}
+
+/// The byte offset of the `)` that closes a CREATE TABLE's column list. It is found by tokens,
+/// so a parenthesis in a comment, string or quoted name after the list (SQLite keeps a trailing
+/// comment in the stored statement) doesn't count.
+fn column_list_close(sql: &str) -> Option<usize> {
+    let mut depth = 0usize;
+    for token in sql_tokens(sql) {
+        match token {
+            "(" => depth = depth.saturating_add(1),
+            ")" if depth == 1 => return (token.as_ptr() as usize).checked_sub(sql.as_ptr() as usize),
+            ")" => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+    }
+    None
+}
+
+fn is_without_rowid(sql: &str) -> bool {
+    table_options(sql)
         .windows(2)
         .any(|pair| pair.first().is_some_and(|s| s.eq_ignore_ascii_case("WITHOUT")) && pair.get(1).is_some_and(|s| s.eq_ignore_ascii_case("ROWID")))
 }
 
-/// Output-column positions in the stored record: PK columns first, then all remaining columns.
-fn without_rowid_order(table: &SchemaObject) -> Option<Vec<usize>> {
-    let open = table.sql.find('(')?;
-    let close = table.sql.rfind(')')?;
+fn is_strict(sql: &str) -> bool {
+    table_options(sql).iter().any(|word| word.eq_ignore_ascii_case("STRICT"))
+}
+
+/// Output-column positions in the stored record: PK columns first, then the remaining stored
+/// columns. A VIRTUAL generated column has no field in the record, so its position is `None`.
+fn without_rowid_order(table: &SchemaObject) -> Option<Vec<Option<usize>>> {
+    let generated: Vec<bool> = column_definitions(&table.sql).iter().map(|(_, rest)| is_virtual_column(rest)).collect();
+    let is_virtual = |i: usize| generated.get(i).copied().unwrap_or(false);
+    let open = column_list_open(&table.sql)?;
+    let close = column_list_close(&table.sql)?;
     let body = table.sql.get(open.checked_add(1)?..close)?;
     let mut stored = Vec::new();
     for segment in split_top_level(body) {
@@ -845,11 +1008,86 @@ fn without_rowid_order(table: &SchemaObject) -> Option<Vec<usize>> {
         return None;
     }
     for i in 0..table.columns.len() {
-        if !stored.contains(&i) {
+        if !stored.contains(&i) && !is_virtual(i) {
             stored.push(i);
         }
     }
-    (0..table.columns.len()).map(|i| stored.iter().position(|&column| column == i)).collect()
+    (0..table.columns.len()).map(|i| if is_virtual(i) { Some(None) } else { stored.iter().position(|&column| column == i).map(Some) }).collect()
+}
+
+/// A generated column (`AS (expr)`, with or without `GENERATED ALWAYS`) is VIRTUAL unless
+/// `STORED` follows its expression. SQLite computes a VIRTUAL column when a row is read, so it
+/// has no field in the stored record.
+fn is_virtual_column(rest: &str) -> bool {
+    let tokens = sql_tokens(rest);
+    let mut depth = 0usize;
+    let mut generated = false;
+    let mut iter = tokens.iter();
+    while let Some(token) = iter.next() {
+        match *token {
+            "(" => depth = depth.saturating_add(1),
+            ")" => {
+                depth = depth.saturating_sub(1);
+                if generated && depth == 0 {
+                    return !iter.next().is_some_and(|next| next.eq_ignore_ascii_case("STORED"));
+                }
+            }
+            _ if depth == 0 && token.eq_ignore_ascii_case("AS") => generated = true,
+            _ => {}
+        }
+    }
+    generated
+}
+
+/// A column's affinity: how SQLite converts a value it reads into the column. INTEGER affinity
+/// converts values the same way NUMERIC does, so it is NUMERIC here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Affinity {
+    Text,
+    Numeric,
+    Real,
+    Blob,
+}
+
+/// The affinity SQLite gives a column of this declared type. SQLite looks for these parts of
+/// the type in order, ignoring case: INT means INTEGER; CHAR, CLOB or TEXT mean TEXT; BLOB (or no
+/// type) means BLOB; REAL, FLOA or DOUB mean REAL; anything else is NUMERIC. So `FLOATING POINT`
+/// is an INTEGER column. An ANY column in a STRICT table keeps values as they are, like BLOB.
+fn column_affinity(type_name: &str, strict: bool) -> Affinity {
+    let upper = type_name.to_ascii_uppercase();
+    let has = |parts: &[&str]| parts.iter().any(|part| upper.contains(part));
+    if has(&["INT"]) {
+        Affinity::Numeric
+    } else if has(&["CHAR", "CLOB", "TEXT"]) {
+        Affinity::Text
+    } else if upper.is_empty() || has(&["BLOB"]) || (strict && upper == "ANY") {
+        Affinity::Blob
+    } else if has(&["REAL", "FLOA", "DOUB"]) {
+        Affinity::Real
+    } else {
+        Affinity::Numeric
+    }
+}
+
+/// Spread a rowid table's record fields over its declared columns. A VIRTUAL generated column
+/// takes no field, so it is marked not read and the next field belongs to the next stored
+/// column. Placement stops where the record ends, so columns added later can take their
+/// defaults.
+fn place_stored_values(values: Vec<CellValue>, generated: &[bool]) -> Vec<CellValue> {
+    let mut stored = values.into_iter().peekable();
+    let mut placed = Vec::with_capacity(generated.len());
+    for &is_virtual in generated {
+        if stored.peek().is_none() {
+            break;
+        }
+        if is_virtual {
+            placed.push(CellValue::NotRead);
+        } else if let Some(value) = stored.next() {
+            placed.push(value);
+        }
+    }
+    placed.extend(stored);
+    placed
 }
 
 /// Parse column names and types from a CREATE TABLE statement (best effort, bounded).
@@ -857,11 +1095,12 @@ pub fn parse_create_columns(sql: &str) -> Vec<Column> {
     column_definitions(sql).into_iter().map(|(column, _)| column).collect()
 }
 
+/// Each column of a CREATE TABLE, with the text that follows its name (type, constraints,
+/// default).
 fn column_definitions(sql: &str) -> Vec<(Column, &str)> {
     let mut cols = Vec::new();
     // Take the text inside the outermost parentheses.
-    let Some(open) = sql.find('(') else { return cols };
-    let inner = &sql[open + 1..];
+    let Some(inner) = column_list_open(sql).and_then(|open| sql.get(open.checked_add(1)?..)) else { return cols };
     let mut depth = 1usize;
     let mut end = inner.len();
     for token in sql_tokens(inner) {
@@ -880,23 +1119,29 @@ fn column_definitions(sql: &str) -> Vec<(Column, &str)> {
         if cols.len() >= MAX_COLUMNS {
             break;
         }
-        let seg = seg.trim();
-        if seg.is_empty() {
-            continue;
-        }
+        // A comment in front of a definition (often the previous line's note) isn't part of it.
+        let Some(first) = sql_tokens(seg).into_iter().next() else { continue };
+        let seg = seg.get((first.as_ptr() as usize).saturating_sub(seg.as_ptr() as usize)..).unwrap_or("").trim_end();
         // Skip table-level constraints.
-        let first_word = seg.split([' ', '\t', '\n', '(']).next().unwrap_or("").to_ascii_uppercase();
+        let first_word = first.to_ascii_uppercase();
         if matches!(first_word.as_str(), "CONSTRAINT" | "PRIMARY" | "UNIQUE" | "CHECK" | "FOREIGN") {
             continue;
         }
         let (name, rest) = take_identifier(seg);
-        if name.is_empty() {
+        if name.is_empty() && !seg.starts_with(['"', '`', '\'', '[']) {
             continue;
         }
-        let type_name = extract_type(rest.trim());
+        let type_name = extract_type(strip_comments(rest).trim());
         cols.push((Column { name, type_name }, rest));
     }
     cols
+}
+
+/// Where a CREATE TABLE's column list opens: the first parenthesis outside quotes, so a table
+/// named `"export (1)"` doesn't start it.
+fn column_list_open(sql: &str) -> Option<usize> {
+    let open = sql_tokens(sql).into_iter().find(|token| *token == "(")?;
+    (open.as_ptr() as usize).checked_sub(sql.as_ptr() as usize)
 }
 
 /// Identify the single INTEGER primary key, excluding the column-level DESC exception.
@@ -1006,6 +1251,10 @@ fn sql_tokens(mut sql: &str) -> Vec<&str> {
             }
         } else if !matches!(first, '(' | ')' | ',' | '/') {
             end = sql.find(|c: char| c.is_whitespace() || matches!(c, '(' | ')' | ',' | '\'' | '"' | '`' | '[' | '/')).unwrap_or(sql.len());
+            // A line comment may follow a word with no space between: `INTEGER--note`.
+            if let Some(dash) = sql.get(..end).and_then(|word| word.find("--")).filter(|&dash| dash > 0) {
+                end = dash;
+            }
         }
         tokens.push(sql.get(..end).unwrap_or(""));
         sql = sql.get(end..).unwrap_or("");
@@ -1013,13 +1262,33 @@ fn sql_tokens(mut sql: &str) -> Vec<&str> {
     tokens
 }
 
-/// Missing trailing fields use literal defaults; expressions remain explicitly unknown.
-fn column_default(rest: &str) -> (CellValue, bool) {
+/// `text` with each SQL comment replaced by a space. Quoted text is kept as it is.
+fn strip_comments(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut end = 0usize;
+    for token in sql_tokens(text) {
+        let start = (token.as_ptr() as usize).saturating_sub(text.as_ptr() as usize);
+        // Only whitespace and comments lie between two tokens.
+        let gap = text.get(end..start).unwrap_or("");
+        out.push_str(if gap.contains("--") || gap.contains("/*") { " " } else { gap });
+        out.push_str(token);
+        end = start.saturating_add(token.len());
+    }
+    out
+}
+
+/// Missing trailing fields use literal defaults, read with the column's affinity; expressions
+/// remain explicitly unknown.
+fn column_default(rest: &str, affinity: Affinity) -> (CellValue, bool) {
     let tokens = sql_tokens(rest);
     let mut depth = 0usize;
     for (i, token) in tokens.iter().enumerate() {
         if depth == 0 && token.eq_ignore_ascii_case("DEFAULT") {
-            return tokens.get(i.saturating_add(1)..).and_then(literal_default).map(|v| (v, true)).unwrap_or((CellValue::Null, false));
+            return tokens
+                .get(i.saturating_add(1)..)
+                .and_then(|literal| literal_default(literal, affinity))
+                .map(|v| (v, true))
+                .unwrap_or((CellValue::Null, false));
         }
         match *token {
             "(" => depth = depth.saturating_add(1),
@@ -1030,102 +1299,387 @@ fn column_default(rest: &str) -> (CellValue, bool) {
     (CellValue::Null, true)
 }
 
-fn literal_default(tokens: &[&str]) -> Option<CellValue> {
+/// A literal DEFAULT as SQLite reads it into a column of this affinity: `NULL`, booleans, quoted
+/// or bare words, `X'…'`, numbers (with optional digit separators), hex integers and one
+/// parenthesized literal; anything else (an expression, a keyword) stays unknown. A TEXT column
+/// reads a number as text; a NUMERIC or REAL column reads
+/// text that is a number as that number (a REAL column then turns a whole number into a REAL, as
+/// it does for stored values); a BLOB column, or one with no type, keeps the literal's own type.
+fn literal_default(tokens: &[&str], affinity: Affinity) -> Option<CellValue> {
+    literal_value(tokens, affinity, true)
+}
+
+/// A top-level `DEFAULT` value, or one inside its parentheses. Bare and double-quoted words are
+/// string constants only at the top level: SQLite rejects `(abc)` and `("abc")` as not constant.
+fn literal_value(tokens: &[&str], affinity: Affinity, allow_words: bool) -> Option<CellValue> {
     let token = *tokens.first()?;
+    if token == "(" {
+        return parenthesized_literal(tokens, affinity);
+    }
     if token.eq_ignore_ascii_case("NULL") {
         return Some(CellValue::Null);
     }
     if token.eq_ignore_ascii_case("TRUE") || token.eq_ignore_ascii_case("FALSE") {
-        return Some(CellValue::Int(i64::from(token.eq_ignore_ascii_case("TRUE"))));
+        return Some(integer_default(i64::from(token.eq_ignore_ascii_case("TRUE")), affinity));
     }
-    if token.starts_with('\'') && token.ends_with('\'') && token.len() >= 2 {
-        return Some(text_value(token.get(1..token.len().checked_sub(1)?)?.replace("''", "'").as_bytes()));
+    if let Some(text) = single_quoted(token) {
+        return text_default(&text, affinity);
+    }
+    // A bare `x` is a word, but `X'…'` is a blob; a quoted next token decides which.
+    let blob = token.eq_ignore_ascii_case("X") && tokens.get(1).is_some_and(|quoted| quoted.starts_with('\''));
+    if allow_words && !blob && is_bare_word(token) {
+        return text_default(token, affinity);
+    }
+    if allow_words && token.starts_with('"') && token.ends_with('"') && token.len() >= 2 {
+        let text = token.get(1..token.len().checked_sub(1)?)?.replace("\"\"", "\"");
+        return text_default(&text, affinity);
     }
     if token.eq_ignore_ascii_case("X") {
-        let quoted = *tokens.get(1)?;
-        if !quoted.starts_with('\'') || !quoted.ends_with('\'') || quoted.len() < 2 {
-            return None;
+        // `X'…'` is a blob; a bare `x` is just a word, so only a quoted next token starts one.
+        if let Some(quoted) = tokens.get(1).filter(|quoted| quoted.starts_with('\'')) {
+            if !quoted.ends_with('\'') || quoted.len() < 2 {
+                return None;
+            }
+            let hex = quoted.get(1..quoted.len().checked_sub(1)?)?;
+            if !hex.len().is_multiple_of(2) {
+                return None;
+            }
+            let bytes: Option<Vec<u8>> = hex
+                .as_bytes()
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| {
+                    let high = char::from(*pair.first()?).to_digit(16)?;
+                    let low = char::from(*pair.get(1)?).to_digit(16)?;
+                    Some((high * 16 + low) as u8)
+                })
+                .collect();
+            let bytes = bytes?;
+            return Some(blob_value(&bytes, bytes.len()));
         }
-        let hex = quoted.get(1..quoted.len().checked_sub(1)?)?;
-        if !hex.len().is_multiple_of(2) {
-            return None;
-        }
-        let bytes: Option<Vec<u8>> = hex
-            .as_bytes()
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|pair| {
-                let high = char::from(*pair.first()?).to_digit(16)?;
-                let low = char::from(*pair.get(1)?).to_digit(16)?;
-                Some((high * 16 + low) as u8)
-            })
-            .collect();
-        let bytes = bytes?;
-        return Some(blob_value(&bytes, bytes.len()));
+    }
+    if let Some(n) = hex_integer(token) {
+        return Some(integer_default(n, affinity));
     }
     let number = if matches!(token, "+" | "-") {
         let value = *tokens.get(1)?;
+        if let Some(text) = single_quoted(value) {
+            if token == "+" {
+                return text_default(&text, affinity);
+            }
+            return signed_quoted_default(&text, affinity);
+        }
+        if let Some(n) = hex_integer(value) {
+            return Some(integer_default(if token == "-" { n.checked_neg()? } else { n }, affinity));
+        }
         format!("{token}{value}")
     } else {
         token.to_owned()
     };
-    if !number.bytes().all(|b| b.is_ascii_digit() || matches!(b, b'+' | b'-' | b'.' | b'e' | b'E')) {
-        return None;
+    let clean = unseparated_number(&number)?;
+    let integer = number_kind(&clean)?;
+    match affinity {
+        // Reading an old row supplies the DEFAULT expression, not the stored value of a
+        // later insert. SQLite formats a representable integer magnitude, but otherwise
+        // keeps a separated literal's spelling (without underscores or a leading plus).
+        Affinity::Text if clean != number => {
+            let spelling = clean.strip_prefix('+').unwrap_or(&clean);
+            let magnitude = spelling.strip_prefix('-').unwrap_or(spelling);
+            Some(match magnitude.parse::<i64>() {
+                Ok(n) if integer => integer_default(if spelling.starts_with('-') { -n } else { n }, affinity),
+                _ => text_value(spelling.as_bytes()),
+            })
+        }
+        // An integer literal that fits in 64 bits is written plainly (`007` reads '7', and
+        // `-9223372036854775808` keeps its sign); any other number is written in SQLite's REAL
+        // text form, since the schema's text is not the REAL it reads.
+        Affinity::Text => Some(match clean.parse::<i64>() {
+            Ok(n) if integer => integer_default(n, affinity),
+            _ => {
+                let real = clean.parse::<f64>().ok()?;
+                text_value(real_text(real).as_bytes())
+            }
+        }),
+        Affinity::Numeric | Affinity::Real => numeric_value(&clean).and_then(finite),
+        Affinity::Blob => match clean.parse::<i64>() {
+            Ok(n) if integer => Some(CellValue::Int(n)),
+            _ => clean.parse::<f64>().ok().map(CellValue::Real).and_then(finite),
+        },
     }
-    if let Ok(n) = number.parse::<i64>() {
-        return Some(CellValue::Int(n));
-    }
-    number.parse::<f64>().ok().filter(|n| n.is_finite()).map(CellValue::Real)
 }
 
-/// Split on top-level commas (ignoring commas inside parentheses).
-fn split_top_level(s: &str) -> Vec<&str> {
-    let mut out = Vec::new();
-    let mut depth = 0i32;
-    let mut start = 0usize;
-    let mut in_quote: Option<char> = None;
-    for (i, c) in s.char_indices() {
-        if let Some(q) = in_quote {
-            if c == q {
-                in_quote = None;
+/// A quoted SQL string's content, or `None` when the token is not one.
+fn single_quoted(token: &str) -> Option<String> {
+    if token.starts_with('\'') && token.ends_with('\'') && token.len() >= 2 {
+        Some(token.get(1..token.len().checked_sub(1)?)?.replace("''", "'"))
+    } else {
+        None
+    }
+}
+
+/// A word SQLite reads as a string constant in a DEFAULT, but not a dynamic date/time keyword.
+fn is_bare_word(token: &str) -> bool {
+    let mut chars = token.chars();
+    let Some(first) = chars.next() else { return false };
+    (first.is_ascii_alphabetic() || first == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && !["CURRENT_TIME", "CURRENT_DATE", "CURRENT_TIMESTAMP"].iter().any(|keyword| token.eq_ignore_ascii_case(keyword))
+}
+
+/// A string default read into a column of this affinity: a number becomes one for NUMERIC and
+/// REAL, and otherwise the text stays text.
+fn text_default(text: &str, affinity: Affinity) -> Option<CellValue> {
+    if matches!(affinity, Affinity::Numeric | Affinity::Real)
+        && let Some(number) = numeric_value(text)
+    {
+        return finite(number);
+    }
+    Some(text_value(text.as_bytes()))
+}
+
+/// A `-'…'` default: SQLite coerces the quoted text to an INTEGER when it is written as one,
+/// otherwise to a REAL, negates it, and reads it with the column's affinity.
+fn signed_quoted_default(text: &str, affinity: Affinity) -> Option<CellValue> {
+    let text = text.trim_matches([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']);
+    // A separator inside quoted text is not the number the separator would join.
+    if text.contains('_') {
+        return None;
+    }
+    if let Ok(n) = text.parse::<i64>()
+        && let Some(neg) = n.checked_neg()
+    {
+        return Some(integer_default(neg, affinity));
+    }
+    let real = text.parse::<f64>().ok().filter(|n| n.is_finite())?;
+    let neg = -real;
+    match affinity {
+        Affinity::Text => Some(text_value(real_text(neg).as_bytes())),
+        Affinity::Numeric | Affinity::Real => {
+            let negated = if let Some(rest) = text.strip_prefix('-') { rest.to_string() } else { format!("-{}", text.strip_prefix('+').unwrap_or(text)) };
+            numeric_value(&negated).and_then(finite)
+        }
+        Affinity::Blob => finite(CellValue::Real(neg)),
+    }
+}
+
+/// A REAL as SQLite writes it into a TEXT column (`%!.15g`): 15 significant digits, a decimal
+/// point always present, scientific notation outside 1e-4..1e15, and `Inf`/`-Inf` for infinity.
+fn real_text(n: f64) -> String {
+    if n.is_infinite() {
+        return if n.is_sign_negative() { "-Inf".to_string() } else { "Inf".to_string() };
+    }
+    let scientific = format!("{n:.14e}");
+    let (mantissa, exponent) = scientific.split_once('e').unwrap_or((&scientific, "0"));
+    let exponent: i32 = exponent.parse().unwrap_or(0);
+    // SQLite writes both zeroes as "0.0"; keep the sign only for a non-zero value.
+    let negative = mantissa.starts_with('-') && n != 0.0;
+    let mut mantissa = mantissa.trim_start_matches('-').to_string();
+    if mantissa.contains('.') {
+        while mantissa.ends_with('0') {
+            mantissa.pop();
+        }
+        if mantissa.ends_with('.') {
+            mantissa.pop();
+        }
+    }
+    let digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    let point = 1i32.saturating_add(exponent);
+    let mut out = String::new();
+    if negative {
+        out.push('-');
+    }
+    if (-4..15).contains(&exponent) {
+        if point <= 0 {
+            out.push_str("0.");
+            for _ in 0..-point {
+                out.push('0');
             }
+            out.push_str(&digits);
+        } else if point as usize >= digits.len() {
+            out.push_str(&digits);
+            for _ in 0..(point as usize - digits.len()) {
+                out.push('0');
+            }
+        } else {
+            let (whole, fraction) = digits.split_at(point as usize);
+            out.push_str(whole);
+            out.push('.');
+            out.push_str(fraction);
+        }
+        if !out.contains('.') {
+            out.push_str(".0");
+        }
+    } else {
+        out.push_str(&mantissa);
+        if !mantissa.contains('.') {
+            out.push_str(".0");
+        }
+        out.push('e');
+        out.push(if exponent < 0 { '-' } else { '+' });
+        let abs = exponent.unsigned_abs();
+        if abs < 10 {
+            out.push('0');
+        }
+        out.push_str(&abs.to_string());
+    }
+    out
+}
+
+/// Remove a numeric literal's single `_` separators, rejecting any not between two digits.
+fn unseparated_number(text: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let mut clean = String::with_capacity(bytes.len());
+    let mut previous_was_digit = false;
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'_' {
+            if !previous_was_digit || !bytes.get(i.checked_add(1)?)?.is_ascii_digit() {
+                return None;
+            }
+            previous_was_digit = false;
             continue;
         }
-        match c {
-            '\'' | '"' | '`' => in_quote = Some(c),
-            '[' => depth += 1,
-            ']' => depth -= 1,
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            ',' if depth == 0 => {
-                out.push(s.get(start..i).unwrap_or(""));
-                start = i + 1;
+        clean.push(b as char);
+        previous_was_digit = b.is_ascii_digit();
+    }
+    Some(clean)
+}
+
+/// An integer literal as a column of this affinity reads it: a TEXT column reads it as text.
+fn integer_default(n: i64, affinity: Affinity) -> CellValue {
+    if affinity == Affinity::Text { text_value(n.to_string().as_bytes()) } else { CellValue::Int(n) }
+}
+
+/// Whether `text` is a number as SQL writes one, sign included: `Some(true)` for an integer
+/// (`-007`), `Some(false)` for a real (`1.5`, `.5`, `5.`, `1e3`), `None` for anything else.
+/// Rust's float syntax is SQL's once the letters of `inf` and `nan` are ruled out.
+fn number_kind(text: &str) -> Option<bool> {
+    let numeric = text.bytes().all(|b| b.is_ascii_digit() || matches!(b, b'+' | b'-' | b'.' | b'e' | b'E'));
+    (numeric && text.parse::<f64>().is_ok()).then(|| !text.contains(['.', 'e', 'E']))
+}
+
+/// What a NUMERIC or REAL column makes of text that is a number, spaces around it allowed: an
+/// INTEGER when its value is whole and fits in 64 bits, else a REAL. `None` when the text isn't
+/// a number, so it stays text.
+fn numeric_value(text: &str) -> Option<CellValue> {
+    let number = text.trim_matches([' ', '\t', '\n', '\u{b}', '\u{c}', '\r']);
+    let integer = number_kind(number)?;
+    if integer && let Ok(n) = number.parse::<i64>() {
+        return Some(CellValue::Int(n));
+    }
+    let real = number.parse::<f64>().ok()?;
+    // SQLite keeps a whole REAL as an integer only strictly inside the 64-bit range.
+    Some(if real.fract() == 0.0 && real > i64::MIN as f64 && real < i64::MAX as f64 { CellValue::Int(real as i64) } else { CellValue::Real(real) })
+}
+
+/// SQLite reads a number too large for a REAL as infinity, which isn't shown; such a default
+/// stays unsupported.
+fn finite(value: CellValue) -> Option<CellValue> {
+    (!matches!(value, CellValue::Real(real) if !real.is_finite())).then_some(value)
+}
+
+/// A SQLite hex integer is 64-bit two's complement, so `0xffffffffffffffff` is -1. An optional
+/// sign is accepted (`-0x10`), and a single underscore may separate two hex digits (`0xF_F`);
+/// any other placement is rejected.
+fn hex_integer(token: &str) -> Option<i64> {
+    let (negative, unsigned) = match token.strip_prefix('-') {
+        Some(rest) => (true, rest),
+        None => (false, token.strip_prefix('+').unwrap_or(token)),
+    };
+    let digits = unsigned.strip_prefix("0x").or_else(|| unsigned.strip_prefix("0X"))?;
+    if digits.is_empty() {
+        return None;
+    }
+    let bytes = digits.as_bytes();
+    let mut clean = String::with_capacity(bytes.len());
+    let mut previous_was_digit = false;
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'_' {
+            if !previous_was_digit || !bytes.get(i.checked_add(1)?)?.is_ascii_hexdigit() {
+                return None;
+            }
+            previous_was_digit = false;
+            continue;
+        }
+        if !b.is_ascii_hexdigit() {
+            return None;
+        }
+        clean.push(b as char);
+        previous_was_digit = true;
+    }
+    let n = u64::from_str_radix(&clean, 16).ok()? as i64;
+    if negative { n.checked_neg() } else { Some(n) }
+}
+
+/// A single literal wrapped in one pair of parentheses, such as `(5)` or `('text')`. A
+/// parenthesized expression (`(5 + 1)`, `(lower('A'))`) stays unknown, as do nested parentheses.
+fn parenthesized_literal(tokens: &[&str], affinity: Affinity) -> Option<CellValue> {
+    let mut depth = 0usize;
+    let mut close = None;
+    for (i, token) in tokens.iter().enumerate() {
+        match *token {
+            "(" => depth = depth.saturating_add(1),
+            ")" => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    close = Some(i);
+                    break;
+                }
             }
             _ => {}
         }
-        if out.len() >= MAX_COLUMNS {
-            return out;
+    }
+    let inside = tokens.get(1..close?)?;
+    match inside {
+        [one] => literal_value(&[*one], affinity, false),
+        [sign, _] if matches!(*sign, "+" | "-") || (*sign).eq_ignore_ascii_case("X") => literal_value(inside, affinity, false),
+        _ => None,
+    }
+}
+
+/// Split on top-level commas (ignoring commas inside parentheses, quotes and comments).
+fn split_top_level(s: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for token in sql_tokens(s) {
+        match token {
+            "(" => depth = depth.saturating_add(1),
+            ")" => depth = depth.saturating_sub(1),
+            "," if depth == 0 => {
+                let at = (token.as_ptr() as usize).saturating_sub(s.as_ptr() as usize);
+                out.push(s.get(start..at).unwrap_or(""));
+                start = at.saturating_add(1);
+                if out.len() >= MAX_COLUMNS {
+                    return out;
+                }
+            }
+            _ => {}
         }
     }
     out.push(s.get(start..).unwrap_or(""));
     out
 }
 
-/// Take the leading column identifier (handling "quoted", `back-ticked`, [bracketed] names).
+/// Take the leading column identifier (handling "quoted", `back-ticked`, 'single-quoted' and
+/// [bracketed] names).
 fn take_identifier(seg: &str) -> (String, &str) {
     let seg = seg.trim_start();
-    let mut chars = seg.char_indices();
+    let mut chars = seg.char_indices().peekable();
     match chars.next() {
-        Some((_, q @ ('"' | '`'))) => {
-            // Quoted: read to the closing quote (doubled quote = literal, kept simple).
-            for (i, c) in chars {
-                if c == q {
-                    let name = seg.get(1..i).unwrap_or("").replace(&format!("{q}{q}"), &q.to_string());
-                    return (name, seg.get(i + 1..).unwrap_or(""));
+        Some((_, q @ ('"' | '`' | '\''))) => {
+            // Quoted: read to the closing quote. A doubled quote stands for one quote.
+            let mut name = String::new();
+            while let Some((i, c)) = chars.next() {
+                if c != q {
+                    name.push(c);
+                } else if chars.next_if(|&(_, next)| next == q).is_some() {
+                    name.push(q);
+                } else {
+                    return (name, seg.get(i.saturating_add(1)..).unwrap_or(""));
                 }
             }
-            (seg.get(1..).unwrap_or("").to_string(), "")
+            (name, "")
         }
         Some((_, '[')) => {
             if let Some(close) = seg.find(']') {
@@ -1135,18 +1689,22 @@ fn take_identifier(seg: &str) -> (String, &str) {
         }
         Some(_) => {
             let endp = seg.find([' ', '\t', '\n', '(', ',']).unwrap_or(seg.len());
+            // A comment may follow the name with no space between: `id/*key*/` or `id--key`.
+            let endp = ["--", "/*"].into_iter().filter_map(|mark| seg.get(..endp)?.find(mark)).fold(endp, usize::min);
             (seg.get(..endp).unwrap_or("").to_string(), seg.get(endp..).unwrap_or(""))
         }
         None => (String::new(), ""),
     }
 }
 
-/// The type name is the run of tokens before the first column-constraint keyword.
+/// The type name is the run of tokens before the first column-constraint keyword. A comma inside
+/// the type's parentheses belongs to it (`DECIMAL(10, 2)`); only the column separator is dropped.
 fn extract_type(rest: &str) -> String {
     let mut out = String::new();
     let mut depth = 0i32;
     for tok in rest.split_whitespace() {
-        let upper = tok.trim_end_matches(',').to_ascii_uppercase();
+        let bare = tok.trim_end_matches(',');
+        let upper = bare.to_ascii_uppercase();
         if depth == 0
             && matches!(
                 upper.as_str(),
@@ -1160,7 +1718,7 @@ fn extract_type(rest: &str) -> String {
         if !out.is_empty() {
             out.push(' ');
         }
-        out.push_str(tok.trim_end_matches(','));
+        out.push_str(if depth == 0 { bare } else { tok });
     }
     out
 }
@@ -1168,6 +1726,88 @@ fn extract_type(rest: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A TEXT value cut inside a character drops the incomplete character, not a U+FFFD that
+    /// wasn't in the database.
+    #[test]
+    fn a_truncated_text_value_ends_at_a_character_boundary() {
+        let mut bytes = vec![b'a'; MAX_TEXT - 1];
+        bytes.extend_from_slice("é".as_bytes());
+        bytes.extend_from_slice(b"tail");
+        let CellValue::Text { text, truncated } = encoded_text_value(&bytes, "utf-8") else {
+            panic!("a TEXT value");
+        };
+        assert!(truncated);
+        assert_eq!(text, "a".repeat(MAX_TEXT - 1));
+        assert!(!text.contains(char::REPLACEMENT_CHARACTER));
+    }
+
+    /// The UTF-16 branch drops a split surrogate pair the same way.
+    #[test]
+    fn a_truncated_utf16_text_value_drops_a_split_surrogate() {
+        let mut bytes = Vec::new();
+        for _ in 0..(MAX_TEXT / 2 - 1) {
+            bytes.extend_from_slice(&0x0061u16.to_le_bytes());
+        }
+        bytes.extend_from_slice(&0xD83Du16.to_le_bytes());
+        bytes.extend_from_slice(&0xDE00u16.to_le_bytes());
+        bytes.extend_from_slice(&0x0062u16.to_le_bytes());
+        let CellValue::Text { text, truncated } = encoded_text_value(&bytes, "utf-16le") else {
+            panic!("a TEXT value");
+        };
+        assert!(truncated);
+        assert_eq!(text, "a".repeat(MAX_TEXT / 2 - 1));
+        assert!(!text.contains(char::REPLACEMENT_CHARACTER));
+    }
+
+    /// Invalid bytes before the cut keep their lossy prefix; only an incomplete trailing character
+    /// is dropped.
+    #[test]
+    fn an_invalid_utf8_prefix_is_not_over_trimmed() {
+        let bytes = vec![0x80; MAX_TEXT + 1];
+        let CellValue::Text { text, truncated } = encoded_text_value(&bytes, "utf-8") else {
+            panic!("a TEXT value");
+        };
+        assert!(truncated);
+        assert_eq!(text.chars().count(), MAX_TEXT);
+        assert!(text.chars().all(|c| c == char::REPLACEMENT_CHARACTER));
+    }
+
+    /// A UTF-16 cut is not a UTF-8 cut: a byte in the continuation range after the cut must not
+    /// shorten the take.
+    #[test]
+    fn a_utf16_cut_is_not_walked_back_as_utf8() {
+        let mut bytes = Vec::new();
+        for _ in 0..(MAX_TEXT / 2 - 1) {
+            bytes.extend_from_slice(&0x0061u16.to_le_bytes());
+        }
+        bytes.extend_from_slice(&0x80E9u16.to_le_bytes());
+        bytes.extend_from_slice(&0x0080u16.to_le_bytes());
+        let CellValue::Text { text, truncated } = encoded_text_value(&bytes, "utf-16le") else {
+            panic!("a TEXT value");
+        };
+        assert!(truncated);
+        assert_eq!(text.chars().count(), MAX_TEXT / 2);
+        assert_eq!(text.chars().last(), Some('\u{80E9}'));
+    }
+
+    /// Schema text is read whole only while the walk's budget lasts; after that, text is cut at
+    /// the usual cap. Text shown to the reader is cut at the cap on a character boundary.
+    #[test]
+    fn whole_schema_text_stops_when_its_budget_is_spent() {
+        let mut w = RowWalk::new(0);
+        w.text_cap = MAX_SCHEMA_TEXT;
+        w.text_budget = 10;
+        w.keep(Row { rowid: Some(1), values: vec![text("1234"), CellValue::Int(5)] });
+        assert_eq!((w.text_cap, w.text_budget), (MAX_SCHEMA_TEXT, 6));
+        w.keep(Row { rowid: Some(2), values: vec![text("123456")] });
+        assert_eq!((w.text_cap, w.text_budget), (MAX_TEXT, 0));
+        assert_eq!(w.out.len(), 2);
+
+        let mut shown = format!("{}é", "a".repeat(MAX_TEXT - 1));
+        cut_at_max_text(&mut shown);
+        assert_eq!(shown, "a".repeat(MAX_TEXT - 1));
+    }
 
     #[test]
     fn create_table_column_named_key_is_kept() {
@@ -1322,14 +1962,37 @@ mod tests {
             ("x DEFAULT null", CellValue::Null),
             ("x TEXT DEFAULT 'a),b''c'", text_value(b"a),b'c")),
             ("x INT CHECK(x <> 'DEFAULT') DEFAULT /* literal */ 7", CellValue::Int(7)),
+            ("x INT DEFAULT 0x10 NOT NULL", CellValue::Int(16)),
+            ("x INT DEFAULT -0x10", CellValue::Int(-16)),
+            ("x INT DEFAULT 0xF_F", CellValue::Int(255)),
+            ("x INT DEFAULT -0xF_F", CellValue::Int(-255)),
+            ("x INT DEFAULT 0xFFFFFFFFFFFFFFFF", CellValue::Int(-1)),
+            ("x DEFAULT (NULL)", CellValue::Null),
+            ("x INT DEFAULT (42)", CellValue::Int(42)),
+            ("x INT DEFAULT (5) NOT NULL", CellValue::Int(5)),
+            ("x INT DEFAULT (-2)", CellValue::Int(-2)),
+            ("x TEXT DEFAULT ('hi')", text_value(b"hi")),
+            ("x BLOB DEFAULT (X'00ff')", blob_value(&[0, 255], 2)),
         ] {
             short_record_case(declaration, vec![value], false);
         }
-        for declaration in ["x TEXT DEFAULT CURRENT_TIMESTAMP", "x DEFAULT (42)", "x DEFAULT (lower('A'))", "x DEFAULT X'zz'"] {
+        for declaration in [
+            "x TEXT DEFAULT CURRENT_TIMESTAMP",
+            "x DEFAULT (lower('A'))",
+            "x DEFAULT (5+1)",
+            "x DEFAULT ((5))",
+            "x INT DEFAULT 0x",
+            "x INT DEFAULT 0x10000000000000000",
+            "x INT DEFAULT 0x_F",
+            "x INT DEFAULT 0xF_",
+            "x INT DEFAULT 0xF__F",
+            "x INT DEFAULT 0xF_G",
+            "x DEFAULT X'zz'",
+        ] {
             short_record_case(declaration, vec![CellValue::Null], true);
         }
         assert_eq!(blob_value(&[0, 255], 2), CellValue::Blob { len: 2, sha256_prefix: "06eb7d6a69ee19e5".into() });
-        assert_eq!(literal_default(&sql_tokens("x''")), Some(blob_value(&[], 0)));
+        assert_eq!(literal_default(&sql_tokens("x''"), Affinity::Blob), Some(blob_value(&[], 0)));
     }
 
     #[test]
@@ -1390,6 +2053,24 @@ mod tests {
         assert_eq!(cols[0].type_name, "VARCHAR(50)");
         assert_eq!(cols[1].name, "odd");
         assert_eq!(cols[1].type_name, "NUMERIC");
+    }
+
+    #[test]
+    fn column_parsing_keeps_type_commas() {
+        let cols = parse_create_columns(
+            "CREATE TABLE t (amount DECIMAL(10, 2) NOT NULL, ratio NUMERIC(5,1), note TEXT DEFAULT 'a,b', id INTEGER PRIMARY KEY, name VARCHAR(50))",
+        );
+        let types: Vec<&str> = cols.iter().map(|c| c.type_name.as_str()).collect();
+        assert_eq!(types, ["DECIMAL(10, 2)", "NUMERIC(5,1)", "TEXT", "INTEGER", "VARCHAR(50)"]);
+    }
+
+    #[test]
+    fn column_parsing_crlf_constraints() {
+        for kw in ["UNIQUE", "CHECK", "PRIMARY", "FOREIGN", "CONSTRAINT"] {
+            let sql = format!("CREATE TABLE t (a INT,\r\n {kw}\r\n (a))");
+            let names: Vec<String> = parse_create_columns(&sql).into_iter().map(|c| c.name).collect();
+            assert_eq!(names, vec!["a".to_string()], "{kw}");
+        }
     }
 
     #[test]
@@ -1578,17 +2259,301 @@ mod tests {
 
     #[test]
     fn decode_serial_types() {
-        assert_eq!(decode_serial(0, &[], 0, "utf-8").0, CellValue::Null);
-        assert_eq!(decode_serial(8, &[], 0, "utf-8").0, CellValue::Int(0));
-        assert_eq!(decode_serial(9, &[], 0, "utf-8").0, CellValue::Int(1));
-        assert_eq!(decode_serial(1, &[0xff], 0, "utf-8").0, CellValue::Int(-1));
-        assert_eq!(decode_serial(2, &[0x01, 0x00], 0, "utf-8").0, CellValue::Int(256));
+        assert_eq!(decode_serial(0, &[], 0, "utf-8", MAX_TEXT).0, CellValue::Null);
+        assert_eq!(decode_serial(8, &[], 0, "utf-8", MAX_TEXT).0, CellValue::Int(0));
+        assert_eq!(decode_serial(9, &[], 0, "utf-8", MAX_TEXT).0, CellValue::Int(1));
+        assert_eq!(decode_serial(1, &[0xff], 0, "utf-8", MAX_TEXT).0, CellValue::Int(-1));
+        assert_eq!(decode_serial(2, &[0x01, 0x00], 0, "utf-8", MAX_TEXT).0, CellValue::Int(256));
         // text: serial 13 -> (13-13)/2 = 0 bytes; serial 19 -> 3 bytes
-        assert_eq!(decode_serial(19, b"abc", 0, "utf-8"), (CellValue::Text { text: "abc".into(), truncated: false }, 3));
+        assert_eq!(decode_serial(19, b"abc", 0, "utf-8", MAX_TEXT), (CellValue::Text { text: "abc".into(), truncated: false }, 3));
         // blob: serial 18 -> (18-12)/2 = 3 bytes
-        match decode_serial(18, b"xyz", 0, "utf-8").0 {
+        match decode_serial(18, b"xyz", 0, "utf-8", MAX_TEXT).0 {
             CellValue::Blob { len, .. } => assert_eq!(len, 3),
             other => panic!("expected blob, got {other:?}"),
         }
+    }
+
+    fn text(value: &str) -> CellValue {
+        CellValue::Text { text: value.into(), truncated: false }
+    }
+
+    /// A VIRTUAL generated column has no field in the record (SQLite computes it when a row is
+    /// read), so the fields after it belong to the next stored columns; a STORED one keeps its
+    /// field. Each VIRTUAL column is shown as not read and named in a note.
+    #[test]
+    fn virtual_generated_columns_take_no_record_field() {
+        use craft_anything_testkit::sqlite::{Val, table_db};
+        let sql = "CREATE TABLE t(a TEXT, b TEXT GENERATED ALWAYS AS (upper(a)) VIRTUAL, c INTEGER, \
+                   s INT AS (c * 2) STORED, d TEXT, e AS (a || d))";
+        let record = vec![Val::Text("x".into()), Val::Int(7), Val::Int(14), Val::Text("dee".into())];
+        let bytes = table_db(sql, &[(1, record)]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![text("x"), CellValue::NotRead, CellValue::Int(7), CellValue::Int(14), text("dee"), CellValue::NotRead]);
+        let notes: Vec<_> = page.notes.iter().filter(|note| note.contains("VIRTUAL generated column")).collect();
+        assert_eq!(notes.len(), 2, "{:?}", page.notes);
+        assert!(notes[0].starts_with("Column 2 ") && notes[1].starts_with("Column 6 "), "{notes:?}");
+    }
+
+    /// The rowid alias and the defaults of columns added later still land on their own columns
+    /// when a VIRTUAL column comes before them.
+    #[test]
+    fn virtual_generated_columns_keep_aliases_and_added_defaults_in_place() {
+        use craft_anything_testkit::sqlite::{Val, table_db};
+        let bytes = table_db("CREATE TABLE t(v INT AS (1), id INTEGER PRIMARY KEY, x TEXT)", &[(10, vec![Val::Null, Val::Text("ten".into())])]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![CellValue::NotRead, CellValue::Int(10), text("ten")]);
+
+        // ALTER TABLE ADD COLUMN g AS (...), then ADD COLUMN c DEFAULT 3: an old record holds only `a`.
+        let sql = "CREATE TABLE t(a TEXT, g TEXT AS (a || '!'), c INTEGER DEFAULT 3)";
+        let bytes = table_db(sql, &[(1, vec![Val::Text("old".into())]), (2, vec![Val::Text("new".into()), Val::Int(9)])]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![text("old"), CellValue::NotRead, CellValue::Int(3)]);
+        assert_eq!(page.rows[1].values, vec![text("new"), CellValue::NotRead, CellValue::Int(9)]);
+    }
+
+    /// A WITHOUT ROWID record stores the key, then the other stored columns; VIRTUAL columns
+    /// are not among them.
+    #[test]
+    fn without_rowid_virtual_generated_columns_take_no_record_field() {
+        use craft_anything_testkit::sqlite::{Val, without_rowid_db};
+        let bytes =
+            without_rowid_db("CREATE TABLE t(k TEXT PRIMARY KEY, b TEXT AS (upper(k)), c INTEGER) WITHOUT ROWID", &[vec![Val::Text("x".into()), Val::Int(7)]]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![text("x"), CellValue::NotRead, CellValue::Int(7)]);
+
+        let sql = "CREATE TABLE t(k TEXT, n INT, g TEXT AS (k || n), PRIMARY KEY (n, k)) WITHOUT ROWID";
+        let bytes = without_rowid_db(sql, &[vec![Val::Int(1), Val::Text("a".into())]]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![text("a"), CellValue::Int(1), CellValue::NotRead]);
+    }
+
+    /// Only a top-level `AS` makes a generated column, and `STORED` right after its expression
+    /// makes it a stored one.
+    #[test]
+    fn only_a_top_level_as_declares_a_virtual_column() {
+        let virtual_of = |sql: &str| column_definitions(sql).iter().map(|(_, rest)| is_virtual_column(rest)).collect::<Vec<_>>();
+        assert_eq!(
+            virtual_of(
+                "CREATE TABLE t(a INT DEFAULT (CAST('1' AS INT)), b TEXT CHECK (CAST(b AS TEXT) <> ''), \
+                 c AS (a), d INT GENERATED ALWAYS AS ((a + 1) * 2) VIRTUAL, e GENERATED ALWAYS AS (a) STORED NOT NULL, \
+                 f TEXT AS (printf('%d', a)) NOT NULL, g as (a) stored)"
+            ),
+            vec![false, false, true, true, false, true, false]
+        );
+    }
+
+    /// SQLite stores a REAL with no fractional part as an integer and reads it back as a REAL.
+    /// The declared type is checked in SQLite's order, so `FLOATING POINT` (which contains INT)
+    /// is an INTEGER column, and NUMERIC and untyped columns keep their integers too.
+    #[test]
+    fn whole_numbers_in_real_columns_read_as_real() {
+        use craft_anything_testkit::sqlite::{Val, table_db};
+        let sql = "CREATE TABLE t(a REAL, b FLOAT, c DOUBLE PRECISION, d \"real\" NOT NULL, e FLOATING POINT, f NUMERIC, g, h REAL, i REAL)";
+        let record = vec![
+            Val::Int(1),
+            Val::Int(-2),
+            Val::Int(0),
+            Val::Int(140_737_488_355_327),
+            Val::Int(5),
+            Val::Int(6),
+            Val::Int(7),
+            Val::Real(1.5),
+            Val::Text("x".into()),
+        ];
+        let bytes = table_db(sql, &[(1, record)]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(
+            page.rows[0].values,
+            vec![
+                CellValue::Real(1.0),
+                CellValue::Real(-2.0),
+                CellValue::Real(0.0),
+                CellValue::Real(140_737_488_355_327.0),
+                CellValue::Int(5),
+                CellValue::Int(6),
+                CellValue::Int(7),
+                CellValue::Real(1.5),
+                text("x"),
+            ]
+        );
+    }
+
+    /// The same holds for a WITHOUT ROWID key and for the default of a REAL column added later.
+    #[test]
+    fn real_keys_and_added_real_defaults_read_as_real() {
+        use craft_anything_testkit::sqlite::{Val, table_db, without_rowid_db};
+        let sql = "CREATE TABLE t(k REAL, n INT, v DOUBLE, PRIMARY KEY (k, n)) WITHOUT ROWID";
+        let bytes = without_rowid_db(sql, &[vec![Val::Int(3), Val::Int(1), Val::Int(4)]]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![CellValue::Real(3.0), CellValue::Int(1), CellValue::Real(4.0)]);
+
+        // ALTER TABLE ADD COLUMN r REAL DEFAULT 5: the old record holds only `a`.
+        let bytes =
+            table_db("CREATE TABLE t(a TEXT, r REAL DEFAULT 5)", &[(1, vec![Val::Text("old".into())]), (2, vec![Val::Text("new".into()), Val::Int(6)])]);
+        let page = SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10);
+        assert_eq!(page.rows[0].values, vec![text("old"), CellValue::Real(5.0)]);
+        assert_eq!(page.rows[1].values, vec![text("new"), CellValue::Real(6.0)]);
+    }
+
+    /// SQLite reads a default filled into an older row with its column's affinity. Each value
+    /// here is what SQLite 3.51 reads for that column after ALTER TABLE ADD COLUMN.
+    #[test]
+    fn added_column_defaults_take_the_column_affinity() {
+        for (declaration, value) in [
+            // TEXT: an integer written plainly, otherwise SQLite's own REAL text.
+            ("x TEXT DEFAULT 5", text("5")),
+            ("x VARCHAR(10) DEFAULT -5.0", text("-5.0")),
+            ("x TEXT DEFAULT 007", text("7")),
+            ("x TEXT DEFAULT - 007", text("-7")),
+            ("x CLOB DEFAULT +1e3", text("1000.0")),
+            ("x TEXT DEFAULT 5.", text("5.0")),
+            ("x TEXT DEFAULT 0.10", text("0.1")),
+            ("x TEXT DEFAULT 1.50", text("1.5")),
+            ("x TEXT DEFAULT 0001.5", text("1.5")),
+            ("x TEXT DEFAULT 1e-7", text("1.0e-07")),
+            ("x TEXT DEFAULT 1e16", text("1.0e+16")),
+            ("x TEXT DEFAULT -0.0", text("0.0")),
+            ("x TEXT DEFAULT 99999999999999999999", text("1.0e+20")),
+            ("x TEXT DEFAULT -9223372036854775808", text("-9223372036854775808")),
+            ("x TEXT DEFAULT 9223372036854775808", text("9.22337203685478e+18")),
+            ("x TEXT DEFAULT -9223372036854775809", text("-9.22337203685478e+18")),
+            ("x TEXT DEFAULT 1e400", text("Inf")),
+            ("x TEXT DEFAULT -1e400", text("-Inf")),
+            ("x TEXT DEFAULT TRUE", text("1")),
+            // INTEGER and NUMERIC: text that is a number becomes one; a whole REAL an INTEGER.
+            ("x INTEGER DEFAULT '7'", CellValue::Int(7)),
+            ("x INT DEFAULT ' \t7\n'", CellValue::Int(7)),
+            ("x INTEGER DEFAULT 5.0", CellValue::Int(5)),
+            ("x BIGINT DEFAULT -0.0", CellValue::Int(0)),
+            ("x INTEGER DEFAULT '1.5'", CellValue::Real(1.5)),
+            ("x NUMERIC DEFAULT '+.5e-3'", CellValue::Real(0.0005)),
+            ("x NUMERIC DEFAULT 1e3", CellValue::Int(1000)),
+            ("x DECIMAL(10,2) DEFAULT '-9223372036854775808'", CellValue::Int(i64::MIN)),
+            ("x NUMERIC DEFAULT '9223372036854775808'", CellValue::Real(9_223_372_036_854_775_808.0)),
+            ("x NUMERIC DEFAULT 9.3e18", CellValue::Real(9.3e18)),
+            ("x BOOLEAN DEFAULT 'abc'", text("abc")),
+            ("x NUMERIC DEFAULT '0x10'", text("0x10")),
+            ("x NUMERIC DEFAULT '1e'", text("1e")),
+            ("x NUMERIC DEFAULT ' '", text(" ")),
+            // REAL: the number, then as a REAL.
+            ("x REAL DEFAULT '5'", CellValue::Real(5.0)),
+            ("x DOUBLE DEFAULT ' -1.5 '", CellValue::Real(-1.5)),
+            ("x FLOAT DEFAULT 'abc'", text("abc")),
+            // BLOB and no type: the literal as written.
+            ("x BLOB DEFAULT '5'", text("5")),
+            ("x DEFAULT '5'", text("5")),
+            ("x DEFAULT 5.0", CellValue::Real(5.0)),
+            ("x BLOB DEFAULT 1e3", CellValue::Real(1000.0)),
+            ("x DEFAULT -7", CellValue::Int(-7)),
+        ] {
+            short_record_case(declaration, vec![value], false);
+        }
+        // SQLite reads a number too large for a REAL as infinity; that stays unsupported.
+        short_record_case("x INTEGER DEFAULT '1e400'", vec![CellValue::Null], true);
+    }
+
+    /// Bare and double-quoted words, signed strings and digit separators take the column's
+    /// affinity too (SQLite 3.51 readings).
+    #[test]
+    fn default_words_and_separators_take_the_column_affinity() {
+        for (declaration, value) in [
+            ("x TEXT DEFAULT abc", text("abc")),
+            ("x TEXT DEFAULT \"abc\"", text("abc")),
+            ("x TEXT DEFAULT \"a\"\"b\"", text("a\"b")),
+            ("x TEXT DEFAULT _1", text("_1")),
+            ("x TEXT DEFAULT X", text("X")),
+            ("x INTEGER DEFAULT \"5\"", CellValue::Int(5)),
+            ("x REAL DEFAULT \"5\"", CellValue::Real(5.0)),
+            ("x BLOB DEFAULT \"5\"", text("5")),
+            ("x DEFAULT \"5\"", text("5")),
+            ("x TEXT DEFAULT +'5'", text("5")),
+            ("x INTEGER DEFAULT -'5'", CellValue::Int(-5)),
+            ("x REAL DEFAULT -'5'", CellValue::Real(-5.0)),
+            ("x BLOB DEFAULT -'5'", CellValue::Int(-5)),
+            ("x TEXT DEFAULT -'5'", text("-5")),
+            ("x TEXT DEFAULT -'1e3'", text("-1000.0")),
+            ("x TEXT DEFAULT -'1.50'", text("-1.5")),
+            ("x TEXT DEFAULT -'1.0'", text("-1.0")),
+            ("x TEXT DEFAULT -'1000'", text("-1000")),
+            ("x TEXT DEFAULT -' 1e3 '", text("-1000.0")),
+            ("x TEXT DEFAULT -' -5 '", text("5")),
+            ("x INTEGER DEFAULT -'1e3'", CellValue::Int(-1000)),
+            ("x INTEGER DEFAULT -'1.50'", CellValue::Real(-1.5)),
+            ("x REAL DEFAULT -'1e3'", CellValue::Real(-1000.0)),
+            ("x BLOB DEFAULT -'1e3'", CellValue::Real(-1000.0)),
+            ("x TEXT DEFAULT 1_000", text("1000")),
+            ("x TEXT DEFAULT 1_000.5", text("1000.5")),
+            ("x TEXT DEFAULT 1_000.", text("1000.")),
+            ("x TEXT DEFAULT .1_0", text(".10")),
+            ("x TEXT DEFAULT 1_0e2", text("10e2")),
+            ("x TEXT DEFAULT 1_0e-2", text("10e-2")),
+            ("x TEXT DEFAULT 1_0e-5", text("10e-5")),
+            ("x TEXT DEFAULT -0_0.0", text("-00.0")),
+            ("x TEXT DEFAULT -1_0", text("-10")),
+            ("x TEXT DEFAULT 12_34.5_0", text("1234.50")),
+            ("x TEXT DEFAULT +1_0e+0_2", text("10e+02")),
+            ("x TEXT DEFAULT -0_9223372036854775808", text("-09223372036854775808")),
+            ("x TEXT DEFAULT 0_07", text("7")),
+            ("x NUMERIC DEFAULT 1_0e-0_1", CellValue::Int(1)),
+            ("x NUMERIC DEFAULT '1_000'", text("1_000")),
+            ("x INTEGER DEFAULT 1_000", CellValue::Int(1000)),
+            ("x INTEGER DEFAULT 1_000.5", CellValue::Real(1000.5)),
+            ("x INTEGER DEFAULT .1_0", CellValue::Real(0.1)),
+            ("x INTEGER DEFAULT 1_000.", CellValue::Int(1000)),
+            ("x REAL DEFAULT 1_0e2", CellValue::Real(1000.0)),
+            ("x REAL DEFAULT 1_000", CellValue::Real(1000.0)),
+            ("x BLOB DEFAULT 1_000", CellValue::Int(1000)),
+            ("x DEFAULT 1_000", CellValue::Int(1000)),
+        ] {
+            short_record_case(declaration, vec![value], false);
+        }
+        for declaration in [
+            "x DEFAULT (abc)",
+            "x DEFAULT (\"abc\")",
+            "x DEFAULT (\"5\")",
+            "x INTEGER DEFAULT -'abc'",
+            "x INTEGER DEFAULT -'1_0'",
+            "x DEFAULT 1__000",
+            "x DEFAULT 1_",
+            "x DEFAULT 1e_2",
+        ] {
+            short_record_case(declaration, vec![CellValue::Null], true);
+        }
+    }
+
+    /// Hex and parenthesized literals take the column's affinity too (SQLite 3.51 readings).
+    #[test]
+    fn hex_and_parenthesized_defaults_take_the_column_affinity() {
+        for (declaration, value) in [
+            ("x TEXT DEFAULT 0x10", text("16")),
+            ("x TEXT DEFAULT -0xFFFFFFFFFFFFFFFF", text("1")),
+            ("x TEXT DEFAULT (5.0)", text("5.0")),
+            ("x TEXT DEFAULT (1e3)", text("1000.0")),
+            ("x TEXT DEFAULT (5.)", text("5.0")),
+            ("x TEXT DEFAULT (1e400)", text("Inf")),
+            ("x TEXT DEFAULT (- 007)", text("-7")),
+            ("x TEXT DEFAULT (TRUE)", text("1")),
+            ("x INTEGER DEFAULT ('7')", CellValue::Int(7)),
+            ("x NUMERIC DEFAULT (1e3)", CellValue::Int(1000)),
+            ("x REAL DEFAULT 0x10", CellValue::Real(16.0)),
+            ("x REAL DEFAULT ('1.5')", CellValue::Real(1.5)),
+            ("x DEFAULT ('7')", text("7")),
+            ("x BLOB DEFAULT (5.0)", CellValue::Real(5.0)),
+        ] {
+            short_record_case(declaration, vec![value], false);
+        }
+    }
+
+    /// A STRICT table's ANY column keeps values as they are, so its default isn't turned into a
+    /// number, while an ANY column elsewhere is NUMERIC. WITHOUT ROWID rows fill the same way.
+    #[test]
+    fn strict_any_and_without_rowid_defaults_take_the_column_affinity() {
+        use craft_anything_testkit::sqlite::{Val, table_db, without_rowid_db};
+        let read = |bytes: Vec<u8>| SqliteDb::parse(&bytes).expect("fixture parses").read_rows(2, 0, 10).rows[0].values.clone();
+        let strict = "CREATE TABLE t(n INT, a ANY DEFAULT '5', b ANY DEFAULT 5.0, i INTEGER DEFAULT '7', s TEXT DEFAULT 5) STRICT";
+        assert_eq!(read(table_db(strict, &[(1, vec![Val::Int(1)])])), vec![CellValue::Int(1), text("5"), CellValue::Real(5.0), CellValue::Int(7), text("5")]);
+        assert_eq!(read(table_db("CREATE TABLE t(n INT, a ANY DEFAULT '5')", &[(1, vec![Val::Int(1)])])), vec![CellValue::Int(1), CellValue::Int(5)]);
+        let without_rowid = "CREATE TABLE t(k INT PRIMARY KEY, s TEXT DEFAULT 5, n NUMERIC DEFAULT '2.0') WITHOUT ROWID";
+        assert_eq!(read(without_rowid_db(without_rowid, &[vec![Val::Int(1)]])), vec![CellValue::Int(1), text("5"), CellValue::Int(2)]);
     }
 }

@@ -56,15 +56,15 @@ pub fn scan<'a>(src: &'a str, max_tokens: usize, mut emit: impl FnMut(Token<'a>)
     let slice = |a: usize, z: usize| src.get(a..z).unwrap_or("");
     let mut last_sig: Option<(TokKind, &str)> = None;
     while i < b.len() {
-        if count >= max_tokens {
-            return true;
-        }
-        count += 1;
         let c = b.get(i).copied().unwrap_or(0);
         if c.is_ascii_whitespace() {
             i += 1;
             continue;
         }
+        if count >= max_tokens {
+            return true;
+        }
+        count += 1;
         let start = i;
         let next = b.get(i + 1).copied().unwrap_or(0);
         // Comments.
@@ -90,7 +90,7 @@ pub fn scan<'a>(src: &'a str, max_tokens: usize, mut emit: impl FnMut(Token<'a>)
             while let Some(&d) = b.get(i) {
                 i += 1;
                 if d == b'\\' {
-                    i += 1;
+                    i += if b.get(i) == Some(&b'\r') && b.get(i + 1) == Some(&b'\n') { 2 } else { 1 };
                 } else if d == c || d == b'\n' {
                     break;
                 }
@@ -204,6 +204,9 @@ pub fn unescape(s: &str) -> String {
             Some('n') => out.push('\n'),
             Some('t') => out.push('\t'),
             Some('r') => out.push('\r'),
+            Some('b') => out.push('\u{8}'),
+            Some('f') => out.push('\u{c}'),
+            Some('v') => out.push('\u{b}'),
             Some('0') => out.push('\0'),
             Some('x') => {
                 let h: String = it.by_ref().take(2).collect();
@@ -218,11 +221,25 @@ pub fn unescape(s: &str) -> String {
                 } else {
                     it.by_ref().take(4).collect()
                 };
-                if let Some(ch) = u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
-                    out.push(ch);
+                let Ok(mut code) = u32::from_str_radix(&hex, 16) else { continue };
+                if (0xD800..0xDC00).contains(&code) {
+                    let mut ahead = it.clone();
+                    if ahead.next() == Some('\\') && ahead.next() == Some('u') {
+                        let lo: String = ahead.by_ref().take(4).collect();
+                        if let Some(lo) = u32::from_str_radix(&lo, 16).ok().filter(|l| lo.len() == 4 && (0xDC00..0xE000).contains(l)) {
+                            code = 0x10000 + ((code - 0xD800) << 10) + (lo - 0xDC00);
+                            it = ahead;
+                        }
+                    }
                 }
+                out.push(char::from_u32(code).unwrap_or('\u{FFFD}'));
             }
             Some('\n') => {}
+            Some('\r') => {
+                if it.peek() == Some(&'\n') {
+                    it.next();
+                }
+            }
             Some(other) => out.push(other),
             None => {}
         }
@@ -310,6 +327,44 @@ mod tests {
 
     fn kinds(s: &str) -> Vec<(TokKind, String)> {
         tokenize(s, 1000).0.into_iter().map(|t| (t.kind, t.text.to_string())).collect()
+    }
+
+    #[test]
+    fn whitespace_does_not_count_against_limit() {
+        let (t, truncated) = tokenize("a b c d", 4);
+        assert_eq!(t.len(), 4);
+        assert!(!truncated);
+        let (t, truncated) = tokenize("a b c d", 3);
+        assert_eq!(t.len(), 3);
+        assert!(truncated);
+    }
+
+    #[test]
+    fn crlf_line_continuation_stays_in_string() {
+        let k = kinds("x = 'a\\\r\nb';");
+        assert!(k.contains(&(TokKind::Str, "'a\\\r\nb'".into())), "{k:?}");
+        assert!(k.contains(&(TokKind::Punct, ";".into())), "{k:?}");
+    }
+
+    #[test]
+    fn unescape_crlf_line_continuation() {
+        assert_eq!(unescape("a\\\r\nb"), "ab");
+        assert_eq!(unescape("a\\\rb"), "ab");
+        assert_eq!(unescape("a\\\nb"), "ab");
+    }
+
+    #[test]
+    fn unescape_backspace_formfeed_vtab() {
+        assert_eq!(unescape(r"a\fb\vc\bd"), "a\u{c}b\u{b}c\u{8}d");
+        assert_eq!(string_value(r#""\b\f\v""#), "\u{8}\u{c}\u{b}");
+    }
+
+    #[test]
+    fn unescape_combines_surrogate_pairs() {
+        assert_eq!(unescape("\\uD83D\\uDE00"), "😀");
+        assert_eq!(unescape("a\\uD83D\\u0041"), "a\u{FFFD}A");
+        assert_eq!(unescape("\\uDE00x"), "\u{FFFD}x");
+        assert_eq!(unescape("\\u{1F600}"), "😀");
     }
 
     #[test]

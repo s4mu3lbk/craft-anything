@@ -4,6 +4,18 @@
   "description": "The app as the builder last left it, and turns since it last changed. Only the rebuild run\nwrites this record. An older project without one has no counted turns.",
   "type": "object",
   "properties": {
+    "checked": {
+      "description": "The last check round in which every check worked, and what it looked at; while that\nstays the same, the round's results stand instead of building and starting the app again.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CheckedBuild"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "fingerprint": {
       "type": [
         "string",
@@ -26,5 +38,28 @@
   "additionalProperties": false,
   "required": [
     "version"
-  ]
+  ],
+  "$defs": {
+    "CheckedBuild": {
+      "description": "A check round kept with the state it judged.",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "A digest of what the round's checks look at, taken after they ran.",
+          "type": "string"
+        },
+        "round": {
+          "description": "The round in `craft.json`'s `checks` whose results stand.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "round"
+      ]
+    }
+  }
 }

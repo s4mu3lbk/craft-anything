@@ -228,8 +228,8 @@ mod tests {
     #[test]
     fn bun_programs_work_through_the_engine() {
         let section = kit::macho_section("__BUN", "__bun", &kit::bun_section_payload(&kit::bun_sample()));
-        round_trip("bunapp", &section, "bun_program", "root/app.js", b"console.log('app')", 2);
-        round_trip("bunapp2", &kit::bun_appended(&kit::bun_sample()), "bun_program", "root/logo.png", b"\x89PNG", 2);
+        round_trip("bunapp", &section, "bun_program", "bun-payloads/0.sourcemap", b"map-bytes", 4);
+        round_trip("bunapp2", &kit::bun_appended(&kit::bun_sample()), "bun_program", "bun-payloads/0.bytecode", b"code-bytes", 4);
     }
 
     #[test]

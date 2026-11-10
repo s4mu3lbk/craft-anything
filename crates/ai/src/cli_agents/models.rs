@@ -81,6 +81,9 @@ pub(crate) fn parse_models(bytes: &[u8]) -> Result<Vec<AgentModel>, ToolError> {
 }
 
 /// Only connection flags belong on both `api` and `run`; prompt/run flags never leak into discovery.
+/// Without a server the person chose, discovery asks a private server (`--standalone`), as runs do:
+/// plain `api` starts OpenCode's shared service, which resumes every unfinished session on the
+/// computer, in any project, and carries on with its commands (#1115).
 fn connection_args(options: &BackendOptions) -> Result<Vec<String>, ToolError> {
     let mut result = Vec::new();
     let mut args = options.args.iter();
@@ -92,6 +95,9 @@ fn connection_args(options: &BackendOptions) -> Result<Vec<String>, ToolError> {
                 args.next().filter(|s| !s.is_empty() && !s.starts_with('-')).ok_or_else(|| ToolError::invalid("OpenCode's --server needs an address."))?;
             result.extend([arg.clone(), server.clone()]);
         }
+    }
+    if result.is_empty() {
+        result.push("--standalone".into());
     }
     Ok(result)
 }
@@ -308,7 +314,22 @@ mod tests {
         let output = Process::new("sh").arg("-c").arg(args.last().unwrap()).cwd(&remote).timeout(Duration::from_secs(2)).run_checked().unwrap();
         // The shell resolves aliases in its working directory (macOS /var points to /private/var).
         let remote = remote.canonicalize().unwrap();
-        assert_eq!(output.stdout_text().lines().collect::<Vec<_>>(), ["api", "model.list", "--param", &format!("location[directory]={}", remote.display())]);
+        assert_eq!(
+            output.stdout_text().lines().collect::<Vec<_>>(),
+            ["api", "model.list", "--standalone", "--param", &format!("location[directory]={}", remote.display())]
+        );
+    }
+
+    /// #1115: plain `api` starts OpenCode's shared service, which resumes unfinished sessions in other
+    /// projects. Discovery uses a private server unless the person chose one, and never adds it twice.
+    #[test]
+    fn discovery_never_starts_the_shared_service() {
+        let with = |args: &[&str]| query_args(&BackendOptions { args: args.iter().map(|a| a.to_string()).collect(), ..Default::default() }).unwrap();
+        assert_eq!(with(&[]), ["api", "model.list", "--standalone"]);
+        assert_eq!(with(&["--agent", "build"]), ["api", "model.list", "--standalone"], "run-only flags don't count as a choice");
+        assert_eq!(with(&["--standalone"]), ["api", "model.list", "--standalone"]);
+        assert_eq!(with(&["--server", "http://localhost:4096"]), ["api", "model.list", "--server", "http://localhost:4096"]);
+        assert_eq!(with(&["--server=http://localhost:4096"]), ["api", "model.list", "--server=http://localhost:4096"]);
     }
 
     /// A local CLI stand-in verifies project-specific discovery, malformed output, exit errors and deadlines.

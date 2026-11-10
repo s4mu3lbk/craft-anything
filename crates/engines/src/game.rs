@@ -619,23 +619,59 @@ fn unity_editors(p: &Places) -> Vec<Installed> {
     let mut roots: Vec<PathBuf> = p.program_files.iter().map(|pf| pf.join("Unity/Hub/Editor")).collect();
     roots.extend(p.applications.iter().map(|a| a.join("Unity/Hub/Editor")));
     roots.extend(p.home.iter().map(|h| h.join("Unity/Hub/Editor")));
-    // Unity Hub's "install location" setting: a JSON string with the folder.
-    if let Some(s) = p.app_data.as_ref().and_then(|a| std::fs::read_to_string(a.join("UnityHub/secondaryInstallPath.json")).ok())
-        && let Ok(path) = serde_json::from_str::<String>(&s).map(PathBuf::from)
-        && !path.as_os_str().is_empty()
-    {
-        roots.push(path);
+    // Unity Hub's own folder: under %APPDATA% on Windows, under the home folder elsewhere.
+    let hub = (p.app_data.iter().map(|a| a.join("UnityHub")))
+        .chain(p.home.iter().flat_map(|h| [h.join("Library/Application Support/UnityHub"), h.join(".config/UnityHub")]));
+    let mut found = Vec::new();
+    for hub in hub {
+        // Unity Hub's "install location" setting: a JSON string with the folder.
+        if let Some(s) = std::fs::read_to_string(hub.join("secondaryInstallPath.json")).ok()
+            && let Ok(path) = serde_json::from_str::<String>(&s).map(PathBuf::from)
+            && !path.as_os_str().is_empty()
+        {
+            roots.push(path);
+        }
+        // Editors added with "Locate" can be anywhere; the Hub lists each one's version and program.
+        for list in ["editors-v2.json", "editors.json"] {
+            let mut text = Vec::new();
+            if let Ok(f) = std::fs::File::open(hub.join(list))
+                && f.take(1 << 20).read_to_end(&mut text).is_ok()
+                && let Ok(v) = serde_json::from_slice::<serde_json::Value>(&text)
+            {
+                unity_located(&v, 0, &mut found);
+            }
+        }
     }
     let exes = ["Editor/Unity.exe", "Unity.app/Contents/MacOS/Unity", "Editor/Unity"];
-    roots
-        .iter()
-        .flat_map(|r| subdirs(r))
-        .filter_map(|dir| {
-            let program = exes.iter().map(|e| dir.join(e)).find(|e| e.is_file())?;
-            let version = dir.file_name()?.to_string_lossy().into_owned();
-            Some(Installed { builder: Builder::Unity, version, program })
-        })
-        .collect()
+    found.extend(roots.iter().flat_map(|r| subdirs(r)).filter_map(|dir| {
+        let program = exes.iter().map(|e| dir.join(e)).find(|e| e.is_file())?;
+        let version = dir.file_name()?.to_string_lossy().into_owned();
+        Some(Installed { builder: Builder::Unity, version, program })
+    }));
+    found
+}
+
+/// The editors in Unity Hub's list. Its layout differs between Hub versions (entries keyed by
+/// version, or in an array under `data`; `location` a string or an array), so take every entry
+/// with a version and a location, wherever it sits.
+fn unity_located(v: &serde_json::Value, depth: u8, out: &mut Vec<Installed>) {
+    if let (Some(version), Some(location)) = (v.get("version").and_then(|x| x.as_str()), v.get("location")) {
+        let paths = location.as_array().map_or(std::slice::from_ref(location), Vec::as_slice);
+        for path in paths.iter().filter_map(|x| x.as_str()).map(PathBuf::from).filter(|x| x.is_absolute()) {
+            // macOS lists the app bundle, the others the program itself.
+            let program = if path.is_dir() { path.join("Contents/MacOS/Unity") } else { path };
+            if program.is_file() {
+                out.push(Installed { builder: Builder::Unity, version: version.to_owned(), program });
+            }
+        }
+    } else if depth < 4 {
+        let inner: Box<dyn Iterator<Item = &serde_json::Value>> = match v {
+            serde_json::Value::Object(m) => Box::new(m.values()),
+            serde_json::Value::Array(a) => Box::new(a.iter()),
+            _ => return,
+        };
+        inner.for_each(|x| unity_located(x, depth + 1, out));
+    }
 }
 
 /// Prefer a valid absolute `UE_ROOT`; otherwise discover installs in registries and standard folders.
@@ -1108,6 +1144,37 @@ mod tests {
         touch(&pf, "Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40/bin/Hostx64/x64/cl.exe", b"");
         assert!(inventory(&p).ready(Builder::Unreal));
         assert!(!inv.ready(Builder::Rust), "PATH isn't searched here");
+    }
+
+    #[test]
+    fn finds_unity_editors_added_to_the_hub_with_locate() {
+        let d = tempfile::tempdir().unwrap();
+        touch(d.path(), "old/Editor/Unity.exe", b"");
+        touch(d.path(), "new/Editor/Unity.exe", b"");
+        let at = |rel: &str| d.path().join(rel).to_string_lossy().into_owned();
+        // Both layouts: keyed by version with a string, and an array under `data` with an array.
+        let keyed = serde_json::json!({"2019.4.1f1": {"version": "2019.4.1f1", "location": at("old/Editor/Unity.exe"), "manual": true}});
+        let listed = serde_json::json!({"schema_version": "v2", "data": [
+            {"version": "6000.0.23f1", "location": [at("new/Editor/Unity.exe")], "manual": true},
+            {"version": "2021.3.1f1", "location": [at("removed/Editor/Unity.exe")]},
+            {"version": "2020.1.1f1", "location": ["relative/Unity.exe", 7]},
+        ]});
+        touch(d.path(), "roaming/UnityHub/editors.json", keyed.to_string().as_bytes());
+        touch(d.path(), "roaming/UnityHub/editors-v2.json", listed.to_string().as_bytes());
+        let p = Places { app_data: Some(d.path().join("roaming")), store: d.path().join("store"), ..Default::default() };
+        let versions: Vec<String> = inventory(&p).engines.into_iter().map(|i| i.version).collect();
+        assert_eq!(versions, ["6000.0.23f1", "2019.4.1f1"], "newest first; an editor that's gone isn't offered");
+
+        // The Hub lists the editors it installed itself too: found both ways, offered once.
+        touch(d.path(), "pf/Unity/Hub/Editor/2022.3.10f1/Editor/Unity.exe", b"");
+        let own = serde_json::json!([{"version": "2022.3.10f1", "location": [at("pf/Unity/Hub/Editor/2022.3.10f1/Editor/Unity.exe")]}]);
+        touch(d.path(), "roaming/UnityHub/editors-v2.json", own.to_string().as_bytes());
+        let both = Places { program_files: vec![d.path().join("pf")], ..p.clone() };
+        assert_eq!(inventory(&both).engines.iter().filter(|i| i.version == "2022.3.10f1").count(), 1);
+
+        touch(d.path(), "roaming/UnityHub/editors-v2.json", b"{\"data\": [");
+        touch(d.path(), "roaming/UnityHub/editors.json", b"[[[[[[{\"version\": 1, \"location\": {}}]]]]]]");
+        assert!(inventory(&p).engines.is_empty(), "a list that can't be read finds nothing");
     }
 
     #[test]

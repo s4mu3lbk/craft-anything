@@ -72,9 +72,15 @@ pub struct OpenAi {
     pub auto_react: bool,
     /// Talking to OpenRouter, which routes each request to one of several upstream providers.
     pub openrouter: bool,
-    /// How long one streamed answer may take (a slow local model can need hours).
-    pub stream_limit: std::time::Duration,
+    /// The AI's own limit on one streamed answer (a slow local model can need hours); none uses
+    /// the defaults.
+    pub stream_limit: Option<std::time::Duration>,
+    /// The longest answer to ask for, once OpenRouter has said the key can't afford more (#1213).
+    pub answer_cap: Option<u64>,
 }
+
+/// An answer cap smaller than this would cut a builder's file writes short: such a refusal stays one.
+const MIN_AFFORDABLE_ANSWER: u64 = 4096;
 
 impl OpenAi {
     pub fn official(base: Option<&str>, key: String, model: &str) -> Self {
@@ -103,7 +109,8 @@ impl OpenAi {
             react: false,
             auto_react: true,
             openrouter: false,
-            stream_limit: http::STREAM_BODY,
+            stream_limit: None,
+            answer_cap: None,
         }
     }
 
@@ -157,6 +164,9 @@ impl OpenAi {
             "stream_options": {"include_usage": true},
             "messages": messages,
         });
+        if let (Some(cap), Some(o)) = (self.answer_cap, body.as_object_mut()) {
+            o.insert("max_tokens".into(), json!(cap));
+        }
         if !self.react
             && !req.tools.is_empty()
             && let Some(o) = body.as_object_mut()
@@ -178,9 +188,56 @@ impl OpenAi {
         body
     }
 
+    /// The models the server says are loaded now, read at the root of a `…/v1` address: Ollama's
+    /// `/api/ps` (Ollama and FastFlowLM answer it), else LM Studio's `/api/v0/models`, whose
+    /// entries say `state: "loaded"` (embedding models left out). Empty when the address doesn't
+    /// end in `/v1`, or the server answers neither: `/models` may list every model a server has
+    /// downloaded or can download, and asking for another loads or downloads it (#1434).
+    pub fn loaded_models(&self, timeout: std::time::Duration) -> Vec<String> {
+        let Some(root) = self.base_url.strip_suffix("/v1") else { return Vec::new() };
+        let agent = http::quick_agent(timeout);
+        let get = |path: &str| http::get_json(&agent, &self.label, &format!("{root}{path}"), &self.headers()).ok();
+        let ids = |entries: Vec<&Value>, keys: &[&str]| {
+            let mut out: Vec<String> = Vec::new();
+            for m in entries {
+                let id = keys.iter().find_map(|k| m.get(*k)).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
+                if let Some(id) = id
+                    && !out.iter().any(|seen| seen == id)
+                {
+                    out.push(id.to_string());
+                }
+            }
+            out
+        };
+        let running =
+            get("/api/ps").map(|v| ids(v.get("models").and_then(Value::as_array).map(|a| a.iter().collect()).unwrap_or_default(), &["model", "name"]));
+        if let Some(found) = running.filter(|r| !r.is_empty()) {
+            return found;
+        }
+        let Some(v) = get("/api/v0/models") else { return Vec::new() };
+        let loaded = v
+            .get("data")
+            .and_then(Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter(|m| m.get("state").and_then(Value::as_str) == Some("loaded"))
+                    .filter(|m| m.get("type").and_then(Value::as_str) != Some("embeddings"))
+                    .collect()
+            })
+            .unwrap_or_default();
+        ids(loaded, &["id"])
+    }
+
     /// Model ids from `GET /models`.
     pub fn list_models(&self, timeout: std::time::Duration) -> Result<Vec<String>, ToolError> {
-        let agent = http::quick_agent(timeout);
+        self.list_models_within(timeout, timeout)
+    }
+
+    /// Like [`OpenAi::list_models`], with its own limit for reaching the server (`connect`) and for
+    /// its answer (`wait`): a server still starting or loading a model is reached at once but may
+    /// take a while to answer, and an address nothing listens at shouldn't hold the person as long.
+    pub fn list_models_within(&self, connect: std::time::Duration, wait: std::time::Duration) -> Result<Vec<String>, ToolError> {
+        let agent = http::agent(connect, wait, wait);
         let v = http::get_json(&agent, &self.label, &self.url("models"), &self.headers())?;
         let arr = v.get("data").or_else(|| v.get("models")).and_then(Value::as_array).cloned().unwrap_or_default();
         // A catalogue may list a model only for another API (Responses, Messages): such an entry
@@ -217,6 +274,11 @@ impl OpenAi {
     }
 }
 
+/// The answer length a 402 says the key can still pay for.
+fn affordable(e: &ToolError) -> Option<u64> {
+    e.details.as_ref().and_then(|d| d.get("affordable_tokens")).and_then(Value::as_u64)
+}
+
 fn rejects_tools(e: &ToolError) -> bool {
     let m = e.message.to_ascii_lowercase();
     let status = e.details.as_ref().and_then(|d| d.get("status")).and_then(Value::as_u64).unwrap_or(0);
@@ -229,6 +291,13 @@ impl ChatModel for OpenAi {
             Err(e) if !self.react && self.auto_react && !req.tools.is_empty() && (rejects_tools(&e) || self.no_provider_for_tools(&e)) => {
                 log::info!("{} rejected tool calling; switching to the text protocol", self.label);
                 self.react = true;
+                self.stream_once(req, on_delta, stop)
+            }
+            // With no max_tokens, OpenRouter holds the model's whole output limit against the key's
+            // credit; it says what it can afford, so ask once more for an answer that long (#1213).
+            Err(e) if self.openrouter && affordable(&e).is_some_and(|n| n >= MIN_AFFORDABLE_ANSWER && self.answer_cap.is_none_or(|c| n < c)) => {
+                self.answer_cap = affordable(&e);
+                log::info!("{} can afford an answer of {:?} tokens; asking for that", self.label, self.answer_cap);
                 self.stream_once(req, on_delta, stop)
             }
             other => other,
@@ -282,13 +351,18 @@ pub fn messages_json(m: &Msg, react: bool) -> Vec<Value> {
             if react {
                 // Calls made natively before the switch to the text protocol are written as the
                 // protocol's own lines, so the turn isn't empty and the model sees what it did.
-                if !text.contains("Action:") {
-                    for (_, name, input) in m.tool_uses() {
-                        if !text.is_empty() && !text.ends_with('\n') {
-                            text.push('\n');
-                        }
-                        text.push_str(&format!("Action: {name}\nAction Input: {input}"));
+                // A call the text already names (one `Action:` line each) isn't written twice; any
+                // other is, so its result never arrives without it.
+                let mut named: Vec<String> = text.lines().filter_map(|l| l.trim().strip_prefix("Action:")).map(|n| n.trim().to_string()).collect();
+                for (_, name, input) in m.tool_uses() {
+                    if let Some(i) = named.iter().position(|n| *n == name) {
+                        named.swap_remove(i);
+                        continue;
                     }
+                    if !text.is_empty() && !text.ends_with('\n') {
+                        text.push('\n');
+                    }
+                    text.push_str(&format!("Action: {name}\nAction Input: {input}"));
                 }
                 return if text.is_empty() { Vec::new() } else { vec![json!({"role": "assistant", "content": text})] };
             }
@@ -624,6 +698,117 @@ fn fenced_calls(text: &str) -> Option<Vec<(String, Value)>> {
     (!words_after).then_some(calls)
 }
 
+/// One call written in Qwen's tool-call markup, its parameters as written.
+#[derive(Debug, Clone, PartialEq)]
+struct MarkupCall {
+    tool: String,
+    params: Vec<(String, String)>,
+}
+
+/// The calls in a reply written in the markup Qwen's chat template teaches:
+///
+/// ```text
+/// <tool_call>
+/// <function=name>
+/// <parameter=key>
+/// value
+/// </parameter>
+/// </function>
+/// </tool_call>
+/// ```
+///
+/// A llama.cpp server turns this into a real call, but hands it back as text when it names a
+/// tool the model wasn't offered, and the loop then took it for the final answer. Words may
+/// come before the first call; the flag is true when anything but blank lines follows the
+/// last one. The last `</tool_call>` may be missing (the server may stop on it). Anything
+/// else (a call inside a code fence, `<tool_call>` in the middle of a line, a missing
+/// `</parameter>`) means the reply is text.
+fn parse_markup_calls(text: &str) -> Option<(Vec<MarkupCall>, bool)> {
+    const OPEN: &str = "<tool_call>";
+    const CLOSE: &str = "</tool_call>";
+    // The first call starts a line, and no code fence comes before it.
+    let mut start = None;
+    let mut offset = 0usize;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
+            return None;
+        }
+        if trimmed.starts_with(OPEN) {
+            start = Some(offset.checked_add(line.len().checked_sub(trimmed.len())?)?);
+            break;
+        }
+        offset = offset.checked_add(line.len())?;
+    }
+    let mut rest = text.get(start?..)?;
+    let mut calls = Vec::new();
+    loop {
+        rest = rest.trim_start().strip_prefix(OPEN)?.trim_start();
+        let after_name = rest.strip_prefix("<function=")?;
+        let (tool, after) = after_name.split_once('>')?;
+        let tool = tool.trim();
+        if tool.is_empty() || tool.contains(['<', '\n']) {
+            return None;
+        }
+        rest = after;
+        let mut params = Vec::new();
+        loop {
+            rest = rest.trim_start();
+            if let Some(after) = rest.strip_prefix("</function>") {
+                rest = after;
+                break;
+            }
+            let (key, after) = rest.strip_prefix("<parameter=")?.split_once('>')?;
+            let key = key.trim();
+            if key.is_empty() || key.contains(['<', '\n']) {
+                return None;
+            }
+            let (value, after) = after.split_once("</parameter>")?;
+            // The template puts the value on its own lines; the text inside is kept as written.
+            let value = value.strip_prefix('\n').unwrap_or(value);
+            let value = value.strip_suffix('\n').unwrap_or(value);
+            params.push((key.to_string(), value.to_string()));
+            rest = after;
+        }
+        calls.push(MarkupCall { tool: tool.to_string(), params });
+        rest = rest.trim_start();
+        rest = rest.strip_prefix(CLOSE).unwrap_or(rest);
+        let next = rest.trim_start();
+        if next.starts_with(OPEN) {
+            continue;
+        }
+        return Some((calls, !next.is_empty()));
+    }
+}
+
+/// A markup call's arguments as JSON: a parameter the tool's schema says is a string stays as
+/// written; any other is read as JSON when it parses (numbers, booleans, lists, objects), as
+/// the template writes them, and stays a string when it doesn't, for the tool to refuse.
+fn markup_input(call: &MarkupCall, tool: Option<&ToolDef>) -> Value {
+    let mut input = serde_json::Map::new();
+    for (key, raw) in &call.params {
+        let kind = tool.and_then(|t| t.schema.get("properties")).and_then(|p| p.get(key)).and_then(|p| p.get("type"));
+        let is_string = match kind {
+            Some(Value::String(kind)) => kind == "string",
+            Some(Value::Array(kinds)) => kinds.iter().any(|k| k == "string"),
+            _ => false,
+        };
+        let value = if is_string { None } else { serde_json::from_str::<Value>(raw.trim()).ok() };
+        input.insert(key.clone(), value.unwrap_or_else(|| Value::String(raw.clone())));
+    }
+    Value::Object(input)
+}
+
+/// What the model is told when its markup names tools it doesn't have.
+fn not_offered_message(missing: &[&str], tools: &[ToolDef]) -> String {
+    let names = missing.iter().map(|name| format!("`{name}`")).collect::<Vec<_>>().join(", ");
+    let (verb, noun) = if missing.len() == 1 { ("isn't", "a tool") } else { ("aren't", "tools") };
+    let offered = tools.iter().map(|t| t.name.as_str()).collect::<Vec<_>>().join(", ");
+    format!(
+        "Nothing in your previous response ran: {names} {verb} {noun} you can use here. Your tools are: {offered}. Call one of these instead, or if you're finished, answer in plain text."
+    )
+}
+
 /// The first balanced `{…}` in `s`, parsed.
 fn extract_json_object(s: &str) -> Option<Value> {
     let start = s.find('{')?;
@@ -667,6 +852,32 @@ fn react_postprocess(r: &mut TurnResult, tools: &[ToolDef], react: bool) {
     let from_json = json_call.is_some();
     // Calls after a sentence run only when every one names a tool the model was offered.
     let offered = |tool: &str| tools.iter().any(|definition| definition.name == tool);
+    if !from_json && let Some((calls, words_after)) = parse_markup_calls(&text) {
+        let missing = calls.iter().map(|call| call.tool.as_str()).filter(|tool| !offered(tool)).collect::<Vec<_>>();
+        if !missing.is_empty() {
+            let mut unique = Vec::new();
+            for tool in missing {
+                if !unique.contains(&tool) {
+                    unique.push(tool);
+                }
+            }
+            r.follow_up = Some(not_offered_message(&unique, tools));
+            r.stop = StopReason::PauseTurn;
+            return;
+        }
+        if words_after {
+            r.follow_up = Some("The tool call in your previous response was not run because text followed it. Send the tool call again without adding a summary or other text after it.".into());
+            r.stop = StopReason::PauseTurn;
+            return;
+        }
+        for call in calls {
+            let n = REACT_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let input = markup_input(&call, tools.iter().find(|definition| definition.name == call.tool));
+            r.message.blocks.push(Block::ToolUse { id: format!("react_{n}"), name: call.tool, input });
+        }
+        r.stop = StopReason::ToolUse;
+        return;
+    }
     if !from_json && let Some(calls) = fenced_calls(&text).filter(|calls| calls.iter().all(|(tool, _)| offered(tool))) {
         for (tool, input) in calls {
             let n = REACT_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -699,6 +910,121 @@ fn react_postprocess(r: &mut TurnResult, tools: &[ToolDef], react: bool) {
 mod tests {
     use super::*;
     use crate::model::Effort;
+
+    #[test]
+    fn qwen_markup_calls_are_read_and_examples_are_not() {
+        let names = |text: &str| parse_markup_calls(text).map(|(calls, after)| (calls.into_iter().map(|c| c.tool).collect::<Vec<_>>(), after));
+        // What a 512k-window Qwen model wrote in live builds, as the server handed it back.
+        let read = "<tool_call>\n<function=build_command_read>\n<parameter=path>\napp/src/main.rs\n</parameter>\n<parameter=offset>\n1580\n</parameter>\n<parameter=limit>\n45\n</parameter>\n</function>\n</tool_call>";
+        let (calls, after) = parse_markup_calls(read).unwrap();
+        assert!(!after);
+        assert_eq!(
+            calls,
+            [MarkupCall {
+                tool: "build_command_read".into(),
+                params: vec![("path".into(), "app/src/main.rs".into()), ("offset".into(), "1580".into()), ("limit".into(), "45".into())],
+            }]
+        );
+        let two = "<tool_call>\n<function=web_doc_fetch>\n<parameter=url>\nhttps://docs.rs/eframe\n</parameter>\n</function>\n</tool_call>\n<tool_call>\n<function=web_search>\n<parameter=query>\neframe screenshot example\n</parameter>\n</function>\n</tool_call>";
+        assert_eq!(names(two), Some((vec!["web_doc_fetch".into(), "web_search".into()], false)));
+        let after_words = "Now I'll rewrite main.rs with all API fixes.\n\n<tool_call>\n<function=write_output>\n</function>\n</tool_call>";
+        assert_eq!(names(after_words), Some((vec!["write_output".into()], false)));
+        // The server may stop on the closing tag, so it can be missing at the end.
+        assert_eq!(names("<tool_call>\n<function=look>\n</function>\n"), Some((vec!["look".into()], false)));
+        assert_eq!(names("<tool_call>\n<function=look>\n</function>\n</tool_call>\nDone."), Some((vec!["look".into()], true)));
+        // A value keeps its own lines and markup-like text; only the template's newlines go.
+        let (calls, _) =
+            parse_markup_calls("<tool_call>\n<function=write>\n<parameter=text>\n\nfn a() {}\n<b>\n\n</parameter>\n</function>\n</tool_call>").unwrap();
+        assert_eq!(calls[0].params, [("text".to_string(), "\nfn a() {}\n<b>\n".to_string())]);
+        for text in [
+            "No calls here.",
+            "Use <tool_call><function=look></function></tool_call> like this.",
+            "```xml\n<tool_call>\n<function=look>\n</function>\n</tool_call>\n```",
+            "~~~\n<tool_call>\n<function=look>\n</function>\n</tool_call>\n~~~",
+            "<tool_call>\n<function=look>\n<parameter=path>\napp\n</function>\n</tool_call>",
+            "<tool_call>\n<function=>\n</function>\n</tool_call>",
+            "<tool_call>\n<function=look>\nsome words\n</function>\n</tool_call>",
+            "<tool_call>\n{\"name\":\"look\",\"arguments\":{}}\n</tool_call>",
+        ] {
+            assert_eq!(names(text), None, "{text}");
+        }
+
+        // Arguments follow the schema: strings as written, everything else as JSON.
+        let schema = json!({"type":"object","properties":{"path":{"type":"string"},"offset":{"type":"integer"},"tags":{"type":["array","null"]},"note":{"type":["string","null"]}}});
+        let tool = ToolDef { name: "build_command_read".into(), description: String::new(), schema };
+        let call = MarkupCall {
+            tool: tool.name.clone(),
+            params: vec![
+                ("path".into(), "123".into()),
+                ("offset".into(), "1580".into()),
+                ("tags".into(), "[\"a\"]".into()),
+                ("note".into(), "true".into()),
+                ("other".into(), "false".into()),
+                ("bad".into(), "{not json".into()),
+            ],
+        };
+        assert_eq!(markup_input(&call, Some(&tool)), json!({"path":"123","offset":1580,"tags":["a"],"note":"true","other":false,"bad":"{not json"}));
+        assert_eq!(markup_input(&call, None)["path"], json!(123));
+    }
+
+    #[test]
+    fn a_markup_call_to_a_tool_that_isnt_offered_is_answered_not_ended() {
+        let tool = |name: &str| ToolDef {
+            name: name.into(),
+            description: String::new(),
+            schema: json!({"type":"object","properties":{"path":{"type":"string"},"offset":{"type":"integer"}}}),
+        };
+        let tools = [tool("build_file_read"), tool("build_file_write")];
+        let turn = |text: &str| TurnResult {
+            message: Msg { role: Speaker::Assistant, blocks: vec![Block::Text { text: text.into() }] },
+            stop: StopReason::EndTurn,
+            usage: Usage::default(),
+            model: String::new(),
+            follow_up: None,
+        };
+        let call = |name: &str| {
+            format!(
+                "<tool_call>\n<function={name}>\n<parameter=path>\napp/src/main.rs\n</parameter>\n<parameter=offset>\n10\n</parameter>\n</function>\n</tool_call>"
+            )
+        };
+        for react in [false, true] {
+            // Offered: it runs, with typed arguments.
+            let mut r = turn(&format!("Reading it.\n{}\n{}", call("build_file_read"), call("build_file_write")));
+            react_postprocess(&mut r, &tools, react);
+            assert_eq!(r.stop, StopReason::ToolUse, "react={react}");
+            let uses = r.message.tool_uses();
+            assert_eq!(uses.iter().map(|(_, name, _)| name.to_string()).collect::<Vec<_>>(), ["build_file_read", "build_file_write"]);
+            assert_eq!(uses[0].2, json!({"path":"app/src/main.rs","offset":10}));
+
+            // Not offered (alone, twice, or beside one that is): nothing runs, and the model is
+            // told which names it got wrong and which it has, once each.
+            for text in [
+                call("build_command_read"),
+                format!("{}\n{}", call("web_search"), call("web_search")),
+                format!("{}\n{}", call("build_file_read"), call("web_fetch")),
+            ] {
+                let mut r = turn(&text);
+                react_postprocess(&mut r, &tools, react);
+                assert_eq!(r.stop, StopReason::PauseTurn, "react={react}: {text}");
+                assert!(r.message.tool_uses().is_empty(), "react={react}: {text}");
+                let told = r.follow_up.unwrap();
+                let wrong = ["build_command_read", "web_search", "web_fetch"].into_iter().find(|name| text.contains(name)).unwrap();
+                assert_eq!(told.matches(&format!("`{wrong}`")).count(), 1, "{told}");
+                assert!(told.contains("isn't a tool you can use here") && told.contains("Your tools are: build_file_read, build_file_write."), "{told}");
+                assert!(!told.contains("`build_file_read`"), "{told}");
+            }
+            let mut r = turn(&format!("{}\n{}", call("web_search"), call("web_fetch")));
+            react_postprocess(&mut r, &tools, react);
+            assert!(r.follow_up.unwrap().contains("`web_search`, `web_fetch` aren't tools"));
+
+            // Words after the call: not run, and asked again without them.
+            let mut r = turn(&format!("{}\nThat should show the file.", call("build_file_read")));
+            react_postprocess(&mut r, &tools, react);
+            assert_eq!(r.stop, StopReason::PauseTurn, "react={react}");
+            assert!(r.message.tool_uses().is_empty());
+            assert!(r.follow_up.unwrap().contains("text followed it"));
+        }
+    }
 
     #[test]
     fn calls_after_a_sentence_are_read_and_examples_are_not() {
@@ -1101,6 +1427,21 @@ mod tests {
             ],
         };
         assert_eq!(messages_json(&written, true)[0]["content"], "Thought: look\nAction: look\nAction Input: {}");
+        // Text naming one call beside a native call of another keeps both, so no result arrives
+        // without its action; a second call to the same tool is written too.
+        let mixed = Msg {
+            role: Speaker::Assistant,
+            blocks: vec![
+                Block::Text { text: "Action: look\nAction Input: {}".into() },
+                Block::ToolUse { id: "react_0".into(), name: "look".into(), input: json!({}) },
+                Block::ToolUse { id: "c2".into(), name: "read".into(), input: json!({"p": 1}) },
+                Block::ToolUse { id: "c3".into(), name: "look".into(), input: json!({"deep": true}) },
+            ],
+        };
+        assert_eq!(
+            messages_json(&mixed, true)[0]["content"],
+            "Action: look\nAction Input: {}\nAction: read\nAction Input: {\"p\":1}\nAction: look\nAction Input: {\"deep\":true}"
+        );
         // In a whole request (text protocol), the user turns either side are joined into one.
         let user = |t: &str| Msg { role: Speaker::User, blocks: vec![Block::Text { text: t.into() }] };
         let mut o = OpenAi::compatible("Kimi", "http://127.0.0.1:9", Some("sk-test".into()), "kimi");

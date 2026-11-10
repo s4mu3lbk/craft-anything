@@ -618,8 +618,10 @@ fn base64(b: &[u8]) -> String {
 
 /// The package part of a Go function name (`github.com/a/b.(*T).M` → `github.com/a/b`).
 pub fn package_of(name: &str) -> String {
-    let slash = name.rfind('/').map(|i| i + 1).unwrap_or(0);
-    let tail = name.get(slash..).unwrap_or("");
+    // Import paths cannot contain '['; subsequent slashes may belong to type arguments.
+    let prefix = name.split_once('[').map_or(name, |(prefix, _)| prefix);
+    let slash = prefix.rfind('/').map(|i| i + 1).unwrap_or(0);
+    let tail = prefix.get(slash..).unwrap_or("");
     match tail.find('.') {
         Some(dot) => name.get(..slash + dot).unwrap_or(name).to_string(),
         None => name.to_string(),
@@ -829,6 +831,13 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
 mod tests {
     use super::*;
     use craft_anything_testkit::formats as fx;
+
+    #[test]
+    fn instantiated_functions_keep_the_declaring_package() {
+        assert_eq!(package_of("example.org/app.F[example.net/lib.Type]"), "example.org/app");
+        assert_eq!(package_of("net/http.(*pool[example.net/lib.T]).get"), "net/http");
+        assert_eq!(package_of("example.org/app.Run"), "example.org/app");
+    }
 
     #[test]
     fn pclntab_entries_cannot_borrow_bytes_after_the_section() {

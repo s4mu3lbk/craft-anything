@@ -56,15 +56,51 @@ fn stack_and_library_steps(m: &craft_anything_engine::workspace::Manifest, edito
     s
 }
 
-/// The first message to the builder: the request, the evidence, the kind's goal and stack steps,
-/// the shared rules, then the kind's own sections. `extra`: what the person also said.
+/// Wording for a builder that can look at pictures (an agent app opens them with Read) or one that
+/// can't (the API loop, [`BriefCx::sees_pictures`]): a builder is never sent to open a picture it
+/// can't see, and is told what to use instead.
+fn sight(sees: bool, sighted: &'static str, blind: &'static str) -> &'static str {
+    if sees { sighted } else { blind }
+}
+
+/// How a builder uses the screenshots a website capture took at each width.
+const SHOTS_SIGHTED: &str = "open them all with the Read tool and look closely";
+const SHOTS_BLIND: &str = "you can't open pictures, but capture.json's `layouts` measures what they show at each width";
+
+/// What a builder does with the parts of a page that change by themselves.
+const NOISE_SIGHTED: &str = "they aren't compared, so match how they look, not the exact frame";
+const NOISE_BLIND: &str = "they aren't compared";
+
 /// Clean room: what the builder has of a website, all of it what a visitor sees.
-const WEBSITE_FROM_OUTSIDE: &str = "capture/ holds what a visitor of the live site sees, recorded in Clean room: README.md (start here: its colours, fonts, spacing and the layout at each width), capture.json (design tokens with colours in hex, spacing and content widths, the layout measured at each width (`layouts`: page width, heading and text sizes, each section's padding, gap, content column and items per row), a layout outline with positions in CSS pixels, headings, links, form outlines, picture sizes and the visible text), screenshot-<width>.png for each width (desktop, tablet and phone; open them all with the Read tool and look closely), and noise-<width>.png where parts of the page change by themselves (white squares: carousels, videos, animations; they aren't compared, so match how they look, not the exact frame). Clean room: the page's HTML, CSS and scripts weren't read and must not be: don't open or fetch the original site or its files, and don't look at its code (the tools that would are off, and fetching it is refused). Work from these pictures and measurements.\n\n\
-     Match it exactly, not roughly: take colours, fonts, text sizes, padding, gaps, corner radii and content widths from capture.json as exact values (make them the project's theme tokens rather than a library's defaults), use the same font families (or the closest free ones), change the layout where the screenshots at each width show it changing (sections stack, columns per row and the navigation switch), and never let the page scroll sideways on a phone. Craft Anything measures your build the same way at every width and tells you each difference.";
+fn website_from_outside(sees: bool) -> String {
+    format!(
+        "capture/ holds what a visitor of the live site sees, recorded in Clean room: README.md (start here: its colours, fonts, spacing and the layout at each width), capture.json (design tokens with colours in hex, spacing and content widths, the layout measured at each width (`layouts`: page width, heading and text sizes, each section's padding, gap, content column and items per row), a layout outline with positions in CSS pixels, headings, links, form outlines, picture sizes and the visible text), screenshot-<width>.png for each width (desktop, tablet and phone; {shots}), and noise-<width>.png where parts of the page change by themselves (white squares: carousels, videos, animations; {noise}). Clean room: the page's HTML, CSS and scripts weren't read and must not be: don't open or fetch the original site or its files, and don't look at its code (the tools that would are off, and fetching it is refused). {work}\n\n\
+     Match it exactly, not roughly: take colours, fonts, text sizes, padding, gaps, corner radii and content widths from capture.json as exact values (make them the project's theme tokens rather than a library's defaults), use the same font families (or the closest free ones), {switch} (sections stack, columns per row and the navigation switch), and never let the page scroll sideways on a phone. Craft Anything measures your build the same way at every width and tells you each difference.",
+        shots = sight(sees, SHOTS_SIGHTED, SHOTS_BLIND),
+        noise = sight(sees, NOISE_SIGHTED, NOISE_BLIND),
+        work = sight(sees, "Work from these pictures and measurements.", "Work from these measurements."),
+        switch = sight(
+            sees,
+            "change the layout where the screenshots at each width show it changing",
+            "change the layout where `layouts` shows it changing from one width to the next"
+        ),
+    )
+}
 
 /// Clean room: what the builder has of an app or a game. Nothing inside it was read.
-const PROGRAM_FROM_OUTSIDE: &str = "capture/README.md says what we could see from outside. Clean room: nothing inside the program, its files or its folder was read, and you must not open, list, read, run or decompile anything there either (the tools that look inside are off, and reading its files is refused). Build from the person's request and description, the pictures in reference/ and, when capture/ has one, the picture of it running; ask the person with core_person_ask about anything you can't see.";
+fn program_from_outside(sees: bool) -> String {
+    let build_from = sight(
+        sees,
+        "Build from the person's request and description, the pictures in reference/ and, when capture/ has one, the picture of it running; ask the person with core_person_ask about anything you can't see.",
+        "Build from the person's request and description and capture/README.md (with capture/ui-tree.json, the list of its window's controls, when capture/ has one). You can't look at the pictures in reference/ or capture/, so ask the person with core_person_ask how it looks wherever that changes what you build.",
+    );
+    format!(
+        "capture/README.md says what we could see from outside. Clean room: nothing inside the program, its files or its folder was read, and you must not open, list, read, run or decompile anything there either (the tools that look inside are off, and reading its files is refused). {build_from}"
+    )
+}
 
+/// The first message to the builder: the request, the evidence, the kind's goal and stack steps,
+/// the shared rules, then the kind's own sections. `extra`: what the person also said.
 pub(super) fn brief(kind: &dyn TargetKind, cx: &BriefCx, extra: Option<&str>) -> String {
     let ws = cx.ws;
     let m = &ws.manifest;
@@ -73,19 +109,24 @@ pub(super) fn brief(kind: &dyn TargetKind, cx: &BriefCx, extra: Option<&str>) ->
         TargetRef::Local { path } => format!("the program at {}", path.display()),
         TargetRef::None => "nothing specific (build from the request)".into(),
     };
+    let sees = cx.sees_pictures;
     let capture = match &m.target {
-        TargetRef::Website { .. } if !cx.deep => WEBSITE_FROM_OUTSIDE,
-        TargetRef::Local { .. } if !cx.deep => PROGRAM_FROM_OUTSIDE,
-        TargetRef::Website { .. } => {
-            "capture/ holds what we recorded from the live site: README.md (start here: its colours, fonts, spacing, breakpoints and the layout at each width), capture.json (design tokens with colours in hex, spacing and content widths, the widths its CSS switches layout at (`breakpoints`), the layout measured at each width (`layouts`: page width, heading and text sizes, each section's padding, gap, content column and items per row), a layout outline with positions in CSS pixels, headings, links, form shapes, asset lists with its font files, and the visible text), screenshot-<width>.png for each width (desktop, tablet and phone; open them all with the Read tool and look closely), noise-<width>.png where parts of the page change by themselves (white squares: carousels, videos, animations; they aren't compared, so match how they look, not the exact frame), and page.html (the rendered HTML).\n\n\
-             Match it exactly, not roughly: take colours, fonts, text sizes, padding, gaps, corner radii and content widths from capture.json as exact values (make them the project's theme tokens rather than a library's defaults), load the same font families, change the layout at the same breakpoints so each width matches its screenshot and `layouts` entry (sections stack, columns per row and the navigation switch where the original's do), and never let the page scroll sideways on a phone. Craft Anything measures your build the same way at every width and tells you each difference.
+        TargetRef::Website { .. } if !cx.deep => website_from_outside(sees),
+        TargetRef::Local { .. } if !cx.deep => program_from_outside(sees),
+        TargetRef::Website { .. } => format!(
+            "capture/ holds what we recorded from the live site: README.md (start here: its colours, fonts, spacing, breakpoints and the layout at each width), capture.json (design tokens with colours in hex, spacing and content widths, the widths its CSS switches layout at (`breakpoints`), the layout measured at each width (`layouts`: page width, heading and text sizes, each section's padding, gap, content column and items per row), a layout outline with positions in CSS pixels, headings, links, form shapes, asset lists with its font files, and the visible text), screenshot-<width>.png for each width (desktop, tablet and phone; {shots}), noise-<width>.png where parts of the page change by themselves (white squares: carousels, videos, animations; {noise}), and page.html (the rendered HTML).\n\n\
+             Match it exactly, not roughly: take colours, fonts, text sizes, padding, gaps, corner radii and content widths from capture.json as exact values (make them the project's theme tokens rather than a library's defaults), load the same font families, change the layout at the same breakpoints {matches} (sections stack, columns per row and the navigation switch where the original's do), and never let the page scroll sideways on a phone. Craft Anything measures your build the same way at every width and tells you each difference.
 
-             Deep mode: every craft-anything tool is yours, so learn how it works, not only how it looks, before you build. capture/how-it-works.md already has what its JavaScript is made of (modules, routes, the requests it makes, the libraries it uses) and ten seconds of what the start page did (requests, console, WebSocket messages). The original is open in Craft Anything's private browser (web_site_open opens another page of it); ask web_page_show (its structure, scripts, network requests and console), web_listeners_list on a control (what clicking it runs, and where that code is), web_coverage_measure while you use it (which code runs and which requests it makes) and web_walkthrough_record to click or type through a flow and record every step; web_scripts_save, js_app_map and js_sources_restore read its code as an app. Rebuild the behaviour you learn in your own code; never paste the original's code into app/."
-        }
-        TargetRef::Local { .. } => {
-            "capture/README.md holds a first static look at the program (nothing was run) and, for a game, a list of its own files: maps, textures, models, sounds and settings. Read its settings and scripts for the real numbers (speeds, health, weapons, modes, controls) and open a few of its pictures with the Read tool to learn the style; never change anything in that folder. Deep mode: every craft-anything tool is yours, so learn how the parts the person cares about work before you build: core_target_open and core_target_triage first, then native_functions_list, native_strings_find and native_function_pseudocode for a program's code, managed_assembly_show and managed_members_list for .NET, java_* and android_* for Java and Android apps, js_app_map, js_sources_restore and js_electron_* for an Electron app, and game_archives_list and the other game_* tools for a game's files."
-        }
-        TargetRef::None => "There is no target to study.",
+             Deep mode: every craft-anything tool is yours, so learn how it works, not only how it looks, before you build. capture/how-it-works.md already has what its JavaScript is made of (modules, routes, the requests it makes, the libraries it uses) and ten seconds of what the start page did (requests, console, WebSocket messages). The original is open in Craft Anything's private browser (web_site_open opens another page of it); ask web_page_show (its structure, scripts, network requests and console), web_listeners_list on a control (what clicking it runs, and where that code is), web_coverage_measure while you use it (which code runs and which requests it makes) and web_walkthrough_record to click or type through a flow and record every step; web_scripts_save, js_app_map and js_sources_restore read its code as an app. Rebuild the behaviour you learn in your own code; never paste the original's code into app/.",
+            shots = sight(sees, SHOTS_SIGHTED, SHOTS_BLIND),
+            noise = sight(sees, NOISE_SIGHTED, NOISE_BLIND),
+            matches = sight(sees, "so each width matches its screenshot and `layouts` entry", "so each width matches its `layouts` entry"),
+        ),
+        TargetRef::Local { .. } => format!(
+            "capture/README.md holds a first static look at the program (nothing was run) and, for a game, a list of its own files: maps, textures, models, sounds and settings. Read its settings and scripts for the real numbers (speeds, health, weapons, modes, controls){style}; never change anything in that folder. Deep mode: every craft-anything tool is yours, so learn how the parts the person cares about work before you build: core_target_open and core_target_triage first, then native_functions_list, native_strings_find and native_function_pseudocode for a program's code, managed_assembly_show and managed_members_list for .NET, java_* and android_* for Java and Android apps, js_app_map, js_sources_restore and js_electron_* for an Electron app, and game_archives_list and the other game_* tools for a game's files.",
+            style = sight(sees, " and open a few of its pictures with the Read tool to learn the style", ""),
+        ),
+        TargetRef::None => "There is no target to study.".into(),
     };
     let goal = if m.own_project() { "what their request asks of the project in this folder" } else { kind.goal() };
     let mut s = format!(
@@ -101,7 +142,7 @@ pub(super) fn brief(kind: &dyn TargetKind, cx: &BriefCx, extra: Option<&str>) ->
     for section in kind.brief_sections(cx) {
         s.push_str(&format!("\n\n{section}"));
     }
-    if let Some(note) = pictures_note(ws, kind) {
+    if let Some(note) = pictures_note(ws, kind, sees) {
         s.push_str(&format!("\n\n{note}"));
     }
     if let Some(note) = start_files_note(m) {
@@ -211,7 +252,7 @@ pub(super) const PRIVATE_USE_NOTE: &str = "This build contains the original game
 /// Clean room copies none of its files. `generated`: the person chose generated assets, so new
 /// models and pictures replace the original's art (in Deep mode its sounds, music, fonts,
 /// animations and maps are still used).
-pub(super) fn game_steps(deep: bool, deep_engine: Option<&str>, has_target: bool, generated: bool) -> String {
+pub(super) fn game_steps(deep: bool, deep_engine: Option<&str>, has_target: bool, generated: bool, sees: bool) -> String {
     let mut s = String::from(
         "Making it play like the original:\n\
          - Start app/MECHANICS.md: every number that shapes how it plays. Movement (walk and run speed, acceleration, friction, air control, jump height, gravity, crouch), camera (field of view, mouse sensitivity), each weapon (damage, fire rate, magazine, reload time, spread, recoil, range), health and armour, respawn, scoring, modes, timers, and how computer players behave. Next to each value say where it came from (a file in the game's folder, a function address or evidence id) or mark it \"estimated\". Build from that sheet and keep it up to date.\n\
@@ -223,17 +264,25 @@ pub(super) fn game_steps(deep: bool, deep_engine: Option<&str>, has_target: bool
         if deep {
             s.push_str(&decompile_note(true, deep_engine));
         } else {
-            s.push_str("\n- Clean room is on: don't open, read, list or decompile the game's files or code. Work from the person's description, the pictures and any documentation they give, and mark the numbers you estimate. If exact values matter, tell the person they can switch on Deep mode.");
+            s.push_str(&format!(
+                "\n- Clean room is on: don't open, read, list or decompile the game's files or code. Work from the person's description, {} any documentation they give, and mark the numbers you estimate. If exact values matter, tell the person they can switch on Deep mode.",
+                sight(sees, "the pictures and", "and")
+            ));
         }
-        s.push_str("\n- We can't watch the original running on this computer yet. For how it looks in play, use the pictures in reference/; when something about how it behaves isn't in the evidence, ask the person with core_person_ask.");
+        s.push_str(sight(
+            sees,
+            "\n- We can't watch the original running on this computer yet. For how it looks in play, use the pictures in reference/; when something about how it behaves isn't in the evidence, ask the person with core_person_ask.",
+            "\n- We can't watch the original running on this computer yet, and you can't look at the pictures in reference/: when how it looks in play or how it behaves isn't in the evidence or the person's description, ask the person with core_person_ask.",
+        ));
         if !deep {
             let make = if generated {
                 "Make the models, textures and UI pictures with assets_model_generate and assets_image_generate, and your own sounds, music, fonts and maps"
             } else {
                 "Make your own simple versions"
             };
+            let seen = sight(sees, "the pictures", "the person's description");
             s.push_str(&format!(
-                "\n- Art, sounds, models, animations, maps and UI: Clean room is on, so take nothing from the original game's files. {make} in the original's style: the same role, size, palette and feel, from the pictures and how it plays, without reproducing logos or trademarks. If the person wants the original's own art, tell them it needs Deep mode."
+                "\n- Art, sounds, models, animations, maps and UI: Clean room is on, so take nothing from the original game's files. {make} in the original's style: the same role, size, palette and feel, from {seen} and how it plays, without reproducing logos or trademarks. If the person wants the original's own art, tell them it needs Deep mode."
             ));
             return s;
         }
@@ -257,27 +306,41 @@ pub(super) fn game_steps(deep: bool, deep_engine: Option<&str>, has_target: bool
 
 /// The pictures of the original the person added: the look to match, and (for programs, which
 /// we can't photograph like a website) how the builder can see its own result to compare.
-pub(super) fn pictures_note(ws: &Workspace, kind: &dyn TargetKind) -> Option<String> {
+pub(super) fn pictures_note(ws: &Workspace, kind: &dyn TargetKind, sees: bool) -> Option<String> {
     let pics = ws.references();
     if pics.is_empty() {
         return None;
     }
     let names = pics.iter().filter_map(|p| p.file_name()).map(|n| format!("reference/{}", n.to_string_lossy())).collect::<Vec<_>>().join(", ");
+    let checked = kind.self_screenshots() && !ws.manifest.own_project();
+    if !sees {
+        let mut s = format!(
+            "The person added {} picture(s) of the original: {names}. They show the result they expect, but you can't look at pictures: build from their request and description, and ask them with core_person_ask what the pictures show (the camera or view, the on-screen layout, the colours) wherever that changes what you build. Don't open or read them.",
+            pics.len()
+        );
+        if checked {
+            s.push_str(" After each build, Craft Anything runs the program with --screenshot and its check says how alike your build looks to them.");
+        }
+        return Some(s);
+    }
     let mut s = format!(
         "The person added {} picture(s) of the original: {names}. They show the result they expect. Open every one with the Read tool before you plan, and match what they show: the camera or view, the on-screen layout (menus, HUD, panels) and where each part sits, the colours and lighting, the look of surfaces and characters, and the proportions and scale. Make your own artwork in that style; don't trace or copy logos, characters or other artwork from them.",
         pics.len()
     );
-    if kind.self_screenshots() && !ws.manifest.own_project() {
+    if checked {
         s.push_str(" After each build, run the program with --screenshot to a file inside app/ (for example app/shots/now.png), open that picture with Read, compare it with each picture of the original, and fix the biggest differences first.");
     }
     Some(s)
 }
 
 /// A short reminder for later rounds, so pictures added after the first build count too.
-pub(super) fn pictures_reminder(ws: &Workspace) -> String {
+pub(super) fn pictures_reminder(ws: &Workspace, sees: bool) -> String {
     let n = ws.references().len();
     if n == 0 {
         return String::new();
+    }
+    if !sees {
+        return format!("\n\nKeep to what the person said their {n} picture(s) of the original in reference/ show; you can't look at them yourself.");
     }
     format!(
         "\n\nKeep matching the {n} picture(s) of the original in reference/ (open any you haven't looked at yet), and compare a fresh screenshot of your build with them before you reply."
@@ -293,10 +356,11 @@ pub(super) fn added_prompt(notes: &[String]) -> String {
 
 /// For an agent continuing its own session after its last run stopped part-way (paused, the app
 /// closed, or the computer stopped).
-pub(super) fn continue_prompt(kind: &dyn TargetKind) -> String {
+pub(super) fn continue_prompt(kind: &dyn TargetKind, api_loop: bool) -> String {
     let build = kind.rebuild_words();
+    let check = next_check(api_loop);
     format!(
-        "Your last run stopped before it finished (it was paused, or the app or the computer stopped). Everything you made so far is in app/. Pick up where you left off: see what's done and what's left (your checklist and core_unknowns_show), finish the task, then {build}, fix any errors and check it with rebuild_check. Reply with 1-3 plain sentences on what you did."
+        "Your last run stopped before it finished (it was paused, or the app or the computer stopped). Everything you made so far is in app/. Pick up where you left off: see what's done and what's left (your checklist and core_unknowns_show), finish the task, then {build}, fix any errors. {check} Reply with 1-3 plain sentences on what you did."
     )
 }
 
@@ -350,9 +414,12 @@ pub(super) fn just_asked(asked: &[craft_anything_engine::questions::AskedQuestio
     )
 }
 
-pub(super) fn follow_up(message: &str, kind: &dyn TargetKind) -> String {
+fn next_check(api_loop: bool) -> &'static str {
+    if api_loop { "Craft Anything checks your build after your turn." } else { "Check it with rebuild_check." }
+}
+
+pub(super) fn follow_up(message: &str, kind: &dyn TargetKind, api_loop: bool) -> String {
     let build = kind.rebuild_words();
-    format!(
-        "The person asks: \"{message}\"\n\nMake the change in app/, then {build}, fix any errors and check it with rebuild_check. Reply with 1-3 plain sentences on what changed."
-    )
+    let check = next_check(api_loop);
+    format!("The person asks: \"{message}\"\n\nMake the change in app/, then {build}, fix any errors. {check} Reply with 1-3 plain sentences on what changed.")
 }

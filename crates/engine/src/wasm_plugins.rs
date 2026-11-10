@@ -177,8 +177,7 @@ mod imp {
                 }));
             }
             for t in described.into_iter().take(MAX_TOOLS) {
-                let mut id = format!("{}_{}", p.id, t.name);
-                id.truncate(64);
+                let id = format!("{}_{}", p.id, t.name);
                 if !RuntimeTool::valid_id(&id) || tools.iter().any(|x| x.id == id) {
                     log::error!("WASM plugin {} tool {:?} skipped (its id {id:?} is invalid or taken)", p.id, t.name);
                     continue;
@@ -237,6 +236,17 @@ mod tests {
         let e = Engine::shared_with(s, Vec::new(), tools);
         let out = e.call("wordtools_echo", json!({"text": "hi"}), CallOptions::new(Caller::Mcp)).unwrap();
         assert!(matches!(out, ToolOutput::Value(v) if v == json!({"text": "hi"})));
+    }
+
+    #[test]
+    fn a_multibyte_tool_name_across_the_id_limit_is_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("odd.wat");
+        let describe = format!(r#"[{{"name":"{}é","title":"Odd"}}]"#, "a".repeat(61));
+        std::fs::write(&path, craft_anything_testkit::wasm_plugin::component_wat("tools", "call", "input", &describe, r#"{"ok":"#, false)).unwrap();
+        let mut s = crate::testing::session();
+        s.settings.plugins.wasm = vec![WasmPluginConfig { id: "p".into(), name: None, path, enabled: true }];
+        assert!(crate::plugins::install(&mut s).is_empty());
     }
 
     #[test]

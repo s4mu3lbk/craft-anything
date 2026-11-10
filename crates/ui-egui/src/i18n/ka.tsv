@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	ავტ�
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: ვკითხულობთ მის კოდს, ფაილებსა და გვერდის წყაროს ყველა ხელსაწყოთი და გარე დეკომპილერით, როცა დაყენებულია. დააწკაპუნეთ გადასართვლად.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} არ არის დაყენებული, ამიტომ ჩაშენებული დეკომპილერი იმუშავებს. აირჩიეთ ძრავა პარამეტრები → ძრავები.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ჯერ არ არის ამ კომპიუტერში, ამიტომ ჩაშენებული დეკომპილერი იმუშავებს.
+Connecting to {name}… {seconds} s	{name}-თან დაკავშირება… {seconds} წმ
+Stopped adding {name}.	{name}-ის დამატება შეჩერდა.

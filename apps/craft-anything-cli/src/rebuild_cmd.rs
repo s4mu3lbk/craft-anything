@@ -96,6 +96,10 @@ fn ensure_agent(hub: &AiHub, requested: Option<&str>) -> Result<(), ToolError> {
 fn run(cli: &Cli, a: &RebuildArgs) -> Result<bool, ToolError> {
     let engine = make_engine(None, cli.deep_for_run())?;
     let hub = AiHub::new(engine.clone());
+    // Before the build starts, while no session lock is held (#1225).
+    if let Err(e) = hub.ensure_session_id() {
+        log::warn!("couldn't save the OpenCode Go session id: {e}");
+    }
     if a.build_with.is_some() && a.continue_in.is_some() {
         return Err(ToolError::invalid("--build-with is for new projects; a project keeps the stack it was built with.")
             .with_remediation("Leave out --build-with, or start a new project."));

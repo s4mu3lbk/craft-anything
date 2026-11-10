@@ -23,10 +23,20 @@ pub fn agent(connect: Duration, first_byte: Duration, body: Duration) -> ureq::A
 
 /// How long a streamed answer may take unless its AI sets `timeout_secs`.
 pub const STREAM_BODY: Duration = Duration::from_secs(60 * 60);
+/// How long to wait for a streamed answer to start unless its AI sets `timeout_secs`.
+pub const STREAM_FIRST_BYTE: Duration = Duration::from_secs(300);
 
-/// The agent for streamed model turns; `body` bounds the whole answer.
-pub fn stream_agent(body: Duration) -> ureq::Agent {
-    agent(Duration::from_secs(15), Duration::from_secs(300), body)
+/// The agent for streamed model turns. `limit` is the AI's own `timeout_secs`: it bounds the wait
+/// for the answer to start as well as the whole answer, as a request queued behind another tool's
+/// on a shared server gets no bytes until its turn (#1239). Without one, the defaults apply.
+pub fn stream_agent(limit: Option<Duration>) -> ureq::Agent {
+    agent(Duration::from_secs(15), limit.unwrap_or(STREAM_FIRST_BYTE), limit.unwrap_or(STREAM_BODY))
+}
+
+/// Whether a request's error says the server took it and didn't answer in time: its address is
+/// right, and it may still be starting or loading a model.
+pub fn was_reached(e: &ToolError) -> bool {
+    e.details.as_ref().and_then(|d| d.get("reached")).and_then(Value::as_bool).unwrap_or(false)
 }
 
 /// The agent for quick calls (model lists, probes).
@@ -34,25 +44,60 @@ pub fn quick_agent(total: Duration) -> ureq::Agent {
     agent(total, total, total)
 }
 
-fn net_error(what: &str, e: ureq::Error) -> ToolError {
-    let timeout = matches!(e, ureq::Error::Timeout(_));
-    let code = if timeout { ErrorCode::TimedOut } else { ErrorCode::EngineMissing };
-    ToolError::new(code, format!("Couldn't reach {what}: {e}"))
-        .with_remediation("Check your internet connection or that the server is running, then try again.")
+/// A request that failed before any answer came. A server on this computer (Ollama, LM Studio) is
+/// told apart: the internet has nothing to do with it, and one that took the request but didn't
+/// start answering was reached, so "Couldn't reach" misled (a large model still loading, #1239).
+fn net_error(what: &str, url: &str, e: ureq::Error) -> ToolError {
+    let local = is_this_computer(url);
+    const LONGER: &str = "To wait longer, set timeout_secs (in seconds) for this AI under [[ai.backends]] in config.toml; the wait is five minutes unless set.";
+    if matches!(e, ureq::Error::Timeout(ureq::Timeout::RecvResponse)) {
+        let why = if local {
+            "A large model may still be loading, or reading a long prompt: a smaller context length in the server's settings makes both faster."
+        } else {
+            "A server busy with another tool's work may need longer."
+        };
+        // `reached`: the server took the request, so its address is right (#1429).
+        return ToolError::new(ErrorCode::TimedOut, format!("{what} took the request but didn't start answering in time."))
+            .with_remediation(format!("{why} {LONGER}"))
+            .with_details(serde_json::json!({ "reached": true }));
+    }
+    let code = if matches!(e, ureq::Error::Timeout(_)) { ErrorCode::TimedOut } else { ErrorCode::EngineMissing };
+    let remediation = if local {
+        "Check that the server is running on this computer at this AI's address, then try again."
+    } else {
+        "Check your internet connection or that the server is running, then try again."
+    };
+    ToolError::new(code, format!("Couldn't reach {what}: {e}")).with_remediation(remediation)
+}
+
+/// Whether `url` points at this computer: `localhost`, a `127.x.x.x` address or `::1`.
+fn is_this_computer(url: &str) -> bool {
+    let rest = url.split_once("://").map_or(url, |(_, r)| r);
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host_port = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
+    let host = match host_port.strip_prefix('[') {
+        // `[::1]:11434`
+        Some(v6) => v6.split(']').next().unwrap_or_default(),
+        None => host_port.rsplit_once(':').map_or(host_port, |(h, _)| h),
+    };
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    host == "localhost" || host.ends_with(".localhost") || host == "::1" || host.parse::<std::net::Ipv4Addr>().is_ok_and(|ip| ip.is_loopback())
 }
 
 /// Turn a non-2xx response into a plain error. Keys are never echoed.
 pub fn status_error(what: &str, status: u16, body: &str) -> ToolError {
     // Gemini's OpenAI-compatible endpoint wraps its error in a one-item array.
     let parsed = serde_json::from_str::<Value>(body).ok().map(|v| if let Value::Array(a) = &v { a.first().cloned().unwrap_or(v) } else { v });
-    let detail: String = parsed
-        .as_ref()
-        .map(|value| response_detail(value).unwrap_or_else(|| "The service didn't provide an error message.".into()))
-        .unwrap_or_else(|| body.chars().take(300).collect())
-        .chars()
-        .take(1000)
-        .collect();
+    let full = parsed.as_ref().map(|value| response_detail(value).unwrap_or_else(|| "The service didn't provide an error message.".into()));
+    // The window is read from the whole message: the shortened one may cut it off.
+    let overflow = context_overflow(full.as_deref().unwrap_or(body));
+    // Ollama fits a long prompt to its context by dropping the oldest messages; once the person's
+    // request is among them, a Qwen 3.8 model refuses what's left with this, and no retry fits (#1245).
+    let lower = full.as_deref().unwrap_or(body).to_ascii_lowercase();
+    let dropped_request = overflow.is_none() && lower.contains("no user query found in messages");
+    let detail: String = full.unwrap_or_else(|| body.chars().take(300).collect()).chars().take(1000).collect();
     let (code, remediation) = match status {
+        _ if dropped_request => (ErrorCode::BadSettings, ""),
         401 | 403 => (ErrorCode::NoPermission, "The API key was rejected. Check it in Settings → AI."),
         404 => (ErrorCode::BadSettings, "The model or address wasn't found. Check the model name and base URL."),
         408 | 504 => (ErrorCode::TimedOut, "The service took too long. Try again."),
@@ -63,12 +108,13 @@ pub fn status_error(what: &str, status: u16, body: &str) -> ToolError {
     let provider = parsed
         .as_ref()
         .and_then(|v| v.pointer("/error/code").and_then(Value::as_str).or_else(|| v.pointer("/error/type").and_then(Value::as_str)).map(str::to_string));
-    let overflow = context_overflow(&detail);
+    const RAISE: &str = "Give the model a larger context in its server (Ollama: the Context length setting or OLLAMA_CONTEXT_LENGTH; \
+                         LM Studio: the model's Context Length), or set context_tokens for this AI in Settings → AI so less is sent.";
     let remediation = match overflow {
-        Some((window, _)) => format!(
-            "The conversation is longer than the model's context window ({window} tokens). Give the model a larger context \
-             in its server (Ollama: the Context length setting or OLLAMA_CONTEXT_LENGTH; LM Studio: the model's Context Length), \
-             or set context_tokens for this AI in Settings → AI so less is sent."
+        Some((window, _)) => format!("The conversation is longer than the model's context window ({window} tokens). {RAISE}"),
+        None if dropped_request => format!(
+            "The conversation is longer than the context the server gives this model, so the server left out its earliest \
+             messages, the request among them. {RAISE}"
         ),
         None => remediation.to_string(),
     };
@@ -77,22 +123,38 @@ pub fn status_error(what: &str, status: u16, body: &str) -> ToolError {
         "provider_error": provider,
         "context_window": overflow.map(|o| o.0),
         "prompt_tokens": overflow.and_then(|o| o.1),
+        "context_overflow": overflow.is_some() || dropped_request,
+        "affordable_tokens": if status == 402 { affordable_tokens(&lower) } else { None },
     }))
+}
+
+/// The answer length OpenRouter says a key can still pay for: "You requested up to 131072 tokens,
+/// but can only afford 35063" (#1213).
+fn affordable_tokens(lower: &str) -> Option<u64> {
+    let (_, rest) = lower.split_once("can only afford ")?;
+    rest.chars().take_while(char::is_ascii_digit).collect::<String>().parse().ok()
 }
 
 /// The context window a server says a request didn't fit in, and the request's size when it says
 /// that too (#962). Local servers word it as llama.cpp does ("request (69944 tokens) exceeds the
 /// available context size (65536 tokens)"), OpenAI-style ones as "maximum context length is 8192
-/// tokens ... you requested 9000 tokens".
+/// tokens ... you requested 9000 tokens (8000 in the messages, 1000 in the completion)". The size
+/// is the prompt's: OpenAI's total counts the answer it asked room for, so only the part "in the
+/// messages" is taken, and none when it isn't given.
 pub fn context_overflow(message: &str) -> Option<(u64, Option<u64>)> {
     let m = message.to_ascii_lowercase();
-    let after = |marker: &str| -> Option<u64> {
-        let (_, rest) = m.split_once(marker)?;
-        let digits: String = rest.trim_start().chars().take_while(char::is_ascii_digit).collect();
+    let number = |text: &str| -> Option<u64> {
+        let digits: String = text.trim_start().chars().take_while(char::is_ascii_digit).collect();
         digits.parse().ok().filter(|n| *n > 0)
     };
+    let after = |marker: &str| m.split_once(marker).and_then(|(_, rest)| number(rest));
     let window = after("available context size (").or_else(|| after("maximum context length is"))?;
-    Some((window, after("request (").or_else(|| after("requested"))))
+    let in_messages = || {
+        let (_, requested) = m.split_once("requested")?;
+        let (_, inner) = requested.split_once('(')?;
+        inner.split_once(" in the messages").and_then(|(n, _)| number(n))
+    };
+    Some((window, after("request (").or_else(in_messages)))
 }
 
 /// Read only the human-readable fields, never serialise an arbitrary provider payload.
@@ -146,7 +208,7 @@ pub fn post_json(agent: &ureq::Agent, what: &str, url: &str, headers: &[(&str, S
     for (k, v) in headers {
         req = req.header(*k, v.as_str());
     }
-    let resp = req.send(body.to_string()).map_err(|e| net_error(what, e))?;
+    let resp = req.send(body.to_string()).map_err(|e| net_error(what, url, e))?;
     let status = resp.status().as_u16();
     if !(200..300).contains(&status) {
         let retry_after = resp.headers().get("retry-after").and_then(|h| h.to_str().ok()).and_then(|s| s.trim().parse::<u64>().ok());
@@ -166,9 +228,9 @@ pub fn get_json(agent: &ureq::Agent, what: &str, url: &str, headers: &[(&str, St
     for (k, v) in headers {
         req = req.header(*k, v.as_str());
     }
-    let resp = req.call().map_err(|e| net_error(what, e))?;
+    let resp = req.call().map_err(|e| net_error(what, url, e))?;
     let status = resp.status().as_u16();
-    let text = resp.into_body().read_to_string().map_err(|e| net_error(what, e))?;
+    let text = resp.into_body().read_to_string().map_err(|e| net_error(what, url, e))?;
     if !(200..300).contains(&status) {
         return Err(status_error(what, status, &text));
     }
@@ -277,6 +339,68 @@ mod tests {
         assert!(cut.remediation.is_none(), "{cut:?}");
     }
 
+    /// #1239: an answer that never started (a server busy with another tool's work) says which
+    /// setting gives it longer; a server that can't be reached still says to check it.
+    #[test]
+    fn an_answer_that_never_started_says_how_to_wait_longer() {
+        for url in ["http://127.0.0.1:11434/v1/chat/completions", "https://ollama.example.com/v1/chat/completions"] {
+            let queued = net_error("Ollama", url, ureq::Error::Timeout(ureq::Timeout::RecvResponse));
+            assert_eq!(queued.code, ErrorCode::TimedOut);
+            assert!(queued.remediation.as_deref().is_some_and(|r| r.contains("timeout_secs")), "{queued:?}");
+            // It was reached: not "Couldn't reach", and nothing about the internet.
+            assert_eq!(queued.message, "Ollama took the request but didn't start answering in time.");
+            assert!(!queued.remediation.as_deref().unwrap_or_default().contains("internet"), "{queued:?}");
+            let down = net_error("Ollama", url, ureq::Error::ConnectionFailed);
+            assert!(down.message.starts_with("Couldn't reach Ollama"), "{down:?}");
+            assert!(down.remediation.as_deref().is_some_and(|r| r.contains("server is running")), "{down:?}");
+        }
+    }
+
+    /// An AI on this computer: a model may still be loading, and the internet isn't involved.
+    #[test]
+    fn a_server_on_this_computer_is_not_told_to_check_the_internet() {
+        let local = "http://localhost:11434/v1/chat/completions";
+        let queued = net_error("Ollama (local)", local, ureq::Error::Timeout(ureq::Timeout::RecvResponse));
+        let advice = queued.remediation.unwrap_or_default();
+        assert!(advice.contains("still be loading") && advice.contains("context length") && advice.contains("timeout_secs"), "{advice}");
+        for e in [ureq::Error::ConnectionFailed, ureq::Error::Timeout(ureq::Timeout::Connect)] {
+            let down = net_error("Ollama (local)", local, e);
+            let advice = down.remediation.unwrap_or_default();
+            assert!(advice.contains("on this computer") && !advice.contains("internet"), "{advice}");
+        }
+        let remote = net_error("OpenRouter", "https://openrouter.ai/api/v1/chat/completions", ureq::Error::ConnectionFailed);
+        assert!(remote.remediation.unwrap_or_default().contains("internet connection"));
+        let remote = net_error("Ollama", "https://ollama.example.com/v1", ureq::Error::Timeout(ureq::Timeout::RecvResponse));
+        assert!(!remote.remediation.unwrap_or_default().contains("still be loading"), "a remote server gets the queue advice");
+    }
+
+    #[test]
+    fn loopback_addresses_are_this_computer() {
+        for url in [
+            "http://localhost:11434/v1",
+            "http://LOCALHOST/api",
+            "http://127.0.0.1:1234",
+            "http://127.1.2.3:8080/x",
+            "http://[::1]:11434/v1",
+            "http://user:pw@localhost:11434",
+            "http://ollama.localhost:11434",
+            "localhost:11434",
+        ] {
+            assert!(is_this_computer(url), "{url}");
+        }
+        for url in [
+            "https://api.openai.com/v1",
+            "http://192.168.1.20:11434/v1",
+            "http://localhost.example.com/v1",
+            "http://[::2]:11434",
+            "http://example.com/?next=http://localhost",
+            "http://127.0.0.1.example.com",
+            "",
+        ] {
+            assert!(!is_this_computer(url), "{url}");
+        }
+    }
+
     fn collect(s: &str) -> Vec<SseEvent> {
         let mut v = Vec::new();
         parse_sse(s.as_bytes(), |e| {
@@ -291,8 +415,10 @@ mod tests {
     fn a_full_context_window_is_read_from_the_servers_words() {
         let ollama = "request (69944 tokens) exceeds the available context size (65536 tokens), try increasing it";
         assert_eq!(context_overflow(ollama), Some((65536, Some(69944))));
-        let openai = "This model's maximum context length is 8192 tokens. However, you requested 9000 tokens (8000 in the messages).";
-        assert_eq!(context_overflow(openai), Some((8192, Some(9000))));
+        // OpenAI's "requested" counts the answer's room too: only the part in the messages is the prompt.
+        let openai = "This model's maximum context length is 8192 tokens. However, you requested 9000 tokens (8000 in the messages, 1000 in the completion).";
+        assert_eq!(context_overflow(openai), Some((8192, Some(8000))));
+        assert_eq!(context_overflow("maximum context length is 8192 tokens. However, you requested 9000 tokens."), Some((8192, None)));
         assert_eq!(context_overflow("maximum context length is 4096 tokens"), Some((4096, None)));
         for other in ["Invalid request: the message at position 64 must not be empty", "context size (abc tokens)", "", "available context size ("] {
             assert_eq!(context_overflow(other), None, "{other:?}");
@@ -302,9 +428,39 @@ mod tests {
         let details = e.details.unwrap();
         assert_eq!((details["context_window"].as_u64(), details["prompt_tokens"].as_u64()), (Some(65536), Some(69944)));
         assert!(e.remediation.unwrap().contains("OLLAMA_CONTEXT_LENGTH"));
+        // A long message is read whole, though only its first 1000 characters are shown.
+        let long = format!("{} {ollama}", "x".repeat(2000));
+        let e = status_error("Ollama (local)", 400, &serde_json::json!({"error": {"message": long}}).to_string());
+        assert!(!e.message.contains("65536"), "the shown message is shortened");
+        assert_eq!(e.details.unwrap()["context_window"].as_u64(), Some(65536));
+        // The shown part ends in "(655": the last ten characters, "36 tokens)", are cut.
+        let tail = "request (69944 tokens) exceeds the available context size (65536 tokens)";
+        let cut = format!("{}{tail}", "x".repeat(1000 + 10 - tail.len()));
+        let e = status_error("Ollama (local)", 400, &serde_json::json!({"error": {"message": cut}}).to_string());
+        assert_eq!(e.details.unwrap()["context_window"].as_u64(), Some(65536), "not the number cut short");
         let plain = status_error("Ollama (local)", 400, r#"{"error":{"message":"bad"}}"#);
         assert!(plain.details.unwrap()["context_window"].is_null());
         assert_eq!(plain.remediation.as_deref(), Some("The request was rejected; see the message."));
+    }
+
+    #[test]
+    fn a_request_the_server_dropped_to_fit_is_a_context_overflow_not_a_server_fault() {
+        // #1245: Ollama's own words when its truncation left a Qwen 3.8 model no user message.
+        let e = status_error("Ollama (local)", 500, r#"{"error":{"message":"no user query found in messages"}}"#);
+        assert_eq!(e.code, ErrorCode::BadSettings);
+        assert!(e.message.contains("no user query found in messages"), "the server's words are kept");
+        let remediation = e.remediation.clone().unwrap();
+        assert!(remediation.contains("OLLAMA_CONTEXT_LENGTH") && !remediation.contains("Try again soon"), "{remediation}");
+        let details = e.details.clone().unwrap();
+        assert_eq!(details["context_overflow"], true);
+        assert!(details["context_window"].is_null(), "the server didn't say its size");
+        assert!(!crate::TurnFailure::from_api(&e).retryable(), "the same request would be refused again");
+        // A window the server names still counts as an overflow, and a plain 500 is still worth retrying.
+        let sized = status_error("Ollama (local)", 500, r#"{"error":{"message":"request (9000 tokens) exceeds the available context size (8192 tokens)"}}"#);
+        assert!(!crate::TurnFailure::from_api(&sized).retryable());
+        let busy = status_error("Ollama (local)", 500, r#"{"error":{"message":"model runner has unexpectedly stopped"}}"#);
+        assert_eq!(busy.details.clone().unwrap()["context_overflow"], false);
+        assert!(crate::TurnFailure::from_api(&busy).retryable());
     }
 
     #[test]

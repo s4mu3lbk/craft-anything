@@ -65,6 +65,8 @@ pub struct DoctorReport {
     pub checks: Vec<Check>,
 }
 
+/// Runs the read-only checks: the CLI binary, each selected app's registration and skills, and,
+/// when asked, the engines and an MCP self-test.
 pub fn doctor(host: &Host, req: &DoctorRequest) -> DoctorReport {
     let mut checks = Vec::new();
 
@@ -126,7 +128,12 @@ pub fn doctor(host: &Host, req: &DoctorRequest) -> DoctorReport {
             }
             Ok(Some(e)) => {
                 let desired = cli.as_ref().map(|p| c.desired_entry(&[p.display().to_string(), "mcp".into()]));
-                let program_ok = entry_command(&e).and_then(|v| v.into_iter().next()).is_some_and(|p| Path::new(&p).is_file());
+                // The app starts a bare name from PATH, so look for it there (and in the usual
+                // install folders), not in doctor's own folder.
+                let program_ok = entry_command(&e).and_then(|v| v.into_iter().next()).is_some_and(|p| {
+                    let path = Path::new(&p);
+                    if path.components().count() == 1 { craft_anything_platform::which(&p).is_some() } else { path.is_file() }
+                });
                 if config::is_disabled(c, &text) {
                     Check::new(name, CheckStatus::Warn, format!("{} lists Craft Anything as disabled.", c.display)).fix(setup_cmd)
                 } else if config::entry_turned_off(c, &text) {

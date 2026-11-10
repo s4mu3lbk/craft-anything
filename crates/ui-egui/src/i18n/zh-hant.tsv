@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	自動模�
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	深度：使用所有可用工具讀取其程式碼、檔案和網頁原始碼；安裝外部反編譯器後也會使用它。按一下切換。
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	尚未安裝 {engine}，將使用內建反編譯器。請前往「設定 → 引擎」選擇引擎。
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	此電腦尚未安裝 {engine}，將暫用內建反編譯器。
+Connecting to {name}… {seconds} s	正在連線 {name}… {seconds} 秒
+Stopped adding {name}.	已停止新增 {name}。

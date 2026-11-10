@@ -169,17 +169,37 @@ fn text(data: &[u8], t: &Tlv) -> String {
     }
 }
 
+/// Escape values without changing the display order of the certificate's name.
+fn escaped_name_value(value: &str) -> String {
+    let mut out = String::new();
+    for (i, c) in value.char_indices() {
+        if c == '\0' {
+            out.push_str(r"\00");
+            continue;
+        }
+        if matches!(c, '"' | '+' | ',' | ';' | '<' | '>' | '\\') || (i == 0 && matches!(c, ' ' | '#')) || (c == ' ' && i + 1 == value.len()) {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
 /// A distinguished name as `CN=…, O=…`.
 pub fn name(data: &[u8], seq: &Tlv) -> String {
     let mut parts = Vec::new();
     for set in children(data, seq) {
+        let mut attributes = Vec::new();
         for atv in children(data, &set) {
             let kids = children(data, &atv);
             if let (Some(o), Some(v)) = (kids.first(), kids.get(1)) {
                 let id = oid(o.bytes(data).unwrap_or(&[]));
                 let key = oid_name(&id).map(str::to_string).unwrap_or(id);
-                parts.push(format!("{key}={}", text(data, v)));
+                attributes.push(format!("{key}={}", escaped_name_value(&text(data, v))));
             }
+        }
+        if !attributes.is_empty() {
+            parts.push(attributes.join("+"));
         }
     }
     parts.join(", ")
@@ -277,7 +297,15 @@ pub fn pkcs7_certificates(data: &[u8]) -> Vec<&[u8]> {
 
 /// The dotted OID of an AlgorithmIdentifier SEQUENCE's first child (the algorithm OID).
 pub fn seq_alg_oid(data: &[u8], seq: &Tlv) -> Option<String> {
-    children(data, seq).into_iter().find(|t| t.tag == 0x06).map(|t| oid(t.bytes(data).unwrap_or(&[])))
+    if seq.tag != 0x30 {
+        return None;
+    }
+    let first = read(data.get(..seq.end())?, seq.content)?;
+    if first.tag != 0x06 {
+        return None;
+    }
+    let id = oid(first.bytes(data)?);
+    (id != "invalid").then_some(id)
 }
 
 /// The byte ranges a verifier needs from one DER X.509 certificate.
@@ -299,6 +327,12 @@ pub struct CertParts<'a> {
     pub serial: &'a [u8],
 }
 
+/// The supported key and signature schemes store whole octets in a BIT STRING.
+fn bit_string_octets<'a>(data: &'a [u8], bits: &Tlv) -> Option<&'a [u8]> {
+    let (unused, bytes) = bits.bytes(data)?.split_first()?;
+    (bits.tag == 0x03 && *unused == 0 && !bytes.is_empty()).then_some(bytes)
+}
+
 /// Split a certificate into the ranges a verifier needs. `None` on any structural problem.
 pub fn certificate_parts(data: &[u8]) -> Option<CertParts<'_>> {
     let cert = read(data, 0)?;
@@ -309,10 +343,8 @@ pub fn certificate_parts(data: &[u8]) -> Option<CertParts<'_>> {
     let tbs_tlv = parts.first().filter(|t| t.tag == 0x30)?;
     let tbs = tbs_tlv.whole(data)?;
     let sig_alg_seq = parts.get(1)?;
-    let signature_algorithm = seq_alg_oid(data, sig_alg_seq).unwrap_or_default();
-    let sig_bits = parts.get(2).filter(|t| t.tag == 0x03)?;
-    // A BIT STRING's first content byte is the count of unused bits; skip it.
-    let signature = sig_bits.bytes(data).and_then(|b| b.get(1..))?;
+    let signature_algorithm = seq_alg_oid(data, sig_alg_seq)?;
+    let signature = bit_string_octets(data, parts.get(2)?)?;
     let f = children(data, tbs_tlv);
     let mut i = 0usize;
     if f.first().is_some_and(|t| t.tag == 0xa0) {
@@ -320,8 +352,8 @@ pub fn certificate_parts(data: &[u8]) -> Option<CertParts<'_>> {
     }
     let serial_tlv = f.get(i).filter(|t| t.tag == 0x02)?;
     let serial = serial_tlv.bytes(data)?;
-    let issuer = f.get(i + 2).and_then(|t| t.whole(data))?;
-    let subject = f.get(i + 4).and_then(|t| t.whole(data))?;
+    let issuer = f.get(i + 2).filter(|t| t.tag == 0x30).and_then(|t| t.whole(data))?;
+    let subject = f.get(i + 4).filter(|t| t.tag == 0x30).and_then(|t| t.whole(data))?;
     let spki = f.get(i + 5).filter(|t| t.tag == 0x30).and_then(|t| t.whole(data))?;
     Some(CertParts { tbs, signature_algorithm, signature, spki, issuer, subject, serial })
 }
@@ -340,9 +372,8 @@ pub fn spki_parts(data: &[u8]) -> Option<(String, &[u8])> {
     }
     let kids = children(data, &seq);
     let alg = kids.first().filter(|t| t.tag == 0x30)?;
-    let algorithm = seq_alg_oid(data, alg).unwrap_or_default();
-    let bits = kids.get(1).filter(|t| t.tag == 0x03)?;
-    let key = bits.bytes(data).and_then(|b| b.get(1..))?;
+    let algorithm = seq_alg_oid(data, alg)?;
+    let key = bit_string_octets(data, kids.get(1)?)?;
     Some((algorithm, key))
 }
 
@@ -367,6 +398,40 @@ pub fn count_nodes(data: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn verifier_checks_the_fields_before_exposing_their_bytes() {
+        let cert = craft_anything_testkit::android::certificate_der("Subject", "Org");
+        let outer = children(&cert, &read(&cert, 0).unwrap());
+        let fields = children(&cert, &outer[0]);
+        assert!(certificate_parts(&cert).is_some());
+        for (off, value) in [(outer[1].start, 0x31), (outer[2].content, 1), (fields[3].start, 0x31), (fields[5].start, 0x31)] {
+            let mut damaged = cert.clone();
+            damaged[off] = value;
+            assert!(certificate_parts(&damaged).is_none());
+        }
+        let spki = certificate_spki(&cert).unwrap();
+        let fields = children(spki, &read(spki, 0).unwrap());
+        let mut damaged = spki.to_vec();
+        damaged[fields[1].content] = 1;
+        assert!(spki_parts(spki).is_some());
+        assert!(spki_parts(&damaged).is_none());
+        // A NULL followed by an OID is not an AlgorithmIdentifier.
+        let misplaced = [0x30, 5, 0x05, 0, 0x06, 1, 0x2a];
+        assert!(seq_alg_oid(&misplaced, &read(&misplaced, 0).unwrap()).is_none());
+    }
+
+    #[test]
+    fn name_marks_attribute_boundaries_and_literal_separators() {
+        let cert = craft_anything_testkit::android::certificate_der("Alpha, O=Beta", "One+Two");
+        let info = certificate(&cert).unwrap();
+        assert_eq!(info.subject, r"CN=Alpha\, O=Beta, O=One\+Two");
+        assert_eq!(info.issuer, info.subject);
+
+        // One RDN containing a common name and an organization.
+        let data = b"\x30\x16\x31\x14\x30\x08\x06\x03\x55\x04\x03\x0c\x01a\x30\x08\x06\x03\x55\x04\x0a\x0c\x01b";
+        assert_eq!(name(data, &read(data, 0).unwrap()), "CN=a+O=b");
+    }
 
     #[test]
     fn reads_synthetic_certificate() {

@@ -72,6 +72,45 @@ fn keep_awake_while(owner: u32, every: std::time::Duration) -> Option<KeepAwake>
     p.timeout(std::time::Duration::from_secs(7 * 24 * 3600)).label("keep awake").spawn().ok().map(KeepAwake)
 }
 
+/// Stops `child`'s process group, and deletes `leftover` (a `craft-*` folder of ours, such as a
+/// private browser's profile), if this process ends without stopping it: a crash, a kill, a force
+/// quit, or an exit right after the drop that only asked the supervisor to stop it (#810). The
+/// watcher ends by itself once the group is gone; keep the returned process with the child, as
+/// dropping it stops the watcher. `None` where there's no watcher.
+// shortcut: Unix only (a Job Object holds Windows children); add a Windows watcher if a leftover
+// browser is reported there.
+pub fn end_with_this_process(child: &RunningProcess, leftover: Option<&std::path::Path>) -> Option<RunningProcess> {
+    end_with_owner(std::process::id(), child.pid(), leftover, 2)
+}
+
+/// [`end_with_this_process`] for any owner, checking every `every_secs`. A group is led by the
+/// child [`Process`] started, so its id is the child's.
+fn end_with_owner(owner: u32, group: u32, leftover: Option<&std::path::Path>, every_secs: u32) -> Option<RunningProcess> {
+    if !cfg!(unix) {
+        return None;
+    }
+    // The group is checked each time too, so the watcher never outlives it long enough for its id
+    // to name another group. Only a folder named craft-* is ever deleted. No `--` after the
+    // signal: dash (Debian's and Ubuntu's sh) reads it as a process id and fails.
+    const SCRIPT: &str = r#"o=$1 g=$2 d=$3 t=$4
+while kill -0 "$o" 2>/dev/null; do
+  kill -0 "-$g" 2>/dev/null || exit 0
+  sleep "$t"
+done
+kill -TERM "-$g" 2>/dev/null
+sleep 2
+kill -KILL "-$g" 2>/dev/null
+case "${d##*/}" in craft-*) rm -rf -- "$d" ;; esac"#;
+    let leftover = leftover.map(|p| p.display().to_string()).unwrap_or_default();
+    Process::new("/bin/sh")
+        .args(["-c", SCRIPT, "sh", &owner.to_string(), &group.to_string(), &leftover, &every_secs.to_string()])
+        .timeout(std::time::Duration::from_secs(7 * 24 * 3600))
+        .label("end with owner")
+        .spawn()
+        .map_err(|e| log::warn!("couldn't start the watcher for process {group}: {e}"))
+        .ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,6 +149,46 @@ mod tests {
         assert!(guard.0.wait_timeout(Duration::from_secs(3)).is_none(), "holding while its owner runs");
         assert!(owner.kill_and_wait(Duration::from_secs(5)), "the stand-in owner stops");
         assert!(guard.0.wait_timeout(Duration::from_secs(15)).is_some(), "the helper ends by itself once its owner is gone");
+    }
+
+    /// #810: the app was killed while its private browser ran; the browser's group stops and its
+    /// profile is deleted.
+    #[cfg(unix)]
+    #[test]
+    fn a_child_group_ends_with_its_owner() {
+        let dir = tempfile::tempdir().unwrap();
+        let profile = dir.path().join("craft-browser-test");
+        std::fs::create_dir(&profile).unwrap();
+        let mut owner = Process::new("sleep").arg("60").timeout(Duration::from_secs(90)).spawn().unwrap();
+        let mut child = Process::new("sleep").arg("60").timeout(Duration::from_secs(90)).spawn().unwrap();
+        let mut watch = end_with_owner(owner.pid(), child.pid(), Some(&profile), 1).expect("the watcher starts");
+        assert!(watch.wait_timeout(Duration::from_secs(2)).is_none(), "watching while the owner runs");
+        assert!(child.wait_timeout(Duration::from_millis(10)).is_none(), "the child runs while its owner does");
+        assert!(owner.kill_and_wait(Duration::from_secs(5)), "the stand-in owner stops");
+        assert!(child.wait_timeout(Duration::from_secs(15)).is_some(), "the child's group is stopped");
+        assert!(watch.wait_timeout(Duration::from_secs(15)).is_some(), "the watcher ends");
+        assert!(!profile.exists(), "the profile is deleted");
+    }
+
+    /// A child that ends while its owner runs ends the watcher too, and its folder is left to the
+    /// owner's own cleanup; a folder not named craft-* is never deleted.
+    #[cfg(unix)]
+    #[test]
+    fn the_watcher_ends_with_the_child_and_keeps_other_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut child = Process::new("sleep").arg("1").timeout(Duration::from_secs(30)).spawn().unwrap();
+        let mut watch = end_with_owner(std::process::id(), child.pid(), Some(dir.path()), 1).expect("the watcher starts");
+        assert!(child.wait_timeout(Duration::from_secs(10)).is_some());
+        assert!(watch.wait_timeout(Duration::from_secs(10)).is_some(), "the watcher ends with the child");
+        assert!(dir.path().exists());
+
+        let mut owner = Process::new("sleep").arg("60").timeout(Duration::from_secs(90)).spawn().unwrap();
+        let mut child = Process::new("sleep").arg("60").timeout(Duration::from_secs(90)).spawn().unwrap();
+        let mut watch = end_with_owner(owner.pid(), child.pid(), Some(dir.path()), 1).expect("the watcher starts");
+        assert!(owner.kill_and_wait(Duration::from_secs(5)));
+        assert!(child.wait_timeout(Duration::from_secs(15)).is_some());
+        assert!(watch.wait_timeout(Duration::from_secs(15)).is_some());
+        assert!(dir.path().exists(), "only a craft-* folder is deleted");
     }
 
     fn stand_in(name: &str) -> Process {

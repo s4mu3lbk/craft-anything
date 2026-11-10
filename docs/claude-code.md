@@ -20,6 +20,9 @@ integration does, why it is shaped this way, and what remains to confirm.
 - Permissions: read-only tools (`Read`, `Glob`, `Grep`) and our MCP tools are pre-allowed in Deep
   mode. In Clean room only `TodoWrite` is: reads go through the approval tool too, which refuses
   anything in the original's folder or on its site (the project folder excepted).
+  A Deep builder may start subagents (`Agent`): they get only the builder's tools and the
+  session's permissions, and starting one is an "other tools" action for the approval tool.
+  Clean room leaves `Agent` out (#1105).
   Every other action (writing files, running commands, fetching the web) goes through
   `--permission-prompt-tool mcp__craft-anything__core_action_approve`. That tool allows edits
   inside the project's `app/` folder and a fixed list of build commands (`npm install`,

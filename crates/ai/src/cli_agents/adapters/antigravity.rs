@@ -92,8 +92,19 @@ impl AgentAdapter for Antigravity {
                         p.output_tokens = out_tok.saturating_add(think_tok);
                     }
                     if res.get("status").and_then(Value::as_str) == Some("ERROR") {
-                        let why = res.get("error").or_else(|| res.get("response")).and_then(Value::as_str).unwrap_or("run failed");
-                        out.push(AgentEvent::Error { message: format!("Antigravity: {why}"), remediation: None, log: None });
+                        let reply = res.get("response").and_then(Value::as_str).unwrap_or_default();
+                        let why = res.get("error").and_then(Value::as_str).unwrap_or("run failed");
+                        if reply.trim().is_empty() {
+                            out.push(AgentEvent::Error { message: format!("Antigravity: {why}"), remediation: None, log: None });
+                        } else {
+                            // Antigravity keeps reporting a conversation's old error (its `error_id`
+                            // names a step from an earlier turn) on every later result, even after a
+                            // turn answers in full. A reply that came back ends the turn as done;
+                            // the words stay visible without failing work that succeeded.
+                            out.push(AgentEvent::Status {
+                                text: format!("Antigravity replied, yet still reports an earlier error of the conversation: {why}"),
+                            });
+                        }
                     }
                 }
             }
@@ -256,5 +267,33 @@ mod tests {
             AgentEvent::Error { message, .. } => assert!(message.contains("authentication expired")),
             other => panic!("expected Error, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn an_error_result_that_carries_a_reply_keeps_the_turn_alive() {
+        let adapter: Arc<dyn AgentAdapter> = Arc::new(Antigravity);
+        let mut p = StreamParser::new(adapter);
+        let result = json!({
+            "event": "result",
+            "result": {
+                "conversation_id": "conv-456",
+                "status": "ERROR",
+                "response": "I rebuilt the app and committed.\n",
+                "error": "API error (attempt 2): request failed: stream idle timeout (5m0s): context deadline exceeded",
+                "usage": {"input_tokens": 10, "output_tokens": 5, "thinking_tokens": 0, "cache_read_tokens": 0, "total_tokens": 15}
+            }
+        });
+        let evs = p.line(&result.to_string());
+        assert_eq!(evs.len(), 1);
+        match &evs[0] {
+            AgentEvent::Status { text } => assert!(text.contains("stream idle timeout"), "the stale error stays visible: {text}"),
+            other => panic!("expected Status, got {other:?}"),
+        }
+        let no_reply = json!({
+            "event": "result",
+            "result": {"status": "ERROR", "response": "", "error": "Eligibility check failed: EOF"}
+        });
+        let evs = p.line(&no_reply.to_string());
+        assert!(matches!(evs[0], AgentEvent::Error { .. }), "an error with nothing delivered still fails the turn");
     }
 }

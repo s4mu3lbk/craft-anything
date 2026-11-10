@@ -9,7 +9,52 @@ pub(super) fn is_electron_runtime(program: &Path) -> bool {
     program.parent().is_some_and(|dir| dir.join("resources/app.asar").is_file())
 }
 
+/// The program a later run reopens for its builder: the one the study looked at, in Deep mode on a
+/// local target, when it is still there. None otherwise (Clean room never opens the original).
+pub(super) fn program_to_reopen(target: &TargetRef, kind: &dyn TargetKind, deep: bool) -> Option<PathBuf> {
+    // Clean room is decided first: locating the program reads the original's folder.
+    if !deep {
+        return None;
+    }
+    let TargetRef::Local { path } = target else { return None };
+    let program = locate(path, kind.studies_folder()).0;
+    program.exists().then_some(program)
+}
+
+/// The builder's tools run on another computer: a coding agent over SSH starts its own tool
+/// server there. An API builder over SSH (a tunnelled model) still calls tools in this process.
+pub(super) fn tools_run_remotely(over_ssh: bool, api_loop: bool) -> bool {
+    over_ssh && !api_loop
+}
+
 impl Worker {
+    /// A run after the first skips the study, so its session has nothing open and the builder's
+    /// first `native_*` calls said "Nothing is open yet" (#1421). Open what the study looked at, so
+    /// the builder's tool server gets it. A failure only says why: the builder can still open it.
+    /// `remote`: the builder's tools run on another computer ([`tools_run_remotely`]), whose tool
+    /// server isn't handed this computer's targets, so opening (and hashing) it here helps nothing.
+    pub(super) fn reopen_target(&mut self, ws: &mut Workspace, kind: &dyn TargetKind, remote: bool) -> Result<(), ToolError> {
+        if remote {
+            return Ok(());
+        }
+        let (deep, open) = {
+            let session = self.engine.session();
+            (!session.clean_room(), !session.shared_targets().is_empty())
+        };
+        // Nothing to look for when something is open already.
+        if open {
+            return Ok(());
+        }
+        let Some(program) = program_to_reopen(&ws.manifest.target, kind, deep) else { return Ok(()) };
+        if let Err(e) = self.call("core_target_open", json!({"path": program.display().to_string()})) {
+            if e.code == ErrorCode::Cancelled {
+                return Err(e);
+            }
+            self.step(ws, Step::Build, Status::Building, &format!("Couldn't open {} again for the builder: {}", program.display(), e.message))?;
+        }
+        Ok(())
+    }
+
     pub(super) fn study(&mut self, ws: &mut Workspace, kind: &dyn TargetKind) -> Result<(), ToolError> {
         match ws.manifest.target.clone() {
             TargetRef::Website { url } => {
@@ -184,7 +229,7 @@ impl Worker {
         let tree = capture.join("ui-tree.json");
         let params =
             json!({"program": program.display().to_string(), "wait_secs": 15, "output": shot.display().to_string(), "ui_tree": tree.display().to_string()});
-        let picture = "capture/window.png is a picture of its window 15 seconds after it started. Open it with the Read tool: match its layout, colours and proportions.\n";
+        let picture = "capture/window.png is a picture of its window 15 seconds after it started: match its layout, colours and proportions.\n";
         let mut notes = String::from("\n## How it looks running\n\n");
         notes.push_str(&match self.call("native_window_capture", params) {
             Ok(_) if tree.is_file() => format!(

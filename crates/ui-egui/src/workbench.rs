@@ -943,9 +943,7 @@ fn jobs(app: &mut CraftApp, ui: &mut Ui) {
                 match &j.outcome {
                     None => {
                         let p = j.progress();
-                        let frac = p.as_ref().and_then(|p| p.fraction).unwrap_or(0.0);
-                        let bar = egui::ProgressBar::new(frac).desired_width(160.0).desired_height(8.0).fill(t.accent);
-                        ui.add(if p.as_ref().and_then(|p| p.fraction).is_none() { bar.animate(true) } else { bar });
+                        ui.add(crate::widgets::ProgressBar::new(p.as_ref().and_then(|p| p.fraction)).size(Vec2::new(160.0, 8.0)).color(t.accent));
                         if let Some(p) = p {
                             ui.label(RichText::new(p.message).color(t.text_dim).size(theme::CAPTION));
                         }

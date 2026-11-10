@@ -408,6 +408,78 @@ pub fn animate(ui: &Ui, every: std::time::Duration) {
 /// One frame of an animation at the usual pace.
 pub const FRAME: std::time::Duration = std::time::Duration::from_millis(66);
 
+/// A bar's indeterminate sweep at `now` (seconds): a lit quarter that runs along `bar` over its
+/// track, for work that is moving but can't say how far it has got.
+fn sweep(painter: &egui::Painter, bar: egui::Rect, now: f64, track: Color32, lit: Color32) {
+    let radius = bar.height() / 2.0;
+    painter.rect_filled(bar, radius, track);
+    let seg = bar.width() * 0.25;
+    let x = bar.left() - seg + (bar.width() + seg) * ((now * 0.6).fract() as f32);
+    let part = egui::Rect::from_x_y_ranges(x.max(bar.left())..=(x + seg).min(bar.right()), bar.y_range());
+    if part.width() > 0.0 {
+        painter.rect_filled(part, radius, lit);
+    }
+}
+
+/// A progress bar: filled to `fraction`, or, when that isn't known, a sweep that asks for its next
+/// frame at [`animate`]'s pace. egui's animated `ProgressBar` asks to be drawn again at once, every
+/// frame, like its spinner (#579), so a job of unknown length redrew the window at the display's
+/// rate for as long as it ran, even in the background.
+#[must_use = "put it in a ui with `ui.add(widget);`"]
+pub struct ProgressBar {
+    fraction: Option<f32>,
+    size: Vec2,
+    color: Option<Color32>,
+}
+
+impl ProgressBar {
+    /// `fraction` from 0 to 1, or `None` when how far the work has got isn't known.
+    pub fn new(fraction: Option<f32>) -> Self {
+        Self { fraction, size: Vec2::new(160.0, 8.0), color: None }
+    }
+
+    pub fn size(mut self, size: Vec2) -> Self {
+        self.size = size;
+        self
+    }
+
+    pub fn color(mut self, color: Color32) -> Self {
+        self.color = Some(color);
+        self
+    }
+}
+
+impl egui::Widget for ProgressBar {
+    fn ui(self, ui: &mut Ui) -> Response {
+        let (rect, response) = ui.allocate_exact_size(self.size, Sense::hover());
+        let fraction = self.fraction.filter(|f| f.is_finite()).map(|f| f.clamp(0.0, 1.0));
+        response.widget_info(|| {
+            let mut info = egui::WidgetInfo::new(egui::WidgetType::ProgressIndicator);
+            info.value = fraction.map(|f| f64::from(f) * 100.0);
+            info
+        });
+        if ui.is_rect_visible(rect) {
+            let track = ui.visuals().extreme_bg_color;
+            let color = self.color.unwrap_or_else(|| ui.visuals().selection.bg_fill);
+            match fraction {
+                Some(f) => {
+                    let radius = rect.height() / 2.0;
+                    ui.painter().rect_filled(rect, radius, track);
+                    let fill = egui::Rect::from_min_size(rect.min, Vec2::new(rect.width() * f, rect.height()));
+                    if fill.width() > 0.0 {
+                        ui.painter().rect_filled(fill, radius, color);
+                    }
+                }
+                None => {
+                    sweep(ui.painter(), rect, ui.input(|i| i.time), track, color);
+                    animate(ui, FRAME);
+                }
+            }
+        }
+        response
+    }
+}
+
 /// A spinning arc for "working", drawn like egui's own `Spinner` but asking for its next frame at
 /// [`animate`]'s pace. egui's asks to be drawn again at once, every frame, for as long as it's on
 /// screen: a build or a page capture can run for an hour, and redrawing the whole window at the
@@ -540,11 +612,7 @@ pub fn working_since(ui: &mut Ui, title: &str, detail: Option<&str>, began: Opti
         // An indeterminate sweep along the bottom: movement even when nothing new has arrived.
         ui.add_space(10.0);
         let (bar, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 2.0), Sense::hover());
-        ui.painter().rect_filled(bar, 1.0, t.separator);
-        let seg = bar.width() * 0.25;
-        let x = bar.left() - seg + (bar.width() + seg) * ((now * 0.6).fract() as f32);
-        let lit = egui::Rect::from_x_y_ranges(x.max(bar.left())..=(x + seg).min(bar.right()), bar.y_range());
-        ui.painter().rect_filled(lit, 1.0, t.accent);
+        sweep(ui.painter(), bar, now, t.separator, t.accent);
     });
     animate(ui, FRAME);
 }
@@ -560,48 +628,76 @@ mod tests {
     use super::*;
     use std::time::Duration;
 
+    /// The wait before the next frame a settled screen drawn by `add` asks for.
+    fn wait_after(focused: bool, add: &dyn Fn(&mut Ui)) -> Duration {
+        let ctx = egui::Context::default();
+        let mut raw = egui::RawInput::default();
+        raw.viewports.entry(egui::ViewportId::ROOT).or_default().focused = Some(focused);
+        // The first frames always ask for another (layout settles); look at a settled one.
+        let mut out = egui::FullOutput::default();
+        for _ in 0..4 {
+            out = ctx.run_ui(raw.clone(), |ui| add(ui));
+            out.textures_delta.clear();
+        }
+        out.viewport_output.get(&egui::ViewportId::ROOT).map(|v| v.repaint_delay).unwrap_or_default()
+    }
+
+    /// A wait asked for with `request_repaint_after(every)`: egui takes the frame it expects to
+    /// spend drawing (`predicted_dt`, a 60th of a second here) off it.
+    fn paced(wait: Duration, every: Duration) -> bool {
+        wait <= every && wait + Duration::from_millis(17) >= every
+    }
+
     /// #579: egui's `Spinner` asks to be redrawn at once, every frame, for as long as it shows;
     /// ours waits for the animation's own pace, so an hour-long build isn't drawn at the display's
     /// rate. Both are drawn here for comparison.
     #[test]
     fn a_spinner_on_screen_does_not_ask_for_a_frame_at_once() {
-        let wait_after = |add: &dyn Fn(&mut Ui)| {
-            let ctx = egui::Context::default();
-            let mut raw = egui::RawInput::default();
-            raw.viewports.entry(egui::ViewportId::ROOT).or_default().focused = Some(true);
-            // The first frames always ask for another (layout settles); look at a settled one.
-            let mut out = egui::FullOutput::default();
-            for _ in 0..4 {
-                out = ctx.run_ui(raw.clone(), |ui| add(ui));
-                out.textures_delta.clear();
-            }
-            out.viewport_output.get(&egui::ViewportId::ROOT).map(|v| v.repaint_delay).unwrap_or_default()
-        };
-        let egui_spinner = wait_after(&|ui| {
+        let egui_spinner = wait_after(true, &|ui| {
             ui.add(egui::Spinner::new());
         });
         assert!(egui_spinner < Duration::from_millis(10), "egui's own asks for the next frame at once: {egui_spinner:?}");
-        let ours = wait_after(&|ui| {
+        let ours = wait_after(true, &|ui| {
             ui.add(Spinner::new().size(16.0));
         });
-        assert!(ours >= Duration::from_millis(30), "ours waits for the animation's pace: {ours:?}");
+        assert!(paced(ours, FRAME), "ours waits for the animation's pace: {ours:?}");
+        let background = wait_after(false, &|ui| drop(ui.add(Spinner::new())));
+        assert!(paced(background, Duration::from_secs(1)), "once a second in the background: {background:?}");
     }
 
-    /// #579: every screen uses our spinner; egui's own would bring the redraw-every-frame back.
+    /// egui's animated `ProgressBar` asks for a frame at once, every frame, like its spinner; ours
+    /// sweeps at the animation's pace, and a bar that knows its fraction asks for nothing.
     #[test]
-    fn no_screen_uses_eguis_own_spinner() {
+    fn a_progress_bar_on_screen_does_not_ask_for_a_frame_at_once() {
+        let egui_bar = wait_after(true, &|ui| drop(ui.add(egui::ProgressBar::new(0.0).animate(true))));
+        assert!(egui_bar < Duration::from_millis(10), "egui's own asks for the next frame at once: {egui_bar:?}");
+        let sweeping = wait_after(true, &|ui| drop(ui.add(ProgressBar::new(None))));
+        assert!(paced(sweeping, FRAME), "an unknown fraction sweeps at the animation's pace: {sweeping:?}");
+        let background = wait_after(false, &|ui| drop(ui.add(ProgressBar::new(None))));
+        assert!(paced(background, Duration::from_secs(1)), "once a second in the background: {background:?}");
+        let nan = wait_after(true, &|ui| drop(ui.add(ProgressBar::new(Some(f32::NAN)))));
+        assert!(paced(nan, FRAME), "a fraction that is no number is unknown, so it sweeps: {nan:?}");
+        for f in [Some(0.4), Some(7.0), Some(-1.0)] {
+            assert_eq!(wait_after(true, &|ui| drop(ui.add(ProgressBar::new(f)))), Duration::MAX, "a known fraction ({f:?}) doesn't animate");
+        }
+    }
+
+    /// #579: every screen uses our spinner and progress bar; egui's own would bring the
+    /// redraw-every-frame back.
+    #[test]
+    fn no_screen_uses_eguis_own_spinner_or_progress_bar() {
         let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
         let mut used = Vec::new();
         for entry in std::fs::read_dir(&src).unwrap().flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "rs") && path.file_name().is_some_and(|n| n != "widgets.rs") {
                 let text = std::fs::read_to_string(&path).unwrap();
-                if text.lines().any(|l| !l.trim_start().starts_with("//") && l.contains("egui::Spinner")) {
+                if text.lines().any(|l| !l.trim_start().starts_with("//") && (l.contains("egui::Spinner") || l.contains("egui::ProgressBar"))) {
                     used.push(path.file_name().unwrap().to_string_lossy().into_owned());
                 }
             }
         }
-        assert!(used.is_empty(), "use `widgets::Spinner`, which doesn't ask for a frame every frame: {used:?}");
+        assert!(used.is_empty(), "use `widgets::Spinner` and `widgets::ProgressBar`, which don't ask for a frame every frame: {used:?}");
     }
 
     #[test]

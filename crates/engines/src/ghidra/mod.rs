@@ -455,7 +455,14 @@ fn set_aside(project_dir: &Path) -> std::io::Result<Option<Aside>> {
 /// and an antivirus holding a handle looks the same for a moment.
 /// Anything else — a path we cannot even name — is the caller's to hear now, not after a timeout.
 fn move_may_pass(e: &std::io::Error) -> bool {
+    // ERROR_SHARING_VIOLATION and ERROR_LOCK_VIOLATION: what Windows says for a folder another
+    // process has open without delete sharing, which is the live Ghidra this whole change is
+    // about. Rust files both under `Uncategorized`, which is unstable, so the system code is read
+    // directly — the one thing that makes this branch mean anything on Windows.
+    const SHARING_VIOLATION: i32 = 32;
+    const LOCK_VIOLATION: i32 = 33;
     matches!(e.kind(), std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::WouldBlock)
+        || matches!(e.raw_os_error(), Some(SHARING_VIOLATION | LOCK_VIOLATION))
 }
 
 /// The error for a move that cannot pass: the lock goes back first, because left behind it reads

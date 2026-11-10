@@ -165,6 +165,7 @@ fn layout(format: i32) -> Option<Layout> {
         4 => Layout::Rgba32,
         5 => Layout::Argb32,
         7 => Layout::Rgb565,
+        9 => Layout::R16,
         10 => Layout::Dxt1,
         12 => Layout::Dxt5,
         13 => Layout::Rgba4444,
@@ -179,6 +180,7 @@ fn layout(format: i32) -> Option<Layout> {
         25 => Layout::Bc7,
         26 => Layout::Bc4,
         27 => Layout::Bc5,
+        62 => Layout::Rg8,
         63 => Layout::R8,
         _ => return None,
     })

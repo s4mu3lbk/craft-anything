@@ -50,6 +50,21 @@ impl<'a> DetectCx<'a> {
     }
 }
 
+/// Estonian website words: *veebileht*, *koduleht* and *veebisait* with their inflected forms.
+/// *veebilehitseja* (a browser) is not a website.
+fn is_site_word(w: &str) -> bool {
+    (w.starts_with("veebileh") || w.starts_with("koduleh") || w.starts_with("veebisai")) && !w.starts_with("veebilehitseja")
+}
+
+/// Whether an Estonian word is in a case that marks a complement (source, means, place or topic)
+/// rather than the head of a noun phrase: elative (-st), comitative (-ga), adessive (-l),
+/// allative (-le), ablative (-lt), inessive (-s), illative (-sse), translative (-ks),
+/// terminative (-ni), abessive (-ta) or essive (-na). The longer endings come first.
+fn is_complement_case(w: &str) -> bool {
+    const ENDINGS: &[&str] = &["sse", "st", "ga", "le", "lt", "ks", "ni", "ta", "na", "l", "s"];
+    ENDINGS.iter().any(|e| w.ends_with(e))
+}
+
 /// What the brief is written from.
 pub struct BriefCx<'a> {
     pub ws: &'a Workspace,
@@ -64,6 +79,9 @@ pub struct BriefCx<'a> {
     pub assets: bool,
     /// The picture model chosen in Settings (an asset-table id); `None` = the table's default.
     pub image_model: Option<&'a str>,
+    /// The builder can look at pictures (an agent app opens them with its Read tool). One that
+    /// can't (the API loop) is never sent to open a screenshot; it's told what to use instead.
+    pub sees_pictures: bool,
 }
 
 /// The words the app uses for a kind's result.
@@ -114,8 +132,9 @@ pub trait TargetKind: Send + Sync {
     }
     /// The checks that judge a build of this kind for this project, in order.
     fn checks(&self, ws: &Workspace) -> Vec<Box<dyn Check>>;
-    /// The next round's message after a check that wasn't good enough.
-    fn refine(&self, check: &CheckResult) -> String {
+    /// The next round's message after a check that wasn't good enough, for a builder that can
+    /// look at pictures or one that can't ([`BriefCx::sees_pictures`]).
+    fn refine(&self, check: &CheckResult, _sees_pictures: bool) -> String {
         format!(
             "Check {}: {}\n\nFix this in app/, build again until it succeeds, and reply with 1-2 plain sentences on what you changed.",
             check.round, check.note
@@ -128,11 +147,73 @@ pub struct CheckCx<'a> {
     worker: &'a Worker,
     pub ws: &'a Workspace,
     pub round: u32,
+    /// When this round must stop, when it has a time limit (the builder's own checks do).
+    until: Option<Instant>,
+}
+
+/// Refuses once a round's time limit has passed. A check still running then gets this error from
+/// its next tool call, and its own program runs are stopped by [`CheckStop`].
+fn within_limit(until: Option<Instant>, now: Instant) -> Result<(), ToolError> {
+    match until {
+        Some(t) if now >= t => Err(ToolError::new(craft_anything_evidence::ErrorCode::TimedOut, "The check ran past its time limit, so it was stopped.")),
+        _ => Ok(()),
+    }
+}
+
+/// How a check's own long steps are stopped: the person's pause, and the round's time limit when
+/// it has one. A program run watches [`CheckStop::paused`] to stop at a pause and clamps its own
+/// deadline with [`CheckStop::time_left`], so a step is cut at the limit even while the check is
+/// between tool calls, where a pause can't reach it.
+#[derive(Clone, Default)]
+pub struct CheckStop {
+    stop: CancelToken,
+    until: Option<Instant>,
+}
+
+impl CheckStop {
+    /// A stop that also runs out at `until` (a round's time limit).
+    #[cfg(all(test, unix))]
+    pub(crate) fn limited(until: Instant) -> CheckStop {
+        CheckStop { stop: CancelToken::default(), until: Some(until) }
+    }
+
+    /// The person paused or stopped the run.
+    pub fn paused(&self) -> bool {
+        self.stop.is_cancelled()
+    }
+
+    /// The round's time limit has passed.
+    pub fn expired(&self) -> bool {
+        self.until.is_some_and(|t| Instant::now() >= t)
+    }
+
+    /// Either of them: a running program is stopped, and one about to start is refused.
+    pub fn cancelled(&self) -> bool {
+        self.paused() || self.expired()
+    }
+
+    /// How much of the round is left; `None` without a limit.
+    pub fn time_left(&self) -> Option<Duration> {
+        self.until.map(|t| t.saturating_duration_since(Instant::now()))
+    }
+
+    /// Refuses, with the reason, when it's time to stop; for steps that can report one.
+    pub fn check(&self) -> Result<(), ToolError> {
+        self.stop.check()?;
+        within_limit(self.until, Instant::now())
+    }
+}
+
+impl From<&CancelToken> for CheckStop {
+    fn from(stop: &CancelToken) -> CheckStop {
+        CheckStop { stop: stop.clone(), until: None }
+    }
 }
 
 impl CheckCx<'_> {
     /// Run an engine tool (the same ones the builder has).
     pub fn call(&self, tool: &str, params: Value) -> Result<ToolOutput, ToolError> {
+        within_limit(self.until, Instant::now())?;
         self.worker.call(tool, params)
     }
 
@@ -150,9 +231,10 @@ impl CheckCx<'_> {
         self.worker.editor.as_deref()
     }
 
-    /// Cancelled when the person stops the run.
-    pub fn stop(&self) -> &CancelToken {
-        &self.worker.stop
+    /// How this check's own program runs are stopped: the person's pause, and the round's time
+    /// limit when it has one (see [`CheckStop`]). The clone is cheap.
+    pub fn stop(&self) -> CheckStop {
+        CheckStop { stop: self.worker.stop.clone(), until: self.until }
     }
 
     /// How builds are judged (`[build]` in settings).
@@ -173,23 +255,55 @@ impl CheckCx<'_> {
     }
 }
 
+/// The ids of the WASM plugins' checks that join `kind`'s.
+pub(super) fn plugin_ids(session: &craft_anything_engine::Session, kind: &dyn TargetKind) -> Vec<String> {
+    craft_anything_engine::wasm_plugins::checks(session)
+        .iter()
+        .filter(|c| c.kinds.is_empty() || c.kinds.iter().any(|k| k == kind.id()))
+        .map(|c| c.id.to_string())
+        .collect()
+}
+
 impl Worker {
     /// Run the checks the kind asks for in this round, in order, then the WASM plugins' checks for
     /// this kind. One that fails stops the rest: a later check needs what an earlier one proved (a
     /// screenshot needs a build).
     pub(super) fn run_checks(&self, ws: &Workspace, kind: &dyn TargetKind, round: u32) -> Result<Vec<CheckResult>, ToolError> {
-        let mut cx = CheckCx { worker: self, ws, round };
-        let mut out = Vec::new();
+        self.run_checks_within(ws, kind, round, None)
+    }
+
+    /// As [`Worker::run_checks`], with a time limit for the whole round when `limit` is given. The
+    /// person's pause is looked at before each check, and so is the limit; a check that would
+    /// start past the limit is reported as not run, and one already running is stopped by its own
+    /// program runs watching [`CheckStop`]. Each check is said before it runs, as its own step, so
+    /// a stall names the check it is in.
+    pub(super) fn run_checks_within(&self, ws: &Workspace, kind: &dyn TargetKind, round: u32, limit: Option<Duration>) -> Result<Vec<CheckResult>, ToolError> {
+        let until = limit.map(|l| Instant::now() + l);
+        let mut cx = CheckCx { worker: self, ws, round, until };
         let from_plugins = craft_anything_engine::wasm_plugins::checks(&self.engine.session());
         let plugin_checks = from_plugins
             .into_iter()
             .filter(|c| c.kinds.is_empty() || c.kinds.iter().any(|k| k == kind.id()))
             .map(|check| Box::new(plugin_check::PluginJudge { check, kind: kind.id() }) as Box<dyn Check>);
-        let checks = if ws.manifest.own_project() { own::checks() } else { kind.checks(ws) };
-        for c in checks.into_iter().chain(plugin_checks) {
-            if !c.applies(&cx) {
-                continue;
+        let all: Vec<Box<dyn Check>> = if ws.manifest.own_project() { own::checks() } else { kind.checks(ws) };
+        // A check that doesn't run in this run leaves no result, and isn't numbered or named.
+        let checks: Vec<Box<dyn Check>> = all.into_iter().chain(plugin_checks).filter(|c| c.applies(&cx)).collect();
+        let mut out = Vec::new();
+        for (i, c) in checks.iter().enumerate() {
+            // Pause, or a round past its limit, stops before this check starts. A check that
+            // couldn't start is a failed result, so its reason reaches the builder and the feed.
+            if let Err(e) = cx.stop().check() {
+                if e.code == craft_anything_evidence::ErrorCode::Cancelled {
+                    return Err(e);
+                }
+                out.push(CheckResult::new(c.id(), round, false, format!("Not run: {}", e.message)));
+                break;
             }
+            // Said before the check runs, so a stall names the check it is in. The builder's own
+            // checks are part of its working turn; a real round's are the Check stage the feed,
+            // the CLI and the progress panel show.
+            let (step, doing) = if round == self_check::SELF_CHECK_ROUND { (Step::Build, "Checking its work") } else { (Step::Check, "Checking the build") };
+            self.emit(RunEvent::Step { step, text: format!("{doing} ({} of {}): {}…", i + 1, checks.len(), c.id()) });
             let r = c.run(&mut cx)?;
             let failed = !r.passed;
             out.push(r);
@@ -236,7 +350,7 @@ impl Check for BuildCheck {
         CheckResult::BUILD
     }
     fn run(&self, cx: &mut CheckCx) -> Result<CheckResult, ToolError> {
-        let (passed, note) = build_check(&cx.ws.app_dir(), cx.ws.app_place(), &cx.ws.manifest.stack, cx.editor(), cx.stop());
+        let (passed, note) = build_check(&cx.ws.app_dir(), cx.ws.app_place(), &cx.ws.manifest.stack, cx.editor(), &cx.stop());
         // #736: a failed build of an empty app/ says first that nothing was written.
         let note = if !passed && app_is_empty(cx.ws) { format!("{} {note}", no_files_yet(cx.ws)) } else { note };
         Ok(CheckResult::new(self.id(), cx.round, passed, note))

@@ -43,8 +43,8 @@ pub struct Anthropic {
     pub model: String,
     /// Send the server-side fallback header and body field.
     pub fallbacks: bool,
-    /// How long one streamed answer may take.
-    pub stream_limit: std::time::Duration,
+    /// The AI's own limit on one streamed answer; none uses the defaults.
+    pub stream_limit: Option<std::time::Duration>,
 }
 
 impl Anthropic {
@@ -54,7 +54,7 @@ impl Anthropic {
             api_key,
             model: if model.is_empty() { DEFAULT_MODEL.to_string() } else { model.to_string() },
             fallbacks: true,
-            stream_limit: http::STREAM_BODY,
+            stream_limit: None,
         }
     }
 

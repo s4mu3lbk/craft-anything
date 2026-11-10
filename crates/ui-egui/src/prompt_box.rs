@@ -358,9 +358,9 @@ fn cursor_to_end(ctx: &egui::Context, id: egui::Id, text: &str) {
 fn send_button(ui: &mut Ui, ready: bool) -> egui::Response {
     let t = Tokens::get(ui.ctx());
     let (rect, resp) = ui.allocate_exact_size(egui::Vec2::splat(32.0), egui::Sense::click());
-    let fill = if ready { crate::theme::mix(t.accent, egui::Color32::BLACK, 0.12 * widgets::hover_t(ui, &resp)) } else { t.raised };
+    let fill = if ready { crate::theme::mix(t.accent, t.accent_hover, widgets::hover_t(ui, &resp)) } else { t.raised };
     ui.painter().rect_filled(rect, t.radius, fill);
-    icons::paint(ui, rect, "send", 16.0, if ready { egui::Color32::WHITE } else { t.text_faint });
+    icons::paint(ui, rect, "send", 16.0, if ready { t.on_accent } else { t.text_faint });
     widgets::focus_ring(ui, &resp, rect);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tr("Send (Enter)")));
     resp.on_hover_cursor(egui::CursorIcon::PointingHand).on_hover_text(tr("Send (Enter)"))

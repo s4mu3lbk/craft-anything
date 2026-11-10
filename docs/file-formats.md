@@ -7,11 +7,11 @@ version up to the current one, then turn the document into Rust types. The step 
 
 | File | Owner | Current version | Older files | Newer files |
 |---|---|---|---|---|
-| `<project>/craft.json` | `engine::workspace` (`Manifest`) | `MANIFEST_VERSION` = 3 (`version`; missing = 0; 3 adds `approvals`) | brought forward, saved as current | opened read-only: saving is refused |
-| `<project>/inbox/build-progress.json` | `engine::workspace::progress` (`BuildProgress`; written only by the rebuild run) | `BUILD_PROGRESS_VERSION` = 1 (`version`; missing = 0) | brought forward; an absent file starts with no counted turns | the build stops and the record is left unchanged |
+| `<project>/craft.json` | `engine::workspace` (`Manifest`) | `MANIFEST_VERSION` = 4 (`version`; missing = 0; 3 adds `approvals`, 4 adds the saved builder session's mode `agent_session_deep`; a version-3 session migrates as Deep) | brought forward, saved as current | opened read-only: saving is refused |
+| `<project>/inbox/build-progress.json` | `engine::workspace::progress` (`BuildProgress`; written only by the rebuild run) | `BUILD_PROGRESS_VERSION` = 2 (`version`; missing = 0; 2 adds `checked`, the round kept while nothing it looked at changes) | brought forward; an absent file starts with no counted turns | the build stops and the record is left unchanged |
 | `config.toml` (`settings::config_dir()`) | `engine::settings` (`Settings`) | `SETTINGS_VERSION` = 2 (`version`; missing = 0; 2 moved `[engines.ghidra] enabled` to `deep_mode`) | brought forward | loaded, never saved over |
 | `<name>.cany/project.toml` | `engine::project` (`ProjectMeta`) | `FORMAT_VERSION` = 1 (`format_version`, required) | brought forward | refused, with "update Craft Anything" |
-| `<project>/transcript.json` | `ai::context` (the API builder's conversation) | `TRANSCRIPT_VERSION` = 1 (`{version, history}`) | read as before | not resumed; a fresh build replaces it |
+| `<project>/transcript.json` | `ai::context` (the API builder's conversation) | `TRANSCRIPT_VERSION` = 2 (`{version, deep, history}`; a version-1 transcript counts as Deep) | read as before; one without `deep` is resumed only in Deep | not resumed; a fresh build replaces it |
 | `<project>/app/mechanics.json` | `engine::mechanics` (written by the builder, read by `MechanicsCheck`) | `MECHANICS_VERSION` = 1 (`version`; missing = 1) | — | the check fails and says so |
 | `<project>/checks/round-N/self-test.json` | `engine::self_test` (written by the built game's `--self-test`, read by `SelfTestCheck`) | 1 (`version`; missing = 1) | — | the check fails and says so |
 | `<project>/usage.json` | `engine::workspace` (`ProjectUsage`; written only by the rebuild run) | `USAGE_VERSION` = 1 (`version`; missing = 0) | read as before, saved as current | read as far as its fields are known, never written over |

@@ -54,6 +54,9 @@ pub struct Browser {
     _proc: Option<RunningProcess>,
     #[allow(dead_code)]
     _profile: Option<BrowserProfile>,
+    /// Stops the browser and deletes its profile if the app ends without dropping it (#810).
+    #[allow(dead_code)]
+    _watch: Option<RunningProcess>,
 }
 
 struct BrowserProfile(std::path::PathBuf);
@@ -146,6 +149,7 @@ impl Browser {
             launched: false,
             _proc: None,
             _profile: None,
+            _watch: None,
         }
     }
 
@@ -162,6 +166,7 @@ impl Browser {
                 launched: false,
                 _proc: None,
                 _profile: None,
+                _watch: None,
             });
         }
         // A website opened with web_site_open is the page every browser tool looks at by default.
@@ -227,6 +232,7 @@ impl Browser {
             user_agent: version.get("User-Agent").and_then(Value::as_str).unwrap_or_default().to_string(),
             endpoint,
             launched: true,
+            _watch: craft_anything_platform::end_with_this_process(&proc, Some(&profile.0)),
             _proc: Some(proc),
             _profile: Some(profile),
         })
@@ -269,6 +275,7 @@ impl Browser {
             user_agent: version.get("User-Agent").and_then(Value::as_str).unwrap_or_default().to_string(),
             endpoint,
             launched: true,
+            _watch: craft_anything_platform::end_with_this_process(&proc, Some(&profile.0)),
             _proc: Some(proc),
             _profile: Some(profile),
         })
@@ -1114,6 +1121,7 @@ mod tests {
             launched: true,
             _proc: None,
             _profile: Some(super::BrowserProfile(profile.clone())),
+            _watch: None,
         };
         drop(browser);
         assert!(!profile.exists(), "the private browser profile survived its owner");

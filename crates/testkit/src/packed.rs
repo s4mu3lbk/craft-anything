@@ -616,7 +616,13 @@ pub fn pyz(magic: u16, modules: &[(&str, i32, &[u8])], as_dict: bool, compress: 
     o.extend([0u8; 8]);
     let mut items = Vec::new();
     for (name, kind, code) in modules {
-        let stored = if compress { zlib(code) } else { code.to_vec() };
+        let stored = if *kind == 3 && code.is_empty() {
+            Vec::new()
+        } else if compress {
+            zlib(code)
+        } else {
+            code.to_vec()
+        };
         let at = o.len() as i32;
         o.extend(&stored);
         items.push((name.to_string(), m::tuple(vec![m::int(*kind), m::int(at), m::int(stored.len() as i32)])));

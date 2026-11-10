@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	Otomatik �
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: kodunu, dosyalarını ve sayfa kaynağını elimizdeki her araçla ve kurulu bir harici derleyici çözücüyle okuruz. Değiştirmek için tıklayın.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} kurulu değil, bu yüzden yerleşik derleyici çözücü devreye girer. Ayarlar → Motorlar'dan bir motor seçin.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} henüz bu bilgisayarda değil, bu yüzden yerleşik derleyici çözücü devreye girer.
+Connecting to {name}… {seconds} s	{name} sunucusuna bağlanılıyor… {seconds} sn
+Stopped adding {name}.	{name} eklenmesi durduruldu.

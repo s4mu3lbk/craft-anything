@@ -43,7 +43,7 @@ fn utf8_seq(data: &[u8], i: usize) -> Option<usize> {
 }
 
 /// Extract strings of at least `min_len` characters. Offsets are `base + position`.
-/// Stops after `max_count` strings. Strings whose starting address overflows `u64` are omitted.
+/// Keeps the first `max_count` strings by address across encodings. Strings whose starting address overflows `u64` are omitted.
 pub fn extract(data: &[u8], base: u64, min_len: usize, max_count: usize) -> Vec<FoundString> {
     let min_len = min_len.max(2);
     let mut out = Vec::new();
@@ -78,8 +78,14 @@ pub fn extract(data: &[u8], base: u64, min_len: usize, max_count: usize) -> Vec<
         }
     }
     // Pass 2: UTF-16LE runs of ASCII-range characters (Windows resources and wide literals).
+    let mut wide = Vec::new();
     let mut i = 0usize;
-    while i + 1 < data.len() && out.len() < max_count {
+    while i + 1 < data.len() && wide.len() < max_count {
+        // Once the result is full, only an earlier wide run can displace the last narrow one.
+        let cutoff = if out.len() + wide.len() == max_count { out.last().map(|s| s.offset) } else { None };
+        if cutoff.is_some_and(|last| base.saturating_add(i as u64) >= last) {
+            break;
+        }
         let run_start = i;
         let start = i;
         let mut chars = 0usize;
@@ -99,8 +105,14 @@ pub fn extract(data: &[u8], base: u64, min_len: usize, max_count: usize) -> Vec<
         }
         if chars >= min_len {
             let Some(offset) = base.checked_add(start as u64) else { break };
+            if let Some(last) = cutoff {
+                if offset >= last {
+                    break;
+                }
+                out.pop();
+            }
             let units: Vec<u16> = data.get(start..i).unwrap_or(&[]).as_chunks::<2>().0.iter().map(|c| u16::from_le_bytes(*c)).take(MAX_STRING_CHARS).collect();
-            out.push(FoundString {
+            wide.push(FoundString {
                 offset,
                 byte_len: (i - start) as u64,
                 encoding: Encoding::Utf16le,
@@ -111,6 +123,7 @@ pub fn extract(data: &[u8], base: u64, min_len: usize, max_count: usize) -> Vec<
         }
         i = if i == run_start { run_start + 1 } else { i };
     }
+    out.extend(wide);
     out.sort_by_key(|s| s.offset);
     out
 }
@@ -142,6 +155,20 @@ mod tests {
         assert!(texts.contains(&"Wide text"));
         assert!(!texts.contains(&"ab"));
         assert_eq!(s.iter().find(|s| s.text == "Hello, Craft!").unwrap().offset, 0x1002);
+    }
+
+    #[test]
+    fn the_limit_keeps_the_earliest_strings_across_encodings() {
+        let wide = |s: &str| s.encode_utf16().flat_map(u16::to_le_bytes).collect::<Vec<_>>();
+        let mut data = wide("first");
+        data.extend(b"\0\0second\0\0");
+        data.extend(wide("third"));
+        data.extend(b"\0\0fourth\0");
+        let all = extract(&data, 100, 3, 10);
+        assert_eq!(all.iter().map(|s| s.text.as_str()).collect::<Vec<_>>(), ["first", "second", "third", "fourth"]);
+        for limit in 0..=all.len() {
+            assert_eq!(extract(&data, 100, 3, limit), all[..limit]);
+        }
     }
 
     #[test]

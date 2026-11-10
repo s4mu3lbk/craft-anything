@@ -148,10 +148,15 @@ pub fn header(pack: &[u8]) -> Result<Header, FormatError> {
     Ok(Header { format, engine_version, flags, file_base, directory_offset })
 }
 
+fn pack_end(data_len: usize, embedded: bool) -> usize {
+    if embedded { data_len.saturating_sub(TRAILER_SIZE as usize) } else { data_len }
+}
+
 /// Read a pack from a whole file's bytes.
 pub fn parse(data: &[u8]) -> Result<Pack, FormatError> {
     let (start, embedded) = find(data).ok_or_else(|| FormatError::Malformed("this file has no Godot pack".into()))?;
-    let bytes = data.get(start..).unwrap_or_default();
+    let end = pack_end(data.len(), embedded);
+    let bytes = data.get(start..end).unwrap_or_default();
     let header = header(bytes)?;
     let mut pack =
         Pack { header, start: start as u64, embedded, declared_files: None, table_read: false, members: Vec::new(), truncated: false, notes: Vec::new() };
@@ -185,7 +190,7 @@ pub fn parse(data: &[u8]) -> Result<Pack, FormatError> {
         return Ok(pack);
     }
     pack.table_read = true;
-    read_table(bytes, data.len() as u64, at.unwrap_or_default().saturating_add(4), count, &mut pack);
+    read_table(bytes, end as u64, at.unwrap_or_default().saturating_add(4), count, &mut pack);
     Ok(pack)
 }
 
@@ -297,13 +302,23 @@ impl PackedFormat for GodotPck {
             "encrypted_files": encrypted,
             "removal_records": removals,
         });
-        let entries = pack.members.iter().map(to_entry).collect();
+        let end = pack_end(data.len(), pack.embedded) as u64;
+        let entries = pack.members.iter().map(|m| to_entry(m, end)).collect();
         Ok(PackedListing { facts, entries, notes, truncated: pack.truncated })
+    }
+
+    fn read(&self, data: &[u8], entry: &PackedEntry, max_bytes: u64) -> Result<Vec<u8>, FormatError> {
+        let (_, embedded) = find(data).ok_or_else(|| FormatError::Malformed("this file has no Godot pack".into()))?;
+        let end = pack_end(data.len(), embedded);
+        crate::packed::read_stored(data.get(..end).unwrap_or_default(), entry, max_bytes)
     }
 }
 
-fn to_entry(m: &Member) -> PackedEntry {
-    let readable = m.flags & !FILE_KNOWN == 0 && !m.encrypted() && !m.removal() && m.offset.is_some();
+fn to_entry(m: &Member, end: u64) -> PackedEntry {
+    let readable = m.flags & !FILE_KNOWN == 0
+        && !m.encrypted()
+        && !m.removal()
+        && m.offset.and_then(|offset| offset.checked_add(m.size)).is_some_and(|limit| limit <= end);
     PackedEntry {
         path: m.path.clone(),
         offset: m.offset.unwrap_or(u64::MAX),

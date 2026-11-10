@@ -20,7 +20,7 @@
 //! reads can't be checked, so a Clean room run is refused in `validate_access`, as for Grok (R2.2).
 
 use super::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// What stops Aider asking, updating, or offering to open a page.
 const QUIET: &[&str] = &[
@@ -40,8 +40,8 @@ const QUIET: &[&str] = &[
 /// The keys Aider's own default-model picker looks for when no model is chosen.
 const DEFAULT_MODEL_KEYS: &[&str] = &["OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "VERTEXAI_PROJECT"];
 
-/// Key files Aider loads from the home folder; its own OpenRouter sign-in writes the second one.
-const KEY_FILES: &[&str] = &[".env", ".aider/oauth-keys.env"];
+/// The key file Aider's own OpenRouter sign-in writes, in the home folder.
+const SIGN_IN_KEYS: &str = ".aider/oauth-keys.env";
 
 /// The most of a settings file we read while checking.
 const SETTINGS_FILE_CAP: u64 = 1024 * 1024;
@@ -114,8 +114,12 @@ impl AgentAdapter for Aider {
     }
 
     /// Refuse before Aider starts when it would stop at a sign-in nobody can finish (#72).
-    fn check_native_options(&self, options: &BackendOptions) -> Result<(), ToolError> {
-        check_setup(options, &|name| std::env::var(name).ok(), dirs::home_dir().as_deref())
+    fn check_native_options(&self, options: &BackendOptions, cwd: Option<&Path>) -> Result<(), ToolError> {
+        check_setup(
+            options,
+            &|name| std::env::var(name).ok(),
+            &Files::for_run(cwd, dirs::home_dir().as_deref(), flag_value(&options.args, "--env-file").as_deref()),
+        )
     }
 
     /// Nothing Aider offers to open is worth a page during a run, offline or not.
@@ -124,29 +128,65 @@ impl AgentAdapter for Aider {
     }
 }
 
+/// The settings files Aider reads for a run, each list with the file it loads last (whose
+/// settings win) first.
+struct Files {
+    env: Vec<PathBuf>,
+    conf: Vec<PathBuf>,
+}
+
+impl Files {
+    /// Aider looks in the folder it runs in, the top of its git repository (found from there even
+    /// with `--no-git`), then the home folder. Its saved OpenRouter key loads before any `.env`.
+    /// The folder is taken as Aider sees it, links resolved, so the repository is the same one.
+    /// An `--env-file` in its arguments loads last of all, relative to that folder.
+    fn for_run(cwd: Option<&Path>, home: Option<&Path>, env_file: Option<&str>) -> Files {
+        let cwd = cwd.and_then(|d| d.canonicalize().or_else(|_| std::path::absolute(d)).ok());
+        let git_top = cwd.as_deref().and_then(|d| d.ancestors().find(|a| is_repository_top(a)));
+        let mut folders: Vec<&Path> = Vec::new();
+        for folder in [cwd.as_deref(), git_top, home].into_iter().flatten() {
+            if !folders.contains(&folder) {
+                folders.push(folder);
+            }
+        }
+        let named = env_file.map(Path::new).and_then(|f| if f.is_absolute() { Some(f.to_path_buf()) } else { cwd.as_deref().map(|c| c.join(f)) });
+        let mut env: Vec<PathBuf> = named.into_iter().chain(folders.iter().map(|f| f.join(".env"))).collect();
+        env.extend(home.map(|h| h.join(SIGN_IN_KEYS)));
+        Files { conf: folders.iter().map(|f| f.join(".aider.conf.yml")).collect(), env }
+    }
+}
+
+/// Whether `dir` is a git repository's top as GitPython finds it: a `.git` folder that holds a
+/// `HEAD`, or a worktree's `.git` file.
+fn is_repository_top(dir: &Path) -> bool {
+    let git = dir.join(".git");
+    git.is_file() || git.join("HEAD").is_file()
+}
+
 /// The model Aider will run: ours if chosen, else one its own arguments, environment or config
-/// name. `None` means Aider would pick one from whichever key it finds, or offer a sign-in.
-fn configured_model(options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, home: Option<&Path>) -> Option<String> {
+/// name. `None` means Aider would pick one from whichever key it finds, or offer a sign-in. A
+/// `.env` comes before the environment, as Aider loads its `.env` files over it.
+fn configured_model(options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, files: &Files) -> Option<String> {
     model_in_args(&options.args)
         .or_else(|| options.args.iter().find(|a| MODEL_SHORTCUTS.contains(&a.as_str())).cloned())
         .or_else(|| options.cli_model.as_deref().map(str::trim).filter(|m| !m.is_empty()).map(str::to_string))
+        .or_else(|| files.env.iter().find_map(|file| env_file_value(&read_small(file)?, "AIDER_MODEL")))
         .or_else(|| env("AIDER_MODEL").map(|m| m.trim().to_string()).filter(|m| !m.is_empty()))
-        .or_else(|| {
-            let home = home?;
-            KEY_FILES.iter().find_map(|file| env_file_value(&read_small(&home.join(file))?, "AIDER_MODEL"))
-        })
-        .or_else(|| {
-            let text = read_small(&home?.join(".aider.conf.yml"))?;
-            model_in_conf(&text)
-        })
+        .or_else(|| files.conf.iter().find_map(|file| model_in_conf(&read_small(file)?)))
 }
 
 /// The last `--model` in the extra arguments, since Aider's parser keeps the last one.
 fn model_in_args(args: &[String]) -> Option<String> {
+    flag_value(args, "--model")
+}
+
+/// The last value of `flag` in the extra arguments, as `flag value` or `flag=value`.
+fn flag_value(args: &[String], flag: &str) -> Option<String> {
+    let joined = format!("{flag}=");
     let mut found = None;
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
-        let value = if arg == "--model" { rest.next().map(String::as_str) } else { arg.strip_prefix("--model=") };
+        let value = if arg == flag { rest.next().map(String::as_str) } else { arg.strip_prefix(joined.as_str()) };
         if let Some(value) = value {
             let value = value.trim();
             found = (!value.is_empty()).then(|| value.to_string());
@@ -195,16 +235,14 @@ fn key_in_args(args: &[String], name: &str) -> bool {
 
 /// Whether a key is set in the environment (bare or `AIDER_`-prefixed), in Aider's arguments,
 /// or in one of its key or config files.
-fn key_seen(name: &str, options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, home: Option<&Path>) -> bool {
+fn key_seen(name: &str, options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, files: &Files) -> bool {
     let prefixed = format!("AIDER_{name}");
     let names = [name, prefixed.as_str()];
     if names.iter().any(|n| env(n).is_some_and(|v| !v.trim().is_empty())) || key_in_args(&options.args, name) {
         return true;
     }
-    home.is_some_and(|home| {
-        KEY_FILES.iter().any(|file| read_small(&home.join(file)).is_some_and(|text| names.iter().any(|n| env_file_value(&text, n).is_some())))
-            || read_small(&home.join(".aider.conf.yml")).is_some_and(|text| conf_sets_key(&text, name))
-    })
+    files.env.iter().any(|file| read_small(file).is_some_and(|text| names.iter().any(|n| env_file_value(&text, n).is_some())))
+        || files.conf.iter().any(|file| read_small(file).is_some_and(|text| conf_sets_key(&text, name)))
 }
 
 /// The value of `NAME=value` in a dotenv file, with or without `export` and around quotes.
@@ -235,9 +273,9 @@ fn read_small(path: &Path) -> Option<String> {
 
 /// Refuse when Aider would offer its OpenRouter sign-in, which opens a page and waits five minutes
 /// for an answer nobody can give. Otherwise a run is left to Aider's own error for that key.
-fn check_setup(options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, home: Option<&Path>) -> Result<(), ToolError> {
-    match configured_model(options, env, home) {
-        None if DEFAULT_MODEL_KEYS.iter().any(|key| key_seen(key, options, env, home)) => Ok(()),
+fn check_setup(options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, files: &Files) -> Result<(), ToolError> {
+    match configured_model(options, env, files) {
+        None if DEFAULT_MODEL_KEYS.iter().any(|key| key_seen(key, options, env, files)) => Ok(()),
         None => Err(ToolError::new(
             ErrorCode::BadSettings,
             "Aider has no model or API key set up, so it would offer to sign in to OpenRouter and wait for a browser nobody is at.",
@@ -245,7 +283,7 @@ fn check_setup(options: &BackendOptions, env: &dyn Fn(&str) -> Option<String>, h
         .with_remediation(
                         "Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY or OPENAI_API_KEY for the computer Craft Anything runs on, or name a model in Aider's own ~/.aider.conf.yml. Aider's ~/.env counts too.",
         )),
-        Some(model) if model.starts_with("openrouter/") && !key_seen("OPENROUTER_API_KEY", options, env, home) => Err(ToolError::new(
+        Some(model) if model.starts_with("openrouter/") && !key_seen("OPENROUTER_API_KEY", options, env, files) => Err(ToolError::new(
             ErrorCode::BadSettings,
             format!("Aider's model {model} needs an OpenRouter API key, and without one it would offer to sign in to OpenRouter and wait for a browser nobody is at."),
         )
@@ -265,7 +303,12 @@ mod tests {
 
     /// A check with no keys in the environment and no home folder, as on a fresh computer.
     fn no_keys(options: &BackendOptions) -> Result<(), ToolError> {
-        check_setup(options, &|_| None, None)
+        check_setup(options, &|_| None, &at_home(None))
+    }
+
+    /// The files of a run outside any project, with this home folder.
+    fn at_home(home: Option<&Path>) -> Files {
+        Files::for_run(None, home, None)
     }
 
     #[test]
@@ -318,7 +361,7 @@ mod tests {
     #[test]
     fn a_key_alone_lets_aider_pick_its_own_model() {
         let env = |name: &str| (name == "OPENAI_API_KEY").then(|| "sk-test".to_string());
-        assert!(check_setup(&BackendOptions::default(), &env, None).is_ok());
+        assert!(check_setup(&BackendOptions::default(), &env, &at_home(None)).is_ok());
     }
 
     #[test]
@@ -328,30 +371,30 @@ mod tests {
         assert!(err.message.contains("OpenRouter API key"), "{}", err.message);
         assert!(err.remediation.unwrap_or_default().contains("OPENROUTER_API_KEY"));
         let env = |name: &str| (name == "OPENROUTER_API_KEY").then(|| "sk-test".to_string());
-        assert!(check_setup(&options, &env, None).is_ok());
+        assert!(check_setup(&options, &env, &at_home(None)).is_ok());
     }
 
     #[test]
     fn a_model_and_key_in_aiders_own_files_count() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".aider.conf.yml"), "# my settings\nmodel: gemini/gemini-2.5-pro\nauto-commits: false\n").unwrap();
-        assert!(check_setup(&BackendOptions::default(), &|_| None, Some(dir.path())).is_ok(), "a model in Aider's config is a model");
+        assert!(check_setup(&BackendOptions::default(), &|_| None, &at_home(Some(dir.path()))).is_ok(), "a model in Aider's config is a model");
 
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(dir.path().join(".aider")).unwrap();
         std::fs::write(dir.path().join(".aider/oauth-keys.env"), "OPENROUTER_API_KEY=\"sk-test\"\n").unwrap();
         let options = BackendOptions { cli_model: Some("openrouter/anthropic/claude-sonnet-4".into()), ..Default::default() };
-        assert!(check_setup(&options, &|_| None, Some(dir.path())).is_ok(), "Aider's saved sign-in key counts");
+        assert!(check_setup(&options, &|_| None, &at_home(Some(dir.path()))).is_ok(), "Aider's saved sign-in key counts");
     }
 
     #[test]
     fn a_key_passed_in_aiders_own_arguments_counts() {
         let options = BackendOptions { args: vec!["--api-key".into(), "openrouter=sk-test".into()], ..Default::default() };
         assert!(key_in_args(&options.args, "OPENROUTER_API_KEY"));
-        assert!(check_setup(&options, &|_| None, None).is_ok(), "a key in the arguments is enough for Aider to pick a model");
+        assert!(check_setup(&options, &|_| None, &at_home(None)).is_ok(), "a key in the arguments is enough for Aider to pick a model");
         let options = BackendOptions { args: vec!["--model=anthropic/claude-sonnet-4".into()], ..Default::default() };
         assert_eq!(model_in_args(&options.args).as_deref(), Some("anthropic/claude-sonnet-4"));
-        assert!(check_setup(&options, &|_| None, None).is_ok());
+        assert!(check_setup(&options, &|_| None, &at_home(None)).is_ok());
     }
 
     #[test]
@@ -363,18 +406,98 @@ mod tests {
     #[test]
     fn an_aider_prefixed_variable_counts_as_a_key() {
         let env = |name: &str| (name == "AIDER_OPENAI_API_KEY").then(|| "sk-test".to_string());
-        assert!(check_setup(&BackendOptions::default(), &env, None).is_ok());
+        assert!(check_setup(&BackendOptions::default(), &env, &at_home(None)).is_ok());
     }
 
     #[test]
     fn a_model_or_key_in_the_home_dotenv_or_config_list_counts() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".env"), "AIDER_MODEL=gpt-4o\n").unwrap();
-        assert!(check_setup(&BackendOptions::default(), &|_| None, Some(dir.path())).is_ok());
+        assert!(check_setup(&BackendOptions::default(), &|_| None, &at_home(Some(dir.path()))).is_ok());
 
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".aider.conf.yml"), "api-key:\n  - openai=sk-test\n").unwrap();
-        assert!(check_setup(&BackendOptions::default(), &|_| None, Some(dir.path())).is_ok());
+        assert!(check_setup(&BackendOptions::default(), &|_| None, &at_home(Some(dir.path()))).is_ok());
+    }
+
+    /// A project's own settings count, where Aider itself reads them: the folder it runs in and the
+    /// top of its git repository.
+    #[test]
+    fn a_model_or_key_in_the_projects_own_files_counts() {
+        let (home, project) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let app = project.path().join("app");
+        std::fs::create_dir_all(&app).unwrap();
+        let check = |options: &BackendOptions| check_setup(options, &|_| None, &Files::for_run(Some(&app), Some(home.path()), None));
+        assert!(check(&BackendOptions::default()).is_err(), "nothing set up anywhere");
+        std::fs::write(app.join(".aider.conf.yml"), "model: gpt-4o\n").unwrap();
+        assert!(check(&BackendOptions::default()).is_ok(), "a model in the run's folder");
+
+        let openrouter = BackendOptions { cli_model: Some("openrouter/anthropic/claude-sonnet-4".into()), ..Default::default() };
+        assert!(check(&openrouter).is_err());
+        std::fs::write(project.path().join(".env"), "OPENROUTER_API_KEY=sk-test\n").unwrap();
+        assert!(check(&openrouter).is_err(), "not a git repository, so Aider doesn't read its top");
+        std::fs::create_dir(project.path().join(".git")).unwrap();
+        assert!(check(&openrouter).is_err(), "an empty .git folder isn't a repository to GitPython");
+        std::fs::write(project.path().join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        assert!(check(&openrouter).is_ok(), "a key at the top of the git repository");
+        std::fs::remove_dir_all(project.path().join(".git")).unwrap();
+        std::fs::write(project.path().join(".git"), "gitdir: /elsewhere/.git/worktrees/app\n").unwrap();
+        assert!(check(&openrouter).is_ok(), "a worktree's .git file marks its top too");
+        assert!(check_setup(&openrouter, &|_| None, &at_home(Some(home.path()))).is_err(), "a run without a folder reads only the home folder");
+    }
+
+    /// The file Aider loads last decides the model: the run's folder over the home folder.
+    #[test]
+    fn the_projects_model_wins_over_the_home_folders() {
+        let (home, app) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let check = || check_setup(&BackendOptions::default(), &|_| None, &Files::for_run(Some(app.path()), Some(home.path()), None));
+        std::fs::write(home.path().join(".aider.conf.yml"), "model: openrouter/anthropic/claude-sonnet-4\n").unwrap();
+        std::fs::write(app.path().join(".aider.conf.yml"), "model: gpt-4o\n").unwrap();
+        assert!(check().is_ok(), "the project's model needs no OpenRouter key");
+        std::fs::write(home.path().join(".aider.conf.yml"), "model: gpt-4o\n").unwrap();
+        std::fs::write(app.path().join(".aider.conf.yml"), "model: openrouter/anthropic/claude-sonnet-4\n").unwrap();
+        assert!(check().unwrap_err().message.contains("OpenRouter API key"), "the project's OpenRouter model needs its key");
+    }
+
+    /// Aider loads its `.env` files over the environment, so a model there wins over one set
+    /// outside it.
+    #[test]
+    fn a_dotenv_model_wins_over_the_environments() {
+        let app = tempfile::tempdir().unwrap();
+        std::fs::write(app.path().join(".env"), "AIDER_MODEL=openrouter/anthropic/claude-sonnet-4\n").unwrap();
+        let env = |name: &str| match name {
+            "AIDER_MODEL" => Some("gpt-4o".to_string()),
+            "OPENAI_API_KEY" => Some("sk-test".to_string()),
+            _ => None,
+        };
+        let err = check_setup(&BackendOptions::default(), &env, &Files::for_run(Some(app.path()), None, None)).unwrap_err();
+        assert!(err.message.contains("OpenRouter API key"), "{}", err.message);
+    }
+
+    /// An `--env-file` in Aider's arguments loads after every default `.env`, so it wins.
+    #[test]
+    fn a_named_env_file_wins_over_the_default_ones() {
+        let app = tempfile::tempdir().unwrap();
+        std::fs::write(app.path().join(".env"), "AIDER_MODEL=gpt-4o\n").unwrap();
+        std::fs::write(app.path().join(".env.aider"), "AIDER_MODEL=openrouter/anthropic/claude-sonnet-4\n").unwrap();
+        let options = BackendOptions { args: vec!["--env-file".into(), ".env.aider".into()], ..Default::default() };
+        let files = Files::for_run(Some(app.path()), None, flag_value(&options.args, "--env-file").as_deref());
+        assert!(check_setup(&options, &|_| None, &files).unwrap_err().message.contains("OpenRouter API key"));
+        assert!(check_setup(&options, &|_| None, &Files::for_run(Some(app.path()), None, None)).is_ok(), "without it the project's .env decides");
+    }
+
+    /// A project reached through a link is read where it really is, with its real repository.
+    #[cfg(unix)]
+    #[test]
+    fn a_linked_project_finds_its_real_repository() {
+        let (real, links) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let app = real.path().join("app");
+        std::fs::create_dir_all(real.path().join(".git")).unwrap();
+        std::fs::write(real.path().join(".git/HEAD"), "ref: refs/heads/main\n").unwrap();
+        std::fs::create_dir(&app).unwrap();
+        std::fs::write(real.path().join(".aider.conf.yml"), "model: gpt-4o\n").unwrap();
+        std::os::unix::fs::symlink(&app, links.path().join("app")).unwrap();
+        assert!(check_setup(&BackendOptions::default(), &|_| None, &Files::for_run(Some(&links.path().join("app")), None, None)).is_ok());
     }
 
     #[test]

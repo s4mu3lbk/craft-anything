@@ -272,6 +272,17 @@ mod tests {
     }
 
     #[test]
+    fn named_game_frameworks_do_not_select_an_editor() {
+        for (request, name) in [("Make a game in Phaser with Vite", "Phaser"), ("Make a game using Bevy", "Bevy")] {
+            let stack = asked_for(&words(request)).unwrap();
+            assert_eq!(stack.name, name);
+            assert!(stack.engine.is_none());
+            assert_eq!(resolve(name), Some(stack));
+        }
+        assert!(asked_for(&words("a game with a phaser cannon")).is_none());
+    }
+
+    #[test]
     fn named_stacks_and_placeholders() {
         assert_eq!(asked_for(&words("A tool in Python.")).map(|s| s.name.as_str()), Some("Python"));
         assert_eq!(asked_for(&words("a page with react")).map(|s| s.name.as_str()), Some("React + TypeScript (Vite)"));

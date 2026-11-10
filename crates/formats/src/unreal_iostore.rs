@@ -247,11 +247,12 @@ pub fn files(toc: &Toc, limit: usize) -> Result<(String, Vec<File>, usize), Form
             let Some(seen) = seen_files.get_mut(f as usize).filter(|s| !**s) else { break };
             *seen = true;
             let [n, next, chunk] = file_entries[f as usize];
+            let file_name = name(n).ok_or_else(|| FormatError::Malformed(format!("IoStore file {f} names missing string {n}")))?;
+            let &(_, size) = toc.chunks.get(chunk as usize).ok_or_else(|| FormatError::Malformed(format!("IoStore file {f} names missing chunk {chunk}")))?;
             total += 1;
             if out.len() < limit {
                 let (stored_size, compression) = toc.stored(chunk as usize);
-                let size = toc.chunks.get(chunk as usize).map_or(0, |c| c.1);
-                out.push(File { path: format!("{path}{}", name(n).unwrap_or("?")), size, stored_size, compression, chunk });
+                out.push(File { path: format!("{path}{file_name}"), size, stored_size, compression, chunk });
             }
             f = next;
         }
@@ -259,7 +260,9 @@ pub fn files(toc: &Toc, limit: usize) -> Result<(String, Vec<File>, usize), Form
         let mut guard = 0;
         while child != NONE && (child as usize) < dirs.len() && guard < dirs.len() {
             guard += 1;
-            stack.push((child, format!("{path}{}/", name(dirs[child as usize][0]).unwrap_or("?"))));
+            let n = dirs[child as usize][0];
+            let dir_name = name(n).ok_or_else(|| FormatError::Malformed(format!("IoStore directory {child} names missing string {n}")))?;
+            stack.push((child, format!("{path}{dir_name}/")));
             child = dirs[child as usize][2];
         }
     }
@@ -272,6 +275,22 @@ mod tests {
 
     fn sample(flags: u8) -> Vec<u8> {
         craft_anything_testkit::games::unreal_utoc(flags, NONE)
+    }
+
+    #[test]
+    fn directory_rows_do_not_invent_names_or_empty_chunks() {
+        let archive = sample(9);
+        let original = toc(&archive).unwrap();
+        // Mount FString, directory count, three directories, file count, then file records.
+        let dirs = 4 + "../../../".len() + 1 + 4;
+        let first_file = dirs + 3 * 16 + 4;
+        for (at, missing) in [(dirs + 16, "string"), (first_file, "string"), (first_file + 8, "chunk")] {
+            let mut changed = original.clone();
+            changed.directory_index[at..at + 4].copy_from_slice(&999u32.to_le_bytes());
+            for limit in [0, 1, 10] {
+                assert!(matches!(files(&changed, limit), Err(FormatError::Malformed(why)) if why.contains(missing)));
+            }
+        }
     }
 
     #[test]

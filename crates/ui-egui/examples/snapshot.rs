@@ -27,6 +27,8 @@ fn render(out: &std::path::Path, name: &str, w: f32, h: f32, scale: f32, make: i
         egui_kittest::Harness::builder().with_size(egui::vec2(w, h)).with_pixels_per_point(scale).with_max_steps(64).wgpu().build_eframe(move |cc| {
             CraftApp::setup_context(&cc.egui_ctx);
             let mut app = make();
+            // A made-up folder: the default names the account of whoever renders the pictures.
+            app.settings.projects_dir = Some(PathBuf::from("~/Documents/Craft Anything"));
             app.settings.language = LANG.get().cloned().unwrap_or_else(|| "en".into());
             craft_anything_ui_egui::i18n::set_language(&app.settings.language);
             app

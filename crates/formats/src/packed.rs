@@ -110,40 +110,37 @@ pub fn read_stored(data: &[u8], entry: &PackedEntry, max_bytes: u64) -> Result<V
             _ => FormatError::Malformed(format!("the compressed data of {} is damaged", entry.path)),
         })
     };
-    match entry.compression {
+    let decoded = match entry.compression {
         Compression::None if raw.len() as u64 > max_bytes => Err(too_large()),
         Compression::None => Ok(raw.to_vec()),
         Compression::Deflate => inflate(miniz_oxide::inflate::decompress_to_vec_with_limit(raw, cap)),
         Compression::Zlib => inflate(miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(raw, cap)),
-        Compression::Gzip => {
-            let body = gzip_body(raw).ok_or_else(|| FormatError::Malformed(format!("the gzip header of {} is damaged", entry.path)))?;
-            inflate(miniz_oxide::inflate::decompress_to_vec_with_limit(body, cap))
-        }
+        Compression::Gzip => read_gzip(raw, max_bytes).map_err(|error| match error {
+            crate::firmware::InflateError::TooLarge => too_large(),
+            _ => FormatError::Malformed(format!("the gzip data of {} is damaged: {error}", entry.path)),
+        }),
         Compression::Zstd => decompress::zstd(raw, max_bytes).map_err(|e| FormatError::Malformed(format!("{}: {e}", entry.path))),
         Compression::Unreadable => Err(FormatError::Unsupported(format!("{} is stored in a way we can't read back", entry.path))),
+    }?;
+    if entry.size.is_some_and(|size| size != decoded.len() as u64) {
+        return Err(FormatError::Malformed(format!("the unpacked size of {} differs from its manifest", entry.path)));
     }
+    Ok(decoded)
 }
 
-/// The deflate stream after a gzip header.
-fn gzip_body(raw: &[u8]) -> Option<&[u8]> {
-    if raw.get(..3)? != [0x1f, 0x8b, 8] {
-        return None;
+/// Read every gzip member and verify its trailer before returning any bytes.
+fn read_gzip(mut raw: &[u8], max_bytes: u64) -> Result<Vec<u8>, crate::firmware::InflateError> {
+    if raw.is_empty() {
+        return Err(crate::firmware::InflateError::Corrupt);
     }
-    let flags = *raw.get(3)?;
-    let mut pos = 10usize;
-    if flags & 4 != 0 {
-        let extra = u16::from_le_bytes([*raw.get(pos)?, *raw.get(pos + 1)?]) as usize;
-        pos = pos.checked_add(2)?.checked_add(extra)?;
+    let mut output = Vec::new();
+    while !raw.is_empty() {
+        let remaining = max_bytes.saturating_sub(output.len() as u64);
+        let (member, consumed) = crate::firmware::gunzip(raw, remaining)?;
+        output.extend_from_slice(&member);
+        raw = raw.get(consumed..).ok_or(crate::firmware::InflateError::Truncated)?;
     }
-    for bit in [8u8, 16] {
-        if flags & bit != 0 {
-            pos = pos.checked_add(raw.get(pos..)?.iter().position(|b| *b == 0)?)?.checked_add(1)?;
-        }
-    }
-    if flags & 2 != 0 {
-        pos = pos.checked_add(2)?;
-    }
-    raw.get(pos..)
+    Ok(output)
 }
 
 #[cfg(test)]
@@ -152,6 +149,22 @@ mod tests {
 
     fn entry(offset: u64, stored_size: u64, compression: Compression) -> PackedEntry {
         PackedEntry { path: "a".into(), offset, stored_size, size: None, compression, kind: None }
+    }
+
+    #[test]
+    fn member_sizes_must_match_the_manifest() {
+        let raw = b"hello";
+        let zlib = miniz_oxide::deflate::compress_to_vec_zlib(raw, 6);
+        let deflate = miniz_oxide::deflate::compress_to_vec(raw, 6);
+        for (bytes, kind) in [(raw.as_slice(), Compression::None), (&zlib, Compression::Zlib), (&deflate, Compression::Deflate)] {
+            let mut member = entry(0, bytes.len() as u64, kind);
+            for declared in [4, 6] {
+                member.size = Some(declared);
+                assert!(matches!(read_stored(bytes, &member, 100), Err(FormatError::Malformed(_))));
+            }
+            member.size = Some(5);
+            assert_eq!(read_stored(bytes, &member, 100).unwrap(), raw);
+        }
     }
 
     #[test]
@@ -184,10 +197,44 @@ mod tests {
         g.extend([2, 0, 9, 9]);
         g.extend(b"name\0");
         g.extend(b"comment\0");
-        g.extend([0, 0]);
+        g.extend((crate::firmware::crc32(&g) as u16).to_le_bytes());
         g.extend(miniz_oxide::deflate::compress_to_vec(&body, 6));
+        g.extend(crate::firmware::crc32(&body).to_le_bytes());
+        g.extend((body.len() as u32).to_le_bytes());
         assert_eq!(read_stored(&g, &entry(0, g.len() as u64, Compression::Gzip), 100).unwrap(), body);
         assert!(read_stored(b"\x1f\x8b\x08\x04", &entry(0, 4, Compression::Gzip), 100).is_err());
+    }
+
+    #[test]
+    fn gzip_members_require_complete_valid_trailers() {
+        let original = craft_anything_testkit::firmware::gzip(b"payload", None);
+        for trailer_byte in [original.len() - 8, original.len() - 4] {
+            let mut damaged = original.clone();
+            damaged[trailer_byte] ^= 1;
+            assert!(matches!(read_stored(&damaged, &entry(0, damaged.len() as u64, Compression::Gzip), 100), Err(FormatError::Malformed(_))));
+        }
+        for missing in 1..=8 {
+            let truncated = &original[..original.len() - missing];
+            assert!(read_stored(truncated, &entry(0, truncated.len() as u64, Compression::Gzip), 100).is_err());
+        }
+        let mut trailing = original.clone();
+        trailing.extend_from_slice(b"garbage");
+        assert!(read_stored(&trailing, &entry(0, trailing.len() as u64, Compression::Gzip), 100).is_err());
+        assert!(read_stored(b"", &entry(0, 0, Compression::Gzip), 100).is_err());
+    }
+
+    #[test]
+    fn gzip_concatenation_shares_the_output_limit() {
+        let first = craft_anything_testkit::firmware::gzip(b"first", Some("one"));
+        let empty = craft_anything_testkit::firmware::gzip(b"", None);
+        let last = craft_anything_testkit::firmware::gzip(b"last", None);
+        let data = [first, empty.clone(), last].concat();
+        let mut member = entry(0, data.len() as u64, Compression::Gzip);
+        assert_eq!(read_stored(&data, &member, 9).unwrap(), b"firstlast");
+        assert!(matches!(read_stored(&data, &member, 8), Err(FormatError::TooLarge(_))));
+        member.size = Some(5);
+        assert!(matches!(read_stored(&data, &member, 100), Err(FormatError::Malformed(_))));
+        assert!(read_stored(&empty, &entry(0, empty.len() as u64, Compression::Gzip), 0).unwrap().is_empty());
     }
 
     #[test]

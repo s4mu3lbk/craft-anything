@@ -248,8 +248,10 @@ fn project_pins_list(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Too
     };
     let runs = runs(ctx);
     let mut out = Vec::new();
+    let mut copied_bytes = 0u64;
     for ws in &projects {
         for pin in pins::list(ws) {
+            copied_bytes = copied_bytes.saturating_add(pin.bytes);
             let running = runs.running(&pin.app_dir(ws));
             out.push(json!({
                 "project": ws.root.display().to_string(),
@@ -261,7 +263,7 @@ fn project_pins_list(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Too
             }));
         }
     }
-    Ok(ToolOutput::Value(json!({"count": out.len(), "pins": out})))
+    Ok(ToolOutput::Value(json!({"count": out.len(), "pins": out, "copied_bytes": copied_bytes})))
 }
 
 fn project_pin_open(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
@@ -374,10 +376,11 @@ mod tests {
         assert!(pins::list(&ws).is_empty(), "an estimate pins nothing");
         let made = call("project_pin_create", json!({"project": ws.root})).unwrap();
         assert_eq!(made["pin"]["mode"], "frozen");
-        call("project_pin_create", json!({"project": ws.root, "mode": "light", "name": "Latest"})).unwrap();
+        let light = call("project_pin_create", json!({"project": ws.root, "mode": "light", "name": "Latest"})).unwrap();
 
         let list = call("project_pins_list", json!({"project": ws.root})).unwrap();
         assert_eq!(list["count"], 2);
+        assert_eq!(list["copied_bytes"], made["pin"]["bytes"].as_u64().unwrap() + light["pin"]["bytes"].as_u64().unwrap());
         assert_eq!(list["pins"][1]["pin"]["name"], "Latest");
         assert_eq!(list["pins"][0]["running"], false);
 
@@ -386,6 +389,7 @@ mod tests {
         call("project_pin_delete", json!({"project": ws.root, "pin": 1, "confirm": true})).unwrap();
         let list = call("project_pins_list", json!({"project": ws.root})).unwrap();
         assert_eq!(list["count"], 1);
+        assert_eq!(list["copied_bytes"], light["pin"]["bytes"]);
         assert_eq!(call("project_pin_open", json!({"project": ws.root, "pin": 1})).unwrap_err().code, ErrorCode::NotFound);
     }
 }

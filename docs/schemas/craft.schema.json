@@ -19,6 +19,13 @@
         "null"
       ]
     },
+    "agent_session_deep": {
+      "description": "The mode `agent_session` was saved in (`true`: Deep); none: saved before the mode was\nkept, so it is only resumed in Deep (it may have read the original there).",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
     "allowed_actions": {
       "description": "Kinds of agent action the person allowed for this workspace (\"bash:npm\", \"web_fetch\"…).",
       "type": "array",
@@ -77,6 +84,10 @@
       "type": "integer",
       "format": "uint64",
       "minimum": 0
+    },
+    "decompiled": {
+      "description": "The builder has read the original's code (a decompiled function) in this project, in any run.\nDeep mode reminds a builder that hasn't; kept here because every request starts a new run, so\na run-only flag repeated the reminder after each request. An older build drops it when it\nsaves, which costs at most one more reminder, so the format version stays.",
+      "type": "boolean"
     },
     "generate_assets": {
       "description": "The person lets the builder generate pictures and 3D models (paid, so off until they turn\nit on; it also needs a key for an asset provider).",

@@ -157,6 +157,7 @@ pub enum Done {
     },
     /// What a scan found, and why an expected coding agent may be missing.
     Detected(Vec<Detected>, Vec<craft_anything_ai::detect::DetectHint>),
+    AgentConnection(String, Result<String, String>),
     /// The configured backends, the ones chosen to build with and to extract with, and each one's
     /// options.
     Backends(Vec<BackendConfig>, Option<String>, Option<String>, std::collections::BTreeMap<String, craft_anything_ai::BackendOptions>),
@@ -279,6 +280,9 @@ pub struct ServerForm {
     /// Empty: the first model it lists that can chat.
     pub model: String,
     pub key: String,
+    /// The server being asked for its models (the job, its name, when it started); the form says
+    /// it's connecting and for how long (#1429).
+    pub connecting: Option<(u64, String, Instant)>,
 }
 
 /// What a file dialog was for.
@@ -453,6 +457,10 @@ pub struct CraftApp {
     /// Why an expected coding agent may be missing, from the last scan.
     pub detect_hints: Vec<craft_anything_ai::detect::DetectHint>,
     pub detecting: bool,
+    /// Local agent checks: None while the worker runs, then a credential-free status or error.
+    pub agent_connections: std::collections::BTreeMap<String, Option<Result<String, String>>>,
+    /// Which agent owns each pending check, including failures before the worker body starts.
+    pub(crate) agent_connection_jobs: std::collections::BTreeMap<u64, String>,
     /// Counts AI choices, so an add that finishes later doesn't undo one made meanwhile.
     pub backend_choices: u64,
     pub log: Vec<LogLine>,
@@ -489,6 +497,7 @@ pub struct CraftApp {
     pub asked: std::collections::HashMap<PathBuf, Vec<just_ask::Asked>>,
     /// Every project's pinned builds, and whether they're running (read by `refresh_pins`).
     pub pins: Vec<pins::PinRow>,
+    pub pinned_copy_bytes: Option<u64>,
     pub pins_read_at: Option<Instant>,
     /// An address to open in the browser on the next frame (set from a worker's result).
     open_url: Option<String>,
@@ -572,6 +581,8 @@ impl CraftApp {
             detected: None,
             detect_hints: Vec::new(),
             detecting: false,
+            agent_connections: Default::default(),
+            agent_connection_jobs: Default::default(),
             backend_choices: 0,
             log: Vec::new(),
             key_inputs: Default::default(),
@@ -589,6 +600,7 @@ impl CraftApp {
             projects: Vec::new(),
             preview: None,
             pins: Vec::new(),
+            pinned_copy_bytes: None,
             asked: Default::default(),
             pins_read_at: None,
             open_url: None,
@@ -1210,6 +1222,21 @@ impl CraftApp {
         self.jobs.spawn("Look for AI on this computer", true, move |_| Ok(Done::Detected(hub.detect(), hub.detect_hints())));
     }
 
+    /// Check a selected local agent through the headless API without blocking the UI.
+    pub fn check_agent_connection(&mut self, name: String) {
+        if self.agent_connections.get(&name) == Some(&None) {
+            return;
+        }
+        self.agent_connections.insert(name.clone(), None);
+        let hub = self.hub.clone();
+        let agent = name.clone();
+        let job = self.jobs.spawn("Check", true, move |_| {
+            let status = hub.test_backend(&agent).map(|report| report.reply).map_err(|error| error.for_people());
+            Ok(Done::AgentConnection(agent, status))
+        });
+        self.agent_connection_jobs.insert(job, name);
+    }
+
     pub fn add_backend(&mut self, config: BackendConfig, key: Option<String>) {
         let hub = self.hub.clone();
         let name = config.name.clone();
@@ -1390,16 +1417,23 @@ impl CraftApp {
     /// Apply a completed background job, reporting failures and accepting picker results only for matching requests.
     fn handle_done(&mut self, done: jobs::Finished<Done>) {
         let job = done.job;
+        let checked_agent = self.agent_connection_jobs.remove(&job);
         if self.saving == Some(job) {
             self.saving = None;
         }
         if self.creating == Some(job) {
             self.creating = None;
         }
+        if self.server_form.connecting.as_ref().is_some_and(|(id, ..)| *id == job) {
+            self.server_form.connecting = None;
+        }
         self.chat_jobs.retain(|id| *id != job);
         let done = match done.result {
             Ok(d) => d,
             Err(e) => {
+                if let Some(agent) = checked_agent {
+                    self.agent_connections.insert(agent, Some(Err(e.clone())));
+                }
                 self.detecting = false;
                 self.facts_read(job, None);
                 // A failed or cancelled engine download frees the button to try again.
@@ -1473,6 +1507,9 @@ impl CraftApp {
                 self.detecting = false;
                 self.log(false, format!("Found {} AI option(s) on this computer", d.len()));
                 self.detected = Some(d);
+            }
+            Done::AgentConnection(name, result) => {
+                self.agent_connections.insert(name, Some(result));
             }
             Done::Backends(b, builder, extractor, options) => {
                 if self.state.backend.as_ref().is_some_and(|n| !b.iter().any(|c| &c.name == n)) {
@@ -1574,6 +1611,7 @@ impl CraftApp {
                     }
                     self.refresh_backends();
                 }
+                Err(e) if e.code == ErrorCode::Cancelled => self.toast(i18n::trf("Stopped adding {name}.", &[("name", &name)]), false),
                 Err(e) => self.toast(e.for_people(), true),
             },
             Done::Picked { pick, path } => {

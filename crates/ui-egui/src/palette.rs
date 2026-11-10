@@ -167,7 +167,7 @@ pub fn show(app: &mut CraftApp, ctx: &egui::Context) {
                         let tag_g = ui.painter().layout_no_wrap(tag, egui::FontId::proportional(theme::TINY), t.text_dim);
                         let tr_ =
                             egui::Rect::from_min_size(egui::pos2(rect.right() - tag_g.size().x - 18.0, rect.top() + 6.0), tag_g.size() + Vec2::new(10.0, 4.0));
-                        ui.painter().rect_filled(tr_, 6.0, t.raised);
+                        ui.painter().rect_filled(tr_, t.r_sm(), t.raised);
                         ui.painter().galley(tr_.min + Vec2::new(5.0, 2.0), tag_g, t.text_dim);
                         if r.clicked() {
                             chosen = Some(i);

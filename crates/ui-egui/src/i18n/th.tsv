@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	อัต�
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: เราอ่านโค้ด ไฟล์ และซอร์สของมันด้วยเครื่องมือทั้งหมด และใช้ดีคอมไพเลอร์ภายนอกเมื่อติดตั้งไว้ คลิกเพื่อสลับ
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} ยังไม่ได้ติดตั้ง จึงใช้ดีคอมไพเลอร์ในตัวแทน เลือกเอนจินใน การตั้งค่า → เอนจิน
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ยังไม่มีในคอมพิวเตอร์นี้ จึงใช้ดีคอมไพเลอร์ในตัวแทน
+Connecting to {name}… {seconds} s	กำลังเชื่อมต่อกับ {name}… {seconds} วินาที
+Stopped adding {name}.	หยุดเพิ่ม {name} แล้ว

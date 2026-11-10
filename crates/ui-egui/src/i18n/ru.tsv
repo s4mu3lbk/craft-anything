@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	Автом
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Глубокий: мы читаем его код, файлы и исходник страницы всеми инструментами, а также внешним декомпилятором, если он установлен. Нажмите, чтобы переключить.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} не установлен, поэтому используется встроенный декомпилятор. Выберите движок в Настройки → Движки.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ещё нет на этом компьютере, поэтому используется встроенный декомпилятор.
+Connecting to {name}… {seconds} s	Подключение к {name}… {seconds} с
+Stopped adding {name}.	Добавление {name} остановлено.

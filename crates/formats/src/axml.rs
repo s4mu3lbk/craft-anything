@@ -303,6 +303,8 @@ pub fn parse(data: &[u8]) -> Result<Document, FormatError> {
     if t != RES_XML {
         return Err(FormatError::Malformed(format!("not binary XML (chunk type {t:#x})")));
     }
+    let data = r.slice(0, size).ok_or_else(|| FormatError::Truncated("binary XML document".into()))?;
+    let r = Reader::new(data);
     let mut doc = Document::default();
     let mut res_map: Vec<u32> = Vec::new();
     let mut pos = h;
@@ -310,9 +312,21 @@ pub fn parse(data: &[u8]) -> Result<Document, FormatError> {
     let mut ns_stack: Vec<(String, String)> = Vec::new();
     while pos < size {
         let Some((ct, ch, cs)) = chunk(&r, pos) else {
+            doc.truncated = true;
             doc.warnings.push(format!("unreadable chunk at offset {pos}"));
             break;
         };
+        let extension = match ct {
+            XML_START_NS | XML_END_NS | XML_END_ELEMENT => 8,
+            XML_START_ELEMENT => 20,
+            XML_CDATA => 12,
+            _ => 0,
+        };
+        if extension != 0 && (ch < 16 || cs - ch < extension) {
+            doc.truncated = true;
+            doc.warnings.push(format!("incomplete XML node at offset {pos}"));
+            break;
+        }
         match ct {
             RES_STRING_POOL => match StringPool::parse(data, pos) {
                 Ok(p) => doc.pool = p,
@@ -324,8 +338,8 @@ pub fn parse(data: &[u8]) -> Result<Document, FormatError> {
                 doc.resource_ids = res_map.len();
             }
             XML_START_NS | XML_END_NS => {
-                let prefix = r.u32_le(pos + 16).and_then(|i| doc.pool.get(i)).unwrap_or("").to_string();
-                let uri = r.u32_le(pos + 20).and_then(|i| doc.pool.get(i)).unwrap_or("").to_string();
+                let prefix = r.u32_le(pos + ch).and_then(|i| doc.pool.get(i)).unwrap_or("").to_string();
+                let uri = r.u32_le(pos + ch + 4).and_then(|i| doc.pool.get(i)).unwrap_or("").to_string();
                 if ct == XML_START_NS {
                     if doc.namespaces.len() < 256 {
                         doc.namespaces.push((prefix.clone(), uri.clone()));
@@ -350,13 +364,26 @@ pub fn parse(data: &[u8]) -> Result<Document, FormatError> {
                 let ns = r.u32_le(ext).and_then(|i| doc.pool.get(i)).map(str::to_string);
                 let name = r.u32_le(ext + 4).and_then(|i| doc.pool.get(i)).unwrap_or("?").to_string();
                 let a_start = usize::from(r.u16_le(ext + 8).unwrap_or(20));
-                let a_size = usize::from(r.u16_le(ext + 10).unwrap_or(20)).max(20);
+                let a_size = usize::from(r.u16_le(ext + 10).unwrap_or(20));
                 let a_count = usize::from(r.u16_le(ext + 12).unwrap_or(0));
+                if a_count != 0 && (a_start < 20 || a_size < 20) {
+                    doc.truncated = true;
+                    doc.warnings.push(format!("element {name}: invalid attribute table layout"));
+                    break;
+                }
                 let mut attributes = Vec::new();
                 for i in 0..a_count {
-                    let Some(a) = ext.checked_add(a_start).and_then(|x| x.checked_add(i * a_size)) else { break };
-                    if a + 20 > pos + cs {
+                    let relative = a_start + i * a_size;
+                    if relative.checked_add(a_size).is_none_or(|end| end > cs - ch) {
+                        doc.truncated = true;
                         doc.warnings.push(format!("element {name}: attribute {i} runs past its chunk"));
+                        break;
+                    }
+                    let a = ext + relative;
+                    let value_size = usize::from(r.u16_le(a + 12).unwrap_or(0));
+                    if value_size < 8 || value_size > a_size - 12 {
+                        doc.truncated = true;
+                        doc.warnings.push(format!("element {name}: invalid typed value size in attribute {i}"));
                         break;
                     }
                     let ans = r.u32_le(a).and_then(|i| doc.pool.get(i)).map(str::to_string);
@@ -802,6 +829,89 @@ mod tests {
         assert!(parsed.strings[..repeated].iter().all(String::is_empty));
         assert_eq!(parsed.get(repeated as u32), Some(""));
         assert_eq!(parsed.get((repeated + 1) as u32), Some("ok"));
+    }
+
+    fn chunk_at(data: &[u8], kind: u16) -> usize {
+        let r = Reader::new(data);
+        let mut pos = 8;
+        loop {
+            let (t, _, n) = chunk(&r, pos).unwrap();
+            if t == kind {
+                return pos;
+            }
+            pos += n;
+        }
+    }
+
+    #[test]
+    fn nodes_cannot_borrow_from_a_sibling_or_from_after_the_document() {
+        let original = fx::manifest_axml();
+        let pos = chunk_at(&original, XML_START_ELEMENT);
+        for (header, size) in [(8u16, 36u32), (16, 35)] {
+            let mut data = original.clone();
+            data[pos + 2..pos + 4].copy_from_slice(&header.to_le_bytes());
+            data[pos + 4..pos + 8].copy_from_slice(&size.to_le_bytes());
+            let doc = parse(&data).unwrap();
+            assert!(doc.truncated);
+            assert!(manifest(&doc).package.is_none());
+        }
+        let mut data = original;
+        data[4..8].copy_from_slice(&((pos + 8) as u32).to_le_bytes());
+        let doc = parse(&data).unwrap();
+        assert!(doc.truncated);
+        assert!(manifest(&doc).package.is_none());
+    }
+
+    #[test]
+    fn namespace_extensions_follow_the_declared_header() {
+        let mut data = fx::manifest_axml();
+        let pos = chunk_at(&data, XML_START_NS);
+        data.splice(pos + 16..pos + 16, [0xff; 4]);
+        data[pos + 2..pos + 4].copy_from_slice(&20u16.to_le_bytes());
+        data[pos + 4..pos + 8].copy_from_slice(&28u32.to_le_bytes());
+        let len = data.len() as u32;
+        data[4..8].copy_from_slice(&len.to_le_bytes());
+        let doc = parse(&data).unwrap();
+        assert!(doc.warnings.is_empty());
+        assert_eq!(doc.namespaces[0], ("android".into(), ANDROID_NS.into()));
+    }
+
+    #[test]
+    fn attributes_need_their_own_complete_records_and_typed_values() {
+        let original = fx::manifest_axml();
+        let ext = chunk_at(&original, XML_START_ELEMENT) + 16;
+        for (offset, val) in [(8, 0u16), (10, 4), (10, u16::MAX), (32, 7), (32, 9)] {
+            let mut data = original.clone();
+            data[ext + offset..ext + offset + 2].copy_from_slice(&val.to_le_bytes());
+            let doc = parse(&data).unwrap();
+            assert!(doc.truncated, "field {offset}, value {val}");
+            assert!(manifest(&doc).package.is_none());
+        }
+    }
+
+    #[test]
+    fn extended_attribute_strides_keep_each_manifest_value() {
+        let mut data = fx::manifest_axml();
+        let pos = chunk_at(&data, XML_START_ELEMENT);
+        let ext = pos + 16;
+        // The fixture writes three 20-byte attributes with 8-byte typed values.
+        for index in (1..=3).rev() {
+            let end = ext + 20 + index * 20;
+            data.splice(end..end, [0xff; 4]);
+        }
+        data[ext + 10..ext + 12].copy_from_slice(&24u16.to_le_bytes());
+        data[pos + 4..pos + 8].copy_from_slice(&(36 + 3 * 24u32).to_le_bytes());
+        let len = data.len() as u32;
+        data[4..8].copy_from_slice(&len.to_le_bytes());
+
+        let doc = parse(&data).unwrap();
+        assert!(!doc.truncated);
+        assert!(doc.warnings.is_empty(), "{:?}", doc.warnings);
+        let Node::Start { attributes, .. } = &doc.nodes[1] else {
+            panic!("expected the manifest start after the namespace");
+        };
+        let pairs: Vec<_> = attributes.iter().map(|a| (a.name.as_str(), a.value.as_str())).collect();
+        assert_eq!(pairs, [("package", fx::PACKAGE), ("versionCode", "42"), ("versionName", "1.2.3")]);
     }
 
     #[test]

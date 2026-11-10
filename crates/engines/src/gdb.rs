@@ -71,18 +71,18 @@ pub struct GdbSession {
 /// Decode an MI C-string (`"text\n"`) into plain text.
 fn unquote(s: &str) -> String {
     let inner = s.strip_prefix('"').and_then(|x| x.strip_suffix('"')).unwrap_or(s);
-    let mut out = String::with_capacity(inner.len());
+    let mut out: Vec<u8> = Vec::with_capacity(inner.len());
     let mut it = inner.chars().peekable();
     while let Some(c) = it.next() {
         if c != '\\' {
-            out.push(c);
+            out.extend_from_slice(c.encode_utf8(&mut [0u8; 4]).as_bytes());
             continue;
         }
         match it.next() {
-            Some('n') => out.push('\n'),
-            Some('t') => out.push('\t'),
-            Some('r') => out.push('\r'),
-            Some('e') => out.push('\u{1b}'),
+            Some('n') => out.push(b'\n'),
+            Some('t') => out.push(b'\t'),
+            Some('r') => out.push(b'\r'),
+            Some('e') => out.push(0x1b),
             Some(d @ '0'..='7') => {
                 let mut v = d.to_digit(8).unwrap_or(0);
                 for _ in 0..2 {
@@ -94,13 +94,13 @@ fn unquote(s: &str) -> String {
                         None => break,
                     }
                 }
-                out.push(char::from_u32(v).unwrap_or('?'));
+                out.push(u8::try_from(v).unwrap_or(b'?'));
             }
-            Some(other) => out.push(other),
-            None => out.push('\\'),
+            Some(other) => out.extend_from_slice(other.encode_utf8(&mut [0u8; 4]).as_bytes()),
+            None => out.push(b'\\'),
         }
     }
-    out
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// Quote a console command as an MI C-string.
@@ -379,6 +379,13 @@ impl GdbSession {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unquote_octal_utf8() {
+        assert_eq!(unquote(r#""caf\303\251""#), "café");
+        assert_eq!(unquote(r#""a\303\251\nb\342\202\254c""#), "aé\nb€c");
+        assert_eq!(unquote(r#""x\377y""#), "x\u{fffd}y");
+    }
 
     #[test]
     fn mi_parsing() {

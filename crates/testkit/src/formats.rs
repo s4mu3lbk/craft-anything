@@ -300,6 +300,11 @@ fn custom(sname: &str, body: &[u8], out: &mut Vec<u8>) {
 /// one memory, one mutable global, one data segment, exports `add`, `memory` and `_start`, and
 /// carries `name`, `producers` and `sourceMappingURL` custom sections.
 pub fn wasm_module() -> Vec<u8> {
+    wasm_module_with_source_mapping_url("demo.wasm.map")
+}
+
+/// The sample module with a caller-provided source map URL.
+pub fn wasm_module_with_source_mapping_url(url: &str) -> Vec<u8> {
     let mut m = b"\0asm\x01\0\0\0".to_vec();
     section(1, &[3, 0x60, 2, 0x7f, 0x7f, 1, 0x7f, 0x60, 0, 0, 0x60, 1, 0x7f, 0], &mut m);
     let mut imp = vec![1];
@@ -353,7 +358,7 @@ pub fn wasm_module() -> Vec<u8> {
     name("1.80.0", &mut p);
     custom("producers", &p, &mut m);
     let mut s = Vec::new();
-    name("demo.wasm.map", &mut s);
+    name(url, &mut s);
     custom("sourceMappingURL", &s, &mut m);
     let mut tf = vec![1, b'+'];
     name("mutable-globals", &mut tf);

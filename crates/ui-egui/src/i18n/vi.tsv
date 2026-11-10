@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	Tự độ
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: chúng tôi đọc mã, tệp và mã nguồn của nó bằng mọi công cụ sẵn có và bằng trình dịch ngược bên ngoài khi có một cái được cài đặt. Nhấn để chuyển.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} chưa được cài đặt, nên trình dịch ngược tích hợp sẽ thay thế. Chọn một engine trong Cài đặt → Engines.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} chưa có trên máy này, nên trình dịch ngược tích hợp sẽ thay thế.
+Connecting to {name}… {seconds} s	Đang kết nối với {name}… {seconds} giây
+Stopped adding {name}.	Đã dừng thêm {name}.

@@ -7,7 +7,7 @@ use crate::{FormatError, hex_addr};
 use object::Object;
 use serde::Serialize;
 use serde_json::json;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_PHDRS: usize = 4096;
 const MAX_DYN: usize = 65_536;
@@ -218,9 +218,16 @@ pub fn enrich(data: &[u8], file: &object::File<'_>, b: &mut Binary) {
     }
     let dyns = dynamic_entries(&e, &phdrs);
     let strtab = dyns.iter().find(|(t, _)| *t == 5).and_then(|(_, v)| va_to_off(&phdrs, *v));
+    let strsz = dyns.iter().find(|(t, _)| *t == DT_STRSZ).map(|(_, size)| *size);
     let dstr = |v: u64| -> Option<String> {
         let off = usize::try_from(strtab?.checked_add(v)?).ok()?;
-        e.r.cstr(off, 4096)
+        let Some(size) = strsz else { return e.r.cstr(off, 4096) };
+        let left = usize::try_from(size.checked_sub(v)?).unwrap_or(usize::MAX);
+        let rest = data.get(off..)?;
+        let window = rest.get(..left.min(rest.len()).min(4096))?;
+        // Keep the existing preview cap for long names, but never continue into the next table.
+        let end = window.iter().position(|&b| b == 0).or_else(|| (window.len() == 4096 && left > 4096).then_some(4096))?;
+        Some(String::from_utf8_lossy(window.get(..end)?).into_owned())
     };
     let mut flags = 0u64;
     let mut flags1 = 0u64;
@@ -302,9 +309,9 @@ pub fn enrich(data: &[u8], file: &object::File<'_>, b: &mut Binary) {
         "dt_flags": format!("{flags:#x}"),
         "dt_flags_1": format!("{flags1:#x}"),
     });
-    // With no section headers `object` finds no symbols; the dynamic section still points at them.
-    if b.sections.is_empty()
-        && let Some(ds) = dynamic_symbols(data, b)
+    // Other sections may survive after the dynamic-symbol section was removed.
+    if file.dynamic_symbols().next().is_none()
+        && let Some(ds) = segment_dynamic_symbols(data, &e)
     {
         add_dynamic_symbols(b, ds);
     }
@@ -314,7 +321,11 @@ pub fn enrich(data: &[u8], file: &object::File<'_>, b: &mut Binary) {
 fn add_dynamic_symbols(b: &mut Binary, ds: DynamicSymbols) {
     b.warnings.extend(ds.warnings.into_iter().map(|w| format!("dynamic symbols: {w}")));
     b.symbols_truncated |= ds.truncated;
+    let mut known: BTreeSet<(String, u64)> = b.symbols.iter().map(|s| (s.name.clone(), s.addr)).collect();
     for (s, defined) in ds.exports.iter().map(|s| (s, true)).chain(ds.imports.iter().map(|s| (s, false))) {
+        if !known.insert((s.name.clone(), s.addr)) {
+            continue;
+        }
         if b.symbols.len() >= MAX_SYMBOLS {
             b.symbols_truncated = true;
             break;
@@ -336,9 +347,17 @@ fn add_dynamic_symbols(b: &mut Binary, ds: DynamicSymbols) {
             dynamic: true,
         });
     }
-    b.exports.extend(ds.exports.iter().take(MAX_IMPORTS).map(|s| Export { name: s.name.clone(), addr: s.addr }));
+    let mut exports: BTreeSet<(String, u64)> = b.exports.iter().map(|s| (s.name.clone(), s.addr)).collect();
+    let room = MAX_IMPORTS.saturating_sub(b.exports.len());
+    b.exports.extend(ds.exports.iter().filter(|s| exports.insert((s.name.clone(), s.addr))).take(room).map(|s| Export { name: s.name.clone(), addr: s.addr }));
+    let mut imports: BTreeSet<(String, Option<String>)> = b.imports.iter().map(|s| (s.name.clone(), s.library.clone())).collect();
     let room = MAX_IMPORTS.saturating_sub(b.imports.len());
-    b.imports.extend(ds.imports.into_iter().take(room).map(|s| Import { name: s.name, library: s.library, ordinal: None, slot: None }));
+    b.imports.extend(ds.imports.into_iter().filter(|s| imports.insert((s.name.clone(), s.library.clone()))).take(room).map(|s| Import {
+        name: s.name,
+        library: s.library,
+        ordinal: None,
+        slot: None,
+    }));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -597,9 +616,9 @@ pub fn dynamic_symbols(data: &[u8], b: &Binary) -> Option<DynamicSymbols> {
         return segment_dynamic_symbols(data, &e);
     };
     let off_of = |name: &str| b.sections.iter().find(|s| s.name == name).and_then(|s| s.file_offset).and_then(|o| usize::try_from(o).ok());
-    let defs = off_of(".gnu.version_d").map(|o| version_defs(&e, o, strs)).unwrap_or_default();
-    let needs = off_of(".gnu.version_r").map(|o| version_needs(&e, o, strs)).unwrap_or_default();
-    let versym = off_of(".gnu.version");
+    let defs = section_bytes(data, b, ".gnu.version_d").map(|bytes| version_defs(&E { r: Reader::new(bytes), ..e }, 0, strs)).unwrap_or_default();
+    let needs = section_bytes(data, b, ".gnu.version_r").map(|bytes| version_needs(&E { r: Reader::new(bytes), ..e }, 0, strs)).unwrap_or_default();
+    let versym = section_bytes(data, b, ".gnu.version");
     let syms_off = off_of(".dynsym")?;
     let mut out = DynamicSymbols::default();
     read_dynsyms(&e, (syms_off, syms.len() / ent), strs, versym, &defs, &needs, &mut out);
@@ -628,7 +647,7 @@ fn segment_dynamic_symbols(data: &[u8], e: &E<'_>) -> Option<DynamicSymbols> {
         out.truncated = true;
         out.warnings.push(format!("the symbol table ends early: {room} of {count} entries are in the file"));
     }
-    read_dynsyms(e, (symtab, count.min(room)), strs, off_of(DT_VERSYM), &defs, &needs, &mut out);
+    read_dynsyms(e, (symtab, count.min(room)), strs, off_of(DT_VERSYM).and_then(|off| data.get(off..)), &defs, &needs, &mut out);
     Some(out)
 }
 
@@ -638,7 +657,7 @@ fn read_dynsyms(
     e: &E<'_>,
     (syms_off, count): (usize, usize),
     strs: &[u8],
-    versym: Option<usize>,
+    versym: Option<&[u8]>,
     defs: &BTreeMap<u16, String>,
     needs: &Needs,
     out: &mut DynamicSymbols,
@@ -669,7 +688,7 @@ fn read_dynsyms(
             _ => "other",
         };
         let Some(text) = str_at(strs, name).filter(|t| !t.is_empty()) else { continue };
-        let index = versym.and_then(|v| v.checked_add(i.checked_mul(2)?)).and_then(|v| e.u16(v)).map(|v| v & 0x7fff);
+        let index = versym.and_then(|bytes| E { r: Reader::new(bytes), ..*e }.u16(i.checked_mul(2)?)).map(|v| v & 0x7fff);
         let defined = shndx != 0;
         let (version, library) = match index {
             Some(ix) if ix >= 2 => {
@@ -985,7 +1004,9 @@ pub fn parse_core(data: &[u8]) -> Result<CoreDump, FormatError> {
                                 let o = table + i * 3 * ws;
                                 let (Some(s), Some(en), Some(po)) = (d.word(o), d.word(o + ws), d.word(o + 2 * ws)) else { break };
                                 let path = d.r.cstr(names_off, 4096).unwrap_or_default();
-                                names_off = names_off.saturating_add(path.len() + 1);
+                                let raw = desc.get(names_off..).unwrap_or_default();
+                                let consumed = raw.iter().position(|&byte| byte == 0).map_or(raw.len(), |end| end + 1);
+                                names_off = names_off.saturating_add(consumed);
                                 core.mapped_files.push(MappedFile { start: s, end: en, file_offset: po.saturating_mul(page), path });
                             }
                         } else {
@@ -1027,6 +1048,22 @@ pub fn parse_core(data: &[u8]) -> Result<CoreDump, FormatError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn needed_names_must_fit_the_dynamic_string_table() {
+        let (mut data, _) = craft_anything_testkit::elf64(craft_anything_testkit::ElfArch::X86_64, true);
+        let header = program_headers(&data).unwrap().into_iter().find(|ph| ph.p_type == 2).unwrap();
+        let start = header.offset as usize;
+        let end = start + header.file_size as usize;
+        let size_entry = data[start..end].as_chunks::<16>().0.iter().position(|e| e[..8] == 10u64.to_le_bytes()).unwrap();
+        let size_at = start + size_entry * 16 + 8;
+        assert_eq!(crate::parse_binary(&data).unwrap().libraries, ["libc.so.6"]);
+        // The dependency starts at byte 6, with its NUL at byte 15.
+        for size in [6u64, 15] {
+            data[size_at..size_at + 8].copy_from_slice(&size.to_le_bytes());
+            assert!(crate::parse_binary(&data).unwrap().libraries.is_empty(), "DT_STRSZ={size}");
+        }
+    }
+
     #[test]
     fn a_string_stops_at_its_nul_or_the_cap() {
         assert_eq!(super::str_at(b"ab\0cd\0", 3).as_deref(), Some("cd"));

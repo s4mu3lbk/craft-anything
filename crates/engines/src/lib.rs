@@ -29,6 +29,17 @@ pub use table::{ArchiveFormat, ENGINES, ExternalEngine, Install, Pin};
 
 use std::path::{Path, PathBuf};
 
+/// Cut `line` to at most `max` bytes without splitting a UTF-8 character. The engine parsers cap
+/// each line before inspecting hostile output; a plain byte slice can land inside a character, and
+/// keeping the whole line then would defeat the cap.
+pub(crate) fn capped_line(line: &str, max: usize) -> &str {
+    let mut end = max.min(line.len());
+    while !line.is_char_boundary(end) {
+        end -= 1;
+    }
+    line.get(..end).unwrap_or_default()
+}
+
 /// User overrides, mirrored from the engine settings so this crate doesn't depend on the engine.
 pub trait ToolPathLookup {
     fn override_for(&self, id: &str) -> Option<PathBuf>;

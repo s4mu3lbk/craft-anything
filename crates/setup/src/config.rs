@@ -82,7 +82,7 @@ pub fn remove_entry(client: &Client, text: &str) -> Result<Option<String>, Strin
             let mut doc: toml_edit::DocumentMut = text.parse().map_err(|e: toml_edit::TomlError| e.to_string())?;
             let table = client.table.first().copied().unwrap_or("mcp_servers");
             let removed = doc.get_mut(table).and_then(|t| t.as_table_like_mut()).and_then(|t| t.remove(SERVER_NAME)).is_some();
-            Ok(removed.then(|| doc.to_string()))
+            Ok(removed.then(|| with_line_endings_of(text, doc.to_string())))
         }
         Format::Yaml => {
             let table = client.table.first().copied().unwrap_or("mcp_servers");
@@ -91,6 +91,21 @@ pub fn remove_entry(client: &Client, text: &str) -> Result<Option<String>, Strin
         }
         Format::Manual => Ok(None),
     }
+}
+
+/// `edited` with Windows line endings when every line of `original` had them. toml_edit writes its
+/// own line breaks as `\n`; a CRLF file keeps its endings, as the JSONC and YAML edits do.
+///
+/// A file with any bare `\n` is left as toml_edit wrote it: a line break inside a multi-line string
+/// is part of the value. The swap is also dropped if it would change a value we wrote.
+fn with_line_endings_of(original: &str, edited: String) -> String {
+    let crlf = original.matches("\r\n").count();
+    if crlf == 0 || crlf != original.matches('\n').count() {
+        return edited;
+    }
+    let converted = edited.replace("\r\n", "\n").replace('\n', "\r\n");
+    let read = |t: &str| toml::from_str::<toml::Table>(t).ok();
+    if read(&converted) == read(&edited) { converted } else { edited }
 }
 
 fn json_to_toml(v: &Value) -> Option<toml_edit::Value> {
@@ -192,7 +207,7 @@ fn toml_set(client: &Client, text: &str, entry: &Value) -> Result<String, String
     {
         arr.retain(|v| v.as_str() != Some(SERVER_NAME));
     }
-    Ok(doc.to_string())
+    Ok(with_line_endings_of(text, doc.to_string()))
 }
 
 #[cfg(test)]

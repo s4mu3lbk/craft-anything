@@ -86,9 +86,23 @@ pub fn xz(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
 
 /// Decompress a standalone LZMA (`.lzma`, `0x5d` props) stream, producing at most `max_out` bytes.
 pub fn lzma(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
-    let mut out = CapWrite::new(cap_of(max_out));
-    let mut cursor = io::Cursor::new(input);
-    match lzma_rs::lzma_decompress(&mut cursor, &mut out) {
+    let cap = cap_of(max_out).min(isize::MAX as usize);
+    let (header, stream) = input.split_at_checked(13).ok_or(DecompressError::Truncated)?;
+    let mut header = <[u8; 13]>::try_from(header).map_err(|_| DecompressError::Truncated)?;
+    let declared = u64::from_le_bytes(header[5..13].try_into().map_err(|_| DecompressError::Truncated)?);
+    if declared != u64::MAX && declared > cap as u64 {
+        return Err(DecompressError::TooLarge);
+    }
+    // The decoder retains a window before flushing to CapWrite. Bound that window too,
+    // so a tiny output budget cannot first grow an arbitrarily large dictionary.
+    let dictionary = u32::from_le_bytes(header[1..5].try_into().map_err(|_| DecompressError::Truncated)?);
+    let window_limit = u32::try_from(cap).unwrap_or(u32::MAX).max(4096);
+    let dictionary = dictionary.max(4096).min(window_limit);
+    header[1..5].copy_from_slice(&dictionary.to_le_bytes());
+    let options = lzma_rs::decompress::Options { memlimit: Some(dictionary as usize), ..Default::default() };
+    let mut out = CapWrite::new(cap);
+    let mut cursor = io::Cursor::new(header).chain(io::Cursor::new(stream));
+    match lzma_rs::lzma_decompress_with_options(&mut cursor, &mut out, &options) {
         Ok(()) => Ok(out.buf),
         Err(_) if out.exceeded => Err(DecompressError::TooLarge),
         Err(lzma_rs::error::Error::HeaderTooShort(_)) => Err(DecompressError::Truncated),
@@ -132,15 +146,59 @@ pub(crate) fn lzma_raw_complete(input: &[u8], out_len: u32) -> Result<Vec<u8>, D
     decode(Some(u64::from(out_len)))
 }
 
+/// Decode the property bytes and raw stream of a ZIP method-14 member.
+pub(crate) fn lzma_zip(input: &[u8], expected_size: u64, has_end_marker: bool, max_out: u64) -> Result<Vec<u8>, DecompressError> {
+    let cap = cap_of(max_out).min(isize::MAX as usize);
+    if expected_size > cap as u64 {
+        return Err(DecompressError::TooLarge);
+    }
+    let (properties, stream) = input.split_at_checked(5).ok_or(DecompressError::Truncated)?;
+    let [property, d0, d1, d2, d3] = <[u8; 5]>::try_from(properties).map_err(|_| DecompressError::Truncated)?;
+    let window_limit = u32::try_from(cap).unwrap_or(u32::MAX).max(4096);
+    let dictionary = u32::from_le_bytes([d0, d1, d2, d3]).max(4096).min(window_limit);
+    let [d0, d1, d2, d3] = dictionary.to_le_bytes();
+    let properties = [property, d0, d1, d2, d3];
+    let size = if has_end_marker { None } else { Some(expected_size) };
+    let options = lzma_rs::decompress::Options {
+        unpacked_size: lzma_rs::decompress::UnpackedSize::UseProvided(size),
+        memlimit: Some(dictionary as usize),
+        ..Default::default()
+    };
+    let mut out = CapWrite::new(cap);
+    let mut cursor = io::Cursor::new(properties).chain(io::Cursor::new(stream));
+    match lzma_rs::lzma_decompress_with_options(&mut cursor, &mut out, &options) {
+        Ok(()) if cursor.get_ref().1.position() == stream.len() as u64 => Ok(out.buf),
+        Ok(()) => Err(DecompressError::Corrupt),
+        Err(_) if out.exceeded => Err(DecompressError::TooLarge),
+        Err(lzma_rs::error::Error::HeaderTooShort(_)) => Err(DecompressError::Truncated),
+        Err(_) => Err(DecompressError::Corrupt),
+    }
+}
+
 /// Decompress a bzip2 stream, producing at most `max_out` bytes.
 pub fn bzip2(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
     read_capped(bzip2_rs::DecoderReader::new(input), cap_of(max_out))
 }
 
 /// Decompress a Zstandard stream, producing at most `max_out` bytes.
-pub fn zstd(input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
-    let decoder = ruzstd::decoding::StreamingDecoder::new(input).map_err(|_| DecompressError::Corrupt)?;
-    read_capped(decoder, cap_of(max_out))
+pub fn zstd(mut input: &[u8], max_out: u64) -> Result<Vec<u8>, DecompressError> {
+    if input.is_empty() {
+        return Err(DecompressError::Corrupt);
+    }
+    let mut out = CapWrite::new(cap_of(max_out));
+    while !input.is_empty() {
+        if matches!(input.get(..4), Some([0x50..=0x5f, 0x2a, 0x4d, 0x18])) {
+            let header = input.get(4..8).and_then(|s| s.try_into().ok()).ok_or(DecompressError::Truncated)?;
+            let len = u32::from_le_bytes(header) as usize;
+            input = input.get(8..).and_then(|body| body.get(len..)).ok_or(DecompressError::Truncated)?;
+            continue;
+        }
+        let mut decoder = ruzstd::decoding::StreamingDecoder::new(&mut input).map_err(|_| DecompressError::Corrupt)?;
+        if io::copy(&mut decoder, &mut out).is_err() {
+            return Err(if out.exceeded { DecompressError::TooLarge } else { DecompressError::Corrupt });
+        }
+    }
+    Ok(out.buf)
 }
 
 /// Decompress one raw LZ4 block (no frame) that inflates to exactly `out_len` bytes, as Unity
@@ -189,11 +247,14 @@ pub fn lz4_block(input: &[u8], out_len: usize) -> Result<Vec<u8>, DecompressErro
         if out.len() + len > out_len {
             return Err(DecompressError::TooLarge);
         }
-        // The match may overlap what it writes, so it's copied a byte at a time.
+        // Each copied run extends the same repeating pattern, so it can
+        // supply the next run even when the match overlaps its destination.
         let start = out.len() - offset;
-        for k in 0..len {
-            let b = out[start + k];
-            out.push(b);
+        let mut remaining = len;
+        while remaining > 0 {
+            let count = remaining.min(out.len() - start);
+            out.extend_from_within(start..start + count);
+            remaining -= count;
         }
     }
     if out.len() != out_len {
@@ -226,6 +287,21 @@ mod tests {
     }
 
     #[test]
+    fn long_lz4_matches_repeat_the_entire_offset_pattern() {
+        for pattern in [&b"x"[..], &b"abc"[..], &b"01234567"[..]] {
+            let mut block = vec![((pattern.len() as u8) << 4) | 15];
+            block.extend_from_slice(pattern);
+            block.extend_from_slice(&(pattern.len() as u16).to_le_bytes());
+            block.extend_from_slice(&[255, 255, 7, 0x50]);
+            block.extend_from_slice(b"final");
+            let mut expected = pattern.to_vec();
+            expected.extend(pattern.iter().copied().cycle().take(19 + 255 + 255 + 7));
+            expected.extend_from_slice(b"final");
+            assert_eq!(lz4_block(&block, expected.len()).unwrap(), expected);
+        }
+    }
+
+    #[test]
     fn xz_round_trip() {
         let c = fx::XZ_FIXTURE;
         assert_eq!(xz(c, 1 << 20).unwrap(), fx::XZ_PLAIN);
@@ -248,6 +324,30 @@ mod tests {
     }
 
     #[test]
+    fn standalone_lzma_checks_declared_sizes_before_decoding() {
+        let mut header = [0u8; 13];
+        header[0] = 0x5d;
+        header[1..5].copy_from_slice(&u32::MAX.to_le_bytes());
+        header[5..13].copy_from_slice(&1_000_000_000u64.to_le_bytes());
+        assert_eq!(lzma(&header, 64), Err(DecompressError::TooLarge));
+        assert_eq!(lzma(&header[..12], 64), Err(DecompressError::Truncated));
+        let mut valid = fx::LZMA_FIXTURE.to_vec();
+        valid[1..5].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(lzma(&valid, fx::LZMA_PLAIN.len() as u64).unwrap(), fx::LZMA_PLAIN);
+        assert_eq!(lzma(&valid, 0), Err(DecompressError::TooLarge));
+    }
+
+    #[test]
+    fn standalone_lzma_stops_before_a_large_window_reaches_a_damaged_tail() {
+        let plain = vec![b'a'; 16 * 1024];
+        let mut compressed = Vec::new();
+        lzma_rs::lzma_compress(&mut io::Cursor::new(&plain), &mut compressed).unwrap();
+        compressed.truncate(compressed.len() - 5);
+        assert_eq!(lzma(&compressed, 64), Err(DecompressError::TooLarge));
+        assert_eq!(lzma(&compressed, plain.len() as u64), Err(DecompressError::Corrupt));
+    }
+
+    #[test]
     fn bzip2_round_trip() {
         let c = fx::BZIP2_FIXTURE;
         assert_eq!(bzip2(c, 1 << 20).unwrap(), fx::BZIP2_PLAIN);
@@ -265,6 +365,19 @@ mod tests {
         for len in 0..c.len() {
             let _ = zstd(&c[..len], 1 << 20);
         }
+    }
+
+    #[test]
+    fn zstandard_members_can_contain_multiple_frames() {
+        let frame = fx::ZSTD_FIXTURE;
+        let plain = fx::ZSTD_PLAIN;
+        let skip = [0x50, 0x2a, 0x4d, 0x18, 3, 0, 0, 0, 1, 2, 3];
+        let input = [frame, &skip, frame].concat();
+        let expected = [plain, plain].concat();
+        assert_eq!(zstd(&input, expected.len() as u64).unwrap(), expected);
+        assert_eq!(zstd(&input, plain.len() as u64), Err(DecompressError::TooLarge));
+        assert!(zstd(&[frame, &skip[..9]].concat(), u64::MAX).is_err());
+        assert!(zstd(&[frame, &frame[..5]].concat(), u64::MAX).is_err());
     }
 
     #[test]

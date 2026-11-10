@@ -1468,3 +1468,5 @@ Automatic prefers IDA, then Ghidra. You can also choose one directly.	Automátic
 Deep: we read its code, files and page source with every tool we have, and with an external decompiler when one is installed. Click to switch.	Deep: lemos seu código, arquivos e código-fonte com todas as nossas ferramentas e com um descompilador externo quando houver um instalado. Clique para alternar.
 {engine} isn't installed, so the built-in decompiler stands in. Set an engine in Settings → Engines.	{engine} não está instalado, então o descompilador integrado assume. Escolha um motor em Configurações → Motores.
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ainda não está neste computador, então o descompilador integrado assume.
+Connecting to {name}… {seconds} s	Conectando a {name}… {seconds} s
+Stopped adding {name}.	A adição de {name} foi interrompida.

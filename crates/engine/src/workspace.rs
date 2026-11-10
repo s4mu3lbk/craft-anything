@@ -21,10 +21,12 @@ use crate::inbox::{next_counter, now_ms};
 use crate::project::write_atomic;
 use crate::versioned::{self, upgrade};
 use craft_anything_evidence::{ErrorCode, ToolError};
+use craft_anything_platform::sync::Mutex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use std::sync::PoisonError;
 
 pub mod progress;
 
@@ -78,10 +80,10 @@ fn copy_tree(from: &Path, to: &Path, skip: &dyn Fn(&Path) -> bool, depth: usize)
 }
 
 /// The current `craft.json` format version. Bumping it means appending a step to [`MANIFEST_STEPS`].
-pub const MANIFEST_VERSION: u32 = 3;
+pub const MANIFEST_VERSION: u32 = 4;
 
 /// The steps that bring an older `craft.json` forward; step `i` goes from version `i` to `i + 1`.
-const MANIFEST_STEPS: &[versioned::Step<Value>] = &[manifest_v0_to_v1, manifest_v1_to_v2, manifest_v2_to_v3];
+const MANIFEST_STEPS: &[versioned::Step<Value>] = &[manifest_v0_to_v1, manifest_v1_to_v2, manifest_v2_to_v3, manifest_v3_to_v4];
 const _: () = assert!(MANIFEST_STEPS.len() == MANIFEST_VERSION as usize, "one step per craft.json version");
 
 /// Version 0 (no `version` field) has the same shape as version 1; only the number is new.
@@ -101,6 +103,18 @@ fn manifest_v1_to_v2(doc: &mut Value) -> Result<(), String> {
 /// mode again), opens such a project read-only instead.
 fn manifest_v2_to_v3(doc: &mut Value) -> Result<(), String> {
     if doc.is_object() { Ok(()) } else { Err("the manifest isn't a JSON object".into()) }
+}
+
+/// Version 4 adds the mode a saved builder session ran in (`agent_session_deep`). A version-3
+/// manifest predates the field; a session it saved is the legacy case this build treats as Deep,
+/// so the step fills `true` for it. A mode an early build of this change already wrote is kept.
+fn manifest_v3_to_v4(doc: &mut Value) -> Result<(), String> {
+    let obj = doc.as_object_mut().ok_or("the manifest isn't a JSON object")?;
+    let has_session = obj.get("agent_session").and_then(Value::as_str).is_some_and(|s| !s.is_empty());
+    if has_session && !obj.contains_key("agent_session_deep") {
+        obj.insert("agent_session_deep".into(), Value::Bool(true));
+    }
+    Ok(())
 }
 
 /// Read a `craft.json` document of any version this build understands. A newer manifest is read
@@ -343,6 +357,7 @@ struct CheckRecord {
 }
 
 impl From<CheckRecord> for CheckResult {
+    /// Turn a stored check record into the result the manifest keeps.
     fn from(r: CheckRecord) -> CheckResult {
         let compared = r.similarity.is_some();
         CheckResult {
@@ -391,6 +406,10 @@ pub struct Manifest {
     /// this was kept.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_session_by: Option<String>,
+    /// The mode `agent_session` was saved in (`true`: Deep); none: saved before the mode was
+    /// kept, so it is only resumed in Deep (it may have read the original there).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_session_deep: Option<bool>,
     /// Kinds of agent action the person allowed for this workspace ("bash:npm", "web_fetch"…).
     #[serde(default)]
     pub allowed_actions: Vec<String>,
@@ -434,6 +453,12 @@ pub struct Manifest {
     /// Kept in the project so "Try again" can't restart the count.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub not_working_checks: u32,
+    /// The builder has read the original's code (a decompiled function) in this project, in any run.
+    /// Deep mode reminds a builder that hasn't; kept here because every request starts a new run, so
+    /// a run-only flag repeated the reminder after each request. An older build drops it when it
+    /// saves, which costs at most one more reminder, so the format version stays.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub decompiled: bool,
 }
 
 fn is_zero(n: &u32) -> bool {
@@ -446,6 +471,7 @@ impl Manifest {
         self.app_in_root && self.target == TargetRef::None
     }
 
+    /// The manifest for a new project, at the current format version.
     fn new(name: &str, request: &str, target: TargetRef) -> Manifest {
         let now = now_ms();
         Manifest {
@@ -461,6 +487,7 @@ impl Manifest {
             checks: Vec::new(),
             agent_session: None,
             agent_session_by: None,
+            agent_session_deep: None,
             allowed_actions: Vec::new(),
             last_reply: String::new(),
             asset_budget_usd: ASSET_BUDGET_USD,
@@ -472,6 +499,7 @@ impl Manifest {
             approvals: Default::default(),
             awaiting_check: false,
             not_working_checks: 0,
+            decompiled: false,
         }
     }
 
@@ -479,6 +507,12 @@ impl Manifest {
     /// continue it (#469). One saved before the agent was kept counts.
     pub fn agent_session_for(&self, agent: &str) -> Option<&str> {
         self.agent_session.as_deref().filter(|_| self.agent_session_by.as_deref().is_none_or(|a| a == agent))
+    }
+
+    /// The session `agent` saved in this mode. One saved before the mode was kept counts as
+    /// Deep: resuming it in Clean room could carry what it read there.
+    pub fn agent_session_for_mode(&self, agent: &str, deep: bool) -> Option<&str> {
+        self.agent_session_for(agent).filter(|_| self.agent_session_deep.unwrap_or(true) == deep)
     }
 
     /// Take the fields the person owns from `other` (what's on disk).
@@ -516,8 +550,8 @@ pub struct AssetRecord {
 /// The list of generated assets, in the workspace folder.
 const ASSETS: &str = "assets.json";
 
-/// What a project's builds have taken and used, every run together (`usage.json`). The rebuild
-/// run is its only writer; everything else reads it.
+/// What a project's builds and questions have taken and used, every run together (`usage.json`).
+/// A rebuild turn and a question can add to it; everything else reads it.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ProjectUsage {
@@ -545,6 +579,9 @@ pub const ACTIVITY_LOG_OLD: &str = "build-activity.old.log";
 /// Where [`ProjectUsage`] is kept in the project folder.
 pub const USAGE_FILE: &str = "usage.json";
 pub const USAGE_VERSION: u32 = 1;
+/// A build's turn and a question can record their cost at the same time. The save is
+/// read-modify-write, so both go through one lock or one would overwrite the other.
+static USAGE_UPDATE: Mutex<()> = Mutex::new(());
 
 impl ProjectUsage {
     /// The saved usage of the project at `root`; nothing yet (or unreadable) is all zeros.
@@ -554,6 +591,7 @@ impl ProjectUsage {
 
     /// Change the saved usage (the run's job). A file from a newer Craft Anything is left alone.
     pub fn update(root: &Path, f: impl FnOnce(&mut ProjectUsage)) -> Result<(), ToolError> {
+        let _updating = USAGE_UPDATE.lock().unwrap_or_else(PoisonError::into_inner);
         let mut u = ProjectUsage::load(root);
         if u.version > USAGE_VERSION {
             return Err(ToolError::unsupported(format!("{USAGE_FILE} was written by a newer Craft Anything, so it isn't changed.")));
@@ -906,10 +944,10 @@ impl Workspace {
     pub fn inbox_dir(&self) -> PathBuf {
         self.root.join("inbox")
     }
-    /// A builder has worked on this project and its conversation was kept, so a later run carries
-    /// it on instead of starting over.
-    pub fn builder_started(&self) -> bool {
-        self.manifest.agent_session.is_some() || self.transcript_path().is_file()
+    /// A coding agent's session saved for this project in `deep` mode. A session saved before the
+    /// mode was kept counts as Deep, since it may have read inside the original.
+    pub fn builder_session_in(&self, deep: bool) -> bool {
+        self.manifest.agent_session.as_ref().is_some_and(|_| self.manifest.agent_session_deep.unwrap_or(true) == deep)
     }
 
     /// The API builder's conversation, kept so a follow-up continues it (`ai::context`).
@@ -1470,6 +1508,28 @@ mod tests {
         assert_eq!(ProjectUsage::load(dir.path()).work_ms, 5, "read as far as it's known, never written over");
     }
 
+    /// A build turn and a question can save their cost together: neither may overwrite the other.
+    #[test]
+    fn concurrent_usage_updates_all_count() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let start = std::sync::Barrier::new(8);
+        std::thread::scope(|s| {
+            for _ in 0..8 {
+                let start = &start;
+                s.spawn(move || {
+                    start.wait();
+                    for _ in 0..25 {
+                        ProjectUsage::update(root, |u| u.add_turn(0, 0, Some(0.01), true)).unwrap();
+                    }
+                });
+            }
+        });
+        let u = ProjectUsage::load(root);
+        assert!((u.cost_usd - 2.0).abs() < 1e-6, "{u:?}");
+        assert!(u.priced);
+    }
+
     #[test]
     fn a_run_holding_an_old_copy_keeps_the_persons_changes() {
         let dir = tempfile::tempdir().unwrap();
@@ -1569,6 +1629,7 @@ mod tests {
         assert!(!copy.join("managed/obj").exists());
     }
 
+    /// Older check records are judged by the fields they have.
     #[test]
     fn checks_from_older_projects_are_judged_as_they_were() {
         let old = |json: &str| serde_json::from_str::<CheckResult>(json).unwrap();
@@ -1604,12 +1665,15 @@ mod tests {
   "last_reply": "Done."
 }"#;
 
+    /// A version-0 manifest opens as current, with its legacy session counting as Deep.
     #[test]
     fn manifests_from_before_versions_open_and_are_saved_as_current() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(MANIFEST), MANIFEST_V0).unwrap();
         let ws = Workspace::open(dir.path()).unwrap();
         assert_eq!(ws.manifest.version, MANIFEST_VERSION);
+        assert_eq!(ws.manifest.agent_session_deep, Some(true), "a session from before the mode was kept counts as Deep");
+        assert_eq!(ws.manifest.agent_session_for_mode("claude-code", false), None);
         assert_eq!(ws.manifest.status, Status::Ready);
         assert_eq!(ws.manifest.asset_budget_usd, ASSET_BUDGET_USD);
         assert!(!ws.manifest.generate_assets, "assets are generated only once the person turns it on");
@@ -1620,17 +1684,18 @@ mod tests {
         assert_eq!(Workspace::open(dir.path()).unwrap().manifest, ws.manifest);
     }
 
+    /// Approval choices survive an old manifest, a stale save and a copy.
     #[test]
     fn approval_choices_survive_an_old_manifest_a_stale_save_and_a_copy() {
-        // A version-2 craft.json (before approvals) opens with none chosen and is saved as version 3.
+        // A version-2 craft.json (before approvals) opens with none chosen and is saved as current.
         let dir = tempfile::tempdir().unwrap();
         let v2 = MANIFEST_V0.replacen('{', r#"{ "version": 2,"#, 1);
         std::fs::write(dir.path().join(MANIFEST), &v2).unwrap();
         let mut run = Workspace::open(dir.path()).unwrap();
-        assert_eq!((run.manifest.version, run.manifest.approvals.is_empty(), run.is_read_only()), (3, true, false));
+        assert_eq!((run.manifest.version, run.manifest.approvals.is_empty(), run.is_read_only()), (MANIFEST_VERSION, true, false));
         run.save().unwrap();
         let saved: Value = serde_json::from_slice(&std::fs::read(dir.path().join(MANIFEST)).unwrap()).unwrap();
-        assert_eq!(saved["version"], 3);
+        assert_eq!(saved["version"], MANIFEST_VERSION);
         assert!(saved.get("approvals").is_none(), "nothing chosen, nothing written");
         // The person chooses while a run holds an older copy; the run's save keeps the choice.
         Workspace::open(dir.path())
@@ -1813,6 +1878,7 @@ mod tests {
         assert!(saved.get("app_in_root").is_none() && saved.get("start_files").is_none(), "a usual project's craft.json is unchanged");
     }
 
+    /// A project's own records are recognized even when the app is the folder.
     #[test]
     fn craft_anythings_records_are_its_own_even_when_the_app_is_the_folder() {
         let d = tempfile::tempdir().unwrap();
@@ -1829,6 +1895,31 @@ mod tests {
         }
     }
 
+    /// R2.9: version 3 predates the saved session's mode; a session is migrated as Deep, while a
+    /// mode an early build of the change already wrote is kept.
+    #[test]
+    fn a_version_3_session_is_migrated_as_deep_without_overwriting_a_recorded_mode() {
+        let v3 = MANIFEST_V0.replacen('{', r#"{ "version": 3,"#, 1);
+        assert_session_migrated(&v3, Some(true));
+        let recorded = v3.replace(r#""agent_session": "abc","#, r#""agent_session": "abc", "agent_session_deep": false,"#);
+        assert_session_migrated(&recorded, Some(false));
+    }
+
+    /// Read a literal `craft.json` sample, check both modes and the saved document.
+    fn assert_session_migrated(doc: &str, want: Option<bool>) {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(MANIFEST), doc).unwrap();
+        let ws = Workspace::open(dir.path()).unwrap();
+        assert_eq!((ws.manifest.version, ws.manifest.agent_session_deep), (MANIFEST_VERSION, want));
+        let deep = ws.manifest.agent_session_for_mode("claude-code", true);
+        let clean = ws.manifest.agent_session_for_mode("claude-code", false);
+        assert_eq!((deep, clean), if want == Some(false) { (None, Some("abc")) } else { (Some("abc"), None) });
+        ws.save().unwrap();
+        let saved: Value = serde_json::from_slice(&std::fs::read(dir.path().join(MANIFEST)).unwrap()).unwrap();
+        assert_eq!(saved["version"], MANIFEST_VERSION);
+        assert_eq!(saved["agent_session_deep"], want == Some(true));
+    }
+
     /// #469: a saved session is only for the agent that saved it.
     #[test]
     fn a_session_is_only_for_the_agent_that_saved_it() {
@@ -1839,8 +1930,32 @@ mod tests {
         m.agent_session_by = Some("claude-code".into());
         assert_eq!(m.agent_session_for("claude-code"), Some("s1"));
         assert_eq!(m.agent_session_for("codex"), None);
+        assert_eq!(m.agent_session_for_mode("claude-code", true), Some("s1"), "one saved before the mode was kept counts as Deep");
+        assert_eq!(m.agent_session_for_mode("claude-code", false), None, "Deep may have read the original, so Clean room starts fresh");
+        m.agent_session_deep = Some(false);
+        assert_eq!(m.agent_session_for_mode("claude-code", false), Some("s1"));
+        assert_eq!(m.agent_session_for_mode("claude-code", true), None);
+        m.agent_session_deep = Some(true);
+        assert_eq!(m.agent_session_for_mode("claude-code", true), Some("s1"));
+        m.agent_session_deep = None;
         let text = serde_json::to_string(&m).unwrap();
-        assert_eq!(serde_json::from_str::<Manifest>(&text).unwrap().agent_session_by.as_deref(), Some("claude-code"));
+        let back: Manifest = serde_json::from_str(&text).unwrap();
+        assert_eq!((back.agent_session_by.as_deref(), back.agent_session_deep), (Some("claude-code"), None));
+    }
+
+    /// A saved session is history only in the mode it ran in; one from before the mode was kept
+    /// counts as Deep.
+    #[test]
+    fn a_saved_session_counts_as_history_only_in_its_mode() {
+        let d = tempfile::tempdir().unwrap();
+        let mut ws = Workspace::create(d.path(), "x", "A thing", TargetRef::None).unwrap();
+        assert!(!ws.builder_session_in(true) && !ws.builder_session_in(false), "nothing saved yet");
+        ws.manifest.agent_session = Some("s1".into());
+        assert!(ws.builder_session_in(true), "one saved before the mode was kept counts as Deep");
+        assert!(!ws.builder_session_in(false), "Deep may have read the original");
+        ws.manifest.agent_session_deep = Some(false);
+        assert!(!ws.builder_session_in(true));
+        assert!(ws.builder_session_in(false));
     }
 
     /// A rename survives a stale save, a copy takes the build but not the conversation (nor its

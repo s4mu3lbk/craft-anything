@@ -57,7 +57,7 @@ impl TargetKind for AppKind {
         }
         // A console program is compared by its runs, not pictured.
         if runs::captured(cx.ws).is_empty() {
-            s.push(screenshot::contract());
+            s.push(screenshot::contract(cx.sees_pictures));
         } else {
             s.push(RUNS_BRIEF.to_string());
         }

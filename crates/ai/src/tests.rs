@@ -273,7 +273,7 @@ fn opencode_selection_is_validated_saved_and_run_natively_with_our_mcp_server() 
     // The arguments, one per line, then the config file the run was handed.
     let ran = std::fs::read_to_string(&seen).unwrap();
     let args: Vec<&str> = ran.lines().collect();
-    assert_eq!(args.get(..4), Some(["run", "--standalone", "--model", "test/alias#max"].as_slice()), "{ran}");
+    assert_eq!(args.get(..3), Some(["run", "--model", "test/alias#max"].as_slice()), "{ran}");
     let config: Value = serde_json::from_str(ran.lines().find(|l| l.starts_with("{\"mcp\"")).unwrap()).unwrap();
     assert_eq!(config["mcp"][cli_agents::MCP_NAME]["type"], "local", "the run gets our MCP server: {ran}");
     assert!(h.set_agent_model("OpenCode", Some("test/alias"), Some(Effort::Xhigh)).is_err());

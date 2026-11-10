@@ -536,12 +536,19 @@ builder preflight still checked ACP's helper and the native adapter never suppli
 Share transport selection between preflight and execution; reject unsupported native options
 before running a process rather than starting an agent without the tools its task requires.
 
-**A config route the installed version ignores.** OpenCode V2 (2.2.5) ignores
-`OPENCODE_CONFIG_CONTENT`, and `opencode run` hands the turn to a background service that never sees the
-run's environment, so the builder ran without our tools and fell back to calling the CLI from a shell.
-V2 also names a tool call `id` (V1: `callID`), so every tool event was dropped and the feed stayed empty
-for the whole turn. Use a file in `OPENCODE_CONFIG` with `run --standalone`, and confirm a live run
-reached the server (`mcp connected server=craft-anything` in OpenCode's log), not just that it started.
+**A config route tied to one CLI version.** OpenCode V2 (2.2.5) ignored
+`OPENCODE_CONFIG_CONTENT`, and its `opencode run` handed the turn to a background service that never saw
+the run's environment without `--standalone`, so the builder ran without our tools. OpenCode 1.19.5 starts
+a local server for each run but rejects that flag before the model starts. Use a file in `OPENCODE_CONFIG`
+with the run's own local server, check flags against the installed CLI, and confirm a live run reached the
+server (`mcp connected server=craft-anything` in OpenCode's log), not just that it started. V2 names a tool
+call `id` (V1: `callID`); read both so tool calls reach the feed.
+
+**A schema other providers accepted.** Moonshot rejected nested `$ref` schemas and unconstrained
+JSON as infinite recursion, then rejected a simple enum reference and an evidence array whose items
+were `true`. Describe finite input shapes, inline local references at the MCP boundary with cycle and
+expansion protection, and validate every advertised tool with the strict provider; fixing only the
+schema in the current error merely exposes the next one.
 
 **Keywords that only some code paths honour.** "…in Rust" picked Rust for apps but not for games, so
 a headless game rebuild stopped at once for want of Unity. It was found only by a live run. Run the

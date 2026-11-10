@@ -395,7 +395,11 @@ impl Server {
         let clean = self.engine.session().clean_room();
         let mut tools: Vec<Value> = Vec::new();
         for s in registry.all().iter().filter(|s| self.listed(s, clean)) {
-            tools.push(registry.mcp_descriptor(s));
+            let mut descriptor = registry.mcp_descriptor(s);
+            if let Some(schema) = descriptor.get_mut("inputSchema") {
+                inline_schema_refs(schema);
+            }
+            tools.push(descriptor);
         }
         if !self.opts.all_tools {
             tools.push(meta_list_toolsets());
@@ -808,6 +812,65 @@ fn send_to(out: &Writer, msg: &Value) {
 fn tool_error_body(e: &ToolError) -> Value {
     let payload = json!({"error": e});
     json!({"content": [{"type": "text", "text": serde_json::to_string(&payload).unwrap_or_default()}], "isError": true})
+}
+
+fn inline_schema_refs(schema: &mut Value) {
+    let root = schema.clone();
+    let mut stack = BTreeSet::new();
+    let mut budget = 100_000usize;
+    let expanded = inline_schema_value(schema, &root, &mut stack, &mut budget);
+    let keep_defs = has_local_refs(&expanded);
+    if let Some(object) = expanded.as_object() {
+        let mut object = object.clone();
+        if keep_defs {
+            if let Some(defs) = root.get("$defs") {
+                object.insert("$defs".into(), defs.clone());
+            }
+        } else {
+            object.remove("$defs");
+        }
+        *schema = Value::Object(object);
+    } else {
+        *schema = expanded;
+    }
+}
+
+fn inline_schema_value(value: &Value, root: &Value, stack: &mut BTreeSet<String>, budget: &mut usize) -> Value {
+    *budget = budget.saturating_sub(1);
+    if *budget == 0 {
+        return value.clone();
+    }
+    if let Some(object) = value.as_object() {
+        if let Some(reference) = object.get("$ref").and_then(Value::as_str).filter(|r| r.starts_with("#/") && !stack.contains(*r))
+            && let Some(target) = root.pointer(&reference[1..])
+        {
+            stack.insert(reference.to_string());
+            let mut resolved = inline_schema_value(target, root, stack, budget);
+            stack.remove(reference);
+            if let Some(resolved_object) = resolved.as_object_mut() {
+                for (key, item) in object {
+                    if key != "$ref" && !resolved_object.contains_key(key) {
+                        let item = inline_schema_value(item, root, stack, budget);
+                        resolved_object.insert(key.clone(), item);
+                    }
+                }
+            }
+            return resolved;
+        }
+        return Value::Object(object.iter().map(|(key, item)| (key.clone(), inline_schema_value(item, root, stack, budget))).collect());
+    }
+    if let Some(items) = value.as_array() {
+        return Value::Array(items.iter().map(|item| inline_schema_value(item, root, stack, budget)).collect());
+    }
+    value.clone()
+}
+
+fn has_local_refs(value: &Value) -> bool {
+    match value {
+        Value::Object(object) => object.get("$ref").and_then(Value::as_str).is_some_and(|r| r.starts_with("#/")) || object.values().any(has_local_refs),
+        Value::Array(items) => items.iter().any(has_local_refs),
+        _ => false,
+    }
 }
 
 fn meta_list_toolsets() -> Value {

@@ -4,10 +4,10 @@ Craft Anything can run OpenCode V2 locally or on an SSH host. OpenCode owns its 
 connections and sign-in. Set these up in OpenCode on the computer where it will run.
 
 Model and thinking choices can be discovered, validated and saved. A run with an explicit
-selection goes through the native adapter (`opencode run --standalone`), which hands a local run
+selection goes through the native adapter (`opencode run`), which hands a local run
 the Craft Anything MCP server in a config file named by `OPENCODE_CONFIG`; the person's own
 settings stay unchanged. Over SSH the native run has no Craft Anything tools yet.
-selection goes through the native adapter (`opencode run --standalone`), which hands the run
+selection goes through the native adapter (`opencode run`), which hands the run
 the Craft Anything MCP server in a config file named by `OPENCODE_CONFIG`; the person's own
 settings stay unchanged. Over SSH one `ssh` run checks that `craft-anything-cli` is on the
 remote PATH and writes the file on the host itself (`~/.cache/craft-anything/`, named by its
@@ -102,14 +102,17 @@ the sidecar is removed after recovery or a successful full exit save that supers
 It uses the existing settings schema and migrations; unreadable or newer files are not overwritten
 by recovery.
 The current ACP transport cannot select models or variants. An explicit choice bypasses ACP
-even if `acp = true` was previously set and runs natively. OpenCode V2 ignores
-`OPENCODE_CONFIG_CONTENT`, and plain `opencode run` hands the turn to the background service,
-which never sees the run's environment; so the adapter writes the server to a temp config file
-and starts a private server with `--standalone`. V2 names a tool call `id` (V1: `callID`); both
-which never sees the run's environment; so the adapter writes the server to a config file
-and starts a private server with `--standalone` (locally in this computer's temporary
-folder, over SSH on the host itself). V2 names a tool call `id` (V1: `callID`); both
-are read, so tool calls reach the feed while the turn runs.
+even if `acp = true` was previously set and runs natively. OpenCode ignores
+`OPENCODE_CONFIG_CONTENT`, so the adapter writes the server to a config file named by
+`OPENCODE_CONFIG` (locally in this computer's temporary folder, over SSH on the host itself).
+Current `opencode run` starts a local server that reads this file. OpenCode 1.19.5 rejects the
+older `--standalone` flag, so the adapter does not add it; an older installation that requires
+it can receive it through extra arguments. V2 names a tool call `id` (V1: `callID`); both are
+read, so tool calls reach the feed while the turn runs. For Moonshot's stricter schema validation,
+`core_evidence_browse` uses inline source/show variants, an object schema for inline evidence, and
+finite scalar/list schemas for row filters. `ai_model_set` exposes its seven depths plus null as one
+flat enum, and evidence inputs use finite object-or-reference schemas. The MCP server also inlines
+local schema references with cycle and expansion protection. Runtime tool behavior is unchanged.
 
 Model discovery uses `opencode api model.list --param location[directory]=...` (the V2
 `GET /api/model` operation). This keeps credentials and configuration resolution inside OpenCode.

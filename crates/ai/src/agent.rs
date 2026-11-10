@@ -951,8 +951,6 @@ pub(crate) mod tests {
     fn tool_schemas_have_only_object_subschemas() {
         let reg = Registry::with_all_tools();
         let all: BTreeSet<Toolset> = reg.toolsets().into_iter().collect();
-        let raw = reg.get("app_call_path_find").map(|s| reg.input_schema(s)).unwrap_or_default();
-        assert!(raw.to_string().contains("\"items\":true"), "the case from #17 is still covered");
         let mut bad = Vec::new();
         for t in registry_tools(&reg, &all) {
             boolean_subschemas(&t.schema, &t.name, &mut bad);

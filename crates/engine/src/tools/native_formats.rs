@@ -155,13 +155,21 @@ pub struct TriageParams {
     pub path: Option<String>,
 }
 
+fn inline_evidence_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+    schemars::json_schema!({"type": "object"})
+}
+
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(inline)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum RecordSource {
     /// Evidence already recorded in this session or project.
     Saved { evidence_id: String },
     /// A full evidence record passed inline.
-    Inline { evidence: Value },
+    Inline {
+        #[schemars(schema_with = "inline_evidence_schema")]
+        evidence: Value,
+    },
 }
 
 fn d_show_limit() -> usize {
@@ -169,6 +177,28 @@ fn d_show_limit() -> usize {
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(inline)]
+#[serde(untagged)]
+enum MatchScalar {
+    Null,
+    Bool(bool),
+    Number(serde_json::Number),
+    String(String),
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(inline)]
+#[serde(untagged)]
+enum MatchValue {
+    Null,
+    Bool(bool),
+    Number(serde_json::Number),
+    String(String),
+    List(Vec<MatchScalar>),
+}
+
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(inline)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Show {
     /// The record without its result.
@@ -189,6 +219,7 @@ pub enum Show {
         /// ["main.js", "preload.js"]}`: every field must match, a list means any of its values,
         /// `a.b` reaches inside a row and null matches a field the row doesn't have.
         #[serde(default)]
+        #[schemars(with = "BTreeMap<String, MatchValue>")]
         matching: BTreeMap<String, Value>,
         /// Return only these fields of each row (`a.b` reaches inside); a row without one leaves it out.
         #[serde(default)]
@@ -891,6 +922,25 @@ mod tests {
                 .details
                 .is_some()
         );
+    }
+
+    #[test]
+    fn evidence_browse_has_a_finite_inline_schema() {
+        let schema = super::schema_of::<super::ShowParams>();
+        let source = &schema["properties"]["source"];
+        assert!(source.get("$ref").is_none(), "Moonshot rejects nested references below source");
+        let inline = source["oneOf"].as_array().unwrap().iter().find(|v| v["properties"]["kind"]["const"] == "inline").unwrap();
+        assert_eq!(inline["properties"]["evidence"]["type"], "object");
+        let show = &schema["properties"]["show"];
+        assert!(show.get("$ref").is_none(), "Moonshot rejects nested references below show");
+        let rows = show["oneOf"].as_array().unwrap().iter().find(|v| v["properties"]["kind"]["const"] == "rows").unwrap();
+        let values = rows["properties"]["matching"]["additionalProperties"]["anyOf"].as_array().unwrap();
+        assert!(values.iter().all(|v| v.get("$ref").is_none()), "the value schema cannot refer to itself");
+        let list = values.iter().find(|v| v["type"] == "array").unwrap();
+        let scalars = list["items"]["anyOf"].as_array().unwrap();
+        let mut types: Vec<&str> = scalars.iter().filter_map(|v| v["type"].as_str()).collect();
+        types.sort_unstable();
+        assert_eq!(types, ["boolean", "null", "number", "string"]);
     }
 
     #[test]

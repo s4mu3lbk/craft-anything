@@ -713,6 +713,17 @@ Owner: open · Status: in progress
       plan default produced only plans and left app/ empty. Argument tests and a live file-writing
       run passed
       — claimed: Kimi Code, branch bugfix/r2.2-opencode-build-agent
+- [x] OpenCode 1.19.5 rejects `--standalone` before the model starts; use the local server its
+      current `run` command starts by default while keeping each run's MCP configuration isolated.
+      Moonshot also rejects `core_evidence_browse`'s nested references and unbounded JSON: inline
+      its source/show variants and describe finite evidence objects and scalar/list filters without
+      changing runtime behaviour. Verified by a live one-file website build whose check passed
+      — claimed: Kimi Code, branch bugfix/r2.2-opencode-standalone-compatibility
+- [x] Moonshot rejects `ai_model_set`'s referenced optional `Effort` schema, simple enum references
+      and unconstrained evidence array items. Use a flat optional-depth enum and finite evidence
+      object/string schemas, and inline local references at the MCP boundary with cycle and expansion
+      protection. Verified by an all-tools (322) live Moonshot request
+      — claimed: Kimi Code, branch bugfix/r2.2-opencode-standalone-compatibility
 - [x] Aider has no adapter, so the plain one hands it the prompt as a file name, and it can open a
       browser sign-in nobody agreed to (#72). Give it an adapter, or stop offering it — claimed: Afloat16, branch bugfix/r2.2-aider-recommendations-20261103
 - [x] Add a non-interactive Aider adapter before recommending it again; detection currently leaves it out.

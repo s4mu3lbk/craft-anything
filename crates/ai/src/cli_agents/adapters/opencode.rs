@@ -19,9 +19,9 @@ impl AgentAdapter for OpenCode {
         cli_can_start(craft_anything_platform::self_cli_path().as_deref(), stop)
     }
 
-    /// `opencode run` takes no MCP flag, and V2 ignores `OPENCODE_CONFIG_CONTENT`: the server
-    /// goes in a config file named by `OPENCODE_CONFIG`, which the private (`--standalone`)
-    /// server merges over the person's own settings. The background service never sees it.
+    /// `opencode run` takes no MCP flag and ignores `OPENCODE_CONFIG_CONTENT`: the server goes
+    /// in a config file named by `OPENCODE_CONFIG`, which the run's local server merges over the
+    /// person's own settings.
     fn mcp_env(&self, mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
         let content = config_content(mcp);
         let path = std::env::temp_dir().join(config_name(&content));
@@ -37,7 +37,7 @@ impl AgentAdapter for OpenCode {
 
     /// The config file is written on the remote host itself: one `ssh` invocation checks the
     /// helper, writes the file atomically and keeps it private (piped `printf`, octal-escaped,
-    /// no interactive stdin). The private (`--standalone`) server reads it there.
+    /// no interactive stdin). The run's local server reads it there.
     fn remote_tool_server(&self, host: &str, mcp: &McpCommand) -> Result<Option<(&'static str, String)>, ToolError> {
         let content = config_content(mcp);
         let name = config_name(&content);
@@ -75,8 +75,7 @@ impl AgentAdapter for OpenCode {
 
     /// Build native `run` arguments, encoding an optional thinking depth as `provider/model#variant`.
     fn args(&self, cx: &ArgsCx) -> Vec<String> {
-        // A private server reads this run's `OPENCODE_CONFIG`; the background service would not.
-        let mut a = vec!["run".to_string(), "--standalone".to_string()];
+        let mut a = vec!["run".to_string()];
         // A builder works unattended and must use OpenCode's editing agent, not a saved plan default.
         if cx.builder {
             a.push("--auto".into());
@@ -95,7 +94,7 @@ impl AgentAdapter for OpenCode {
     }
 
     fn required_flags(&self) -> (&'static [&'static str], &'static [&'static str]) {
-        (&["run", "--help"], &["--format", "--standalone"])
+        (&["run", "--help"], &["--format"])
     }
 
     fn plain_fallback(&self) -> bool {
@@ -276,14 +275,12 @@ mod tests {
 
     #[test]
     fn the_prompt_goes_to_run_after_the_flags() {
-        assert_eq!(args(false, &BackendOptions::default()), ["run", "--standalone", "--format", "json", "PRE make a game"]);
-        assert_eq!(args(true, &BackendOptions::default()), ["run", "--standalone", "--auto", "--agent", "build", "--format", "json", "PRE make a game"]);
+        assert_eq!(args(false, &BackendOptions::default()), ["run", "--format", "json", "PRE make a game"]);
+        assert_eq!(args(true, &BackendOptions::default()), ["run", "--auto", "--agent", "build", "--format", "json", "PRE make a game"]);
         let options =
             BackendOptions { cli_model: Some("anthropic/claude-sonnet-4-5".into()), args: vec!["--agent".into(), "plan".into()], ..Default::default() };
-        assert_eq!(
-            args(true, &options),
-            ["run", "--standalone", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "plan", "--format", "json", "PRE make a game"]
-        );
+        assert_eq!(args(true, &options), ["run", "--auto", "--model", "anthropic/claude-sonnet-4-5", "--agent", "plan", "--format", "json", "PRE make a game"]);
+        assert_eq!(OpenCode.required_flags(), (&["run", "--help"][..], &["--format"][..]));
         assert!(AgentAdapters::built_in().for_agent("opencode").ids().contains(&"opencode"), "registered, not the plain adapter");
     }
 
@@ -509,7 +506,7 @@ mod tests {
                 BackendOptions { command: Some("missing-test-opencode".into()), args: extra.iter().map(|s| s.to_string()).collect(), ..Default::default() };
             assert!(OpenCode.validate_model(&config, &options, None, &Stop::default()).is_ok());
             let argv = args(false, &options);
-            assert_eq!(argv.get(2..2 + extra.len()).unwrap(), extra.as_slice());
+            assert_eq!(argv.get(1..1 + extra.len()).unwrap(), extra.as_slice());
             for (model, thinking) in [(Some("test/selected"), None), (None, Some(crate::Effort::High)), (Some("test/selected"), Some(crate::Effort::High))] {
                 let selected = BackendOptions { cli_model: model.map(str::to_string), cli_thinking: thinking, ..options.clone() };
                 let error = OpenCode.validate_model(&config, &selected, None, &Stop::default()).unwrap_err();

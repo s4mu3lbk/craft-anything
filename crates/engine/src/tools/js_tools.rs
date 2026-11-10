@@ -1,7 +1,9 @@
 //! JavaScript applications: static analysis of Electron apps (ASAR or unpacked), web bundles and
 //! Node packages into an application graph, and reconciling that graph with runtime captures.
 
-use super::artifact_tools::{WalkOptions, abs_path, env, is_path_input, read_capped, resolve_evidence_input, walk_dir};
+use super::artifact_tools::{
+    WalkOptions, abs_path, env, evidence_input_schema, evidence_list_schema, is_path_input, read_capped, resolve_evidence_input, walk_dir,
+};
 use crate::tool::{Ctx, Effects, Requires, ToolOutput, ToolSpec, Toolset, parse_params, schema_of};
 use craft_anything_analysis::js_app::{AppFile, AppGraph, AppInput, AppOptions, analyze_application, is_script};
 use craft_anything_analysis::js_trace::{RuntimeScript, reconcile, runtime_scripts_from};
@@ -472,6 +474,7 @@ pub(crate) fn load_graph(ctx: &Ctx<'_>, v: &Value) -> Result<(AppGraph, Option<S
 #[serde(deny_unknown_fields)]
 pub struct StaticLayer {
     /// js_app_map evidence (inline or {"kind":"saved","evidence_id":…}) or an absolute path.
+    #[schemars(schema_with = "evidence_input_schema")]
     pub evidence: Value,
     /// `application`, `cache` or `assets`.
     #[serde(default = "default_role")]
@@ -497,6 +500,7 @@ pub struct ReconcileParams {
     pub static_evidence: Vec<StaticLayer>,
     /// Runtime evidence that lists scripts (objects with `url` and `sha256`), inline or retained.
     #[serde(default)]
+    #[schemars(schema_with = "evidence_list_schema")]
     pub runtime_evidence: Vec<Value>,
     /// Runtime scripts given directly.
     #[serde(default)]
@@ -555,6 +559,15 @@ mod tests {
     use craft_anything_evidence::ToolError;
     use craft_anything_testkit::electron as fx;
     use serde_json::{Value, json};
+
+    #[test]
+    fn reconciliation_inputs_have_finite_schemas() {
+        let expected = json!({"anyOf": [{"type": "object"}, {"type": "string"}]});
+        let layer = super::schema_of::<super::StaticLayer>();
+        assert_eq!(layer["properties"]["evidence"]["anyOf"], expected["anyOf"]);
+        let reconcile = super::schema_of::<super::ReconcileParams>();
+        assert_eq!(reconcile["properties"]["runtime_evidence"]["items"], expected);
+    }
 
     fn call(e: &Engine, id: &str, p: Value) -> Result<Value, ToolError> {
         e.call(id, p, CallOptions::new(Caller::Mcp)).map(|o| o.to_json())

@@ -7,7 +7,7 @@
 //! that a reconstruction goal is backed by intact evidence. `native_address_show` reports the
 //! name/function/comment/bookmark facets of one address in the active native target.
 
-use super::artifact_tools::resolve_evidence_input;
+use super::artifact_tools::{evidence_input_schema, evidence_list_schema, resolve_evidence_input};
 use super::native_common::{name_of, native};
 use crate::tool::{Ctx, Effects, Requires, ToolOutput, ToolSpec, Toolset, parse_params, schema_of};
 use craft_anything_evidence::{Confidence, Coverage, Environment, EvidenceBuilder, Location, Subject, ToolError};
@@ -179,8 +179,10 @@ fn native_address_show(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, T
 #[serde(deny_unknown_fields)]
 pub struct PairParams {
     /// Left (older) native_function_study evidence.
+    #[schemars(schema_with = "evidence_input_schema")]
     pub left: Value,
     /// Right (newer) native_function_study evidence.
+    #[schemars(schema_with = "evidence_input_schema")]
     pub right: Value,
 }
 
@@ -434,6 +436,7 @@ fn bundle_index(recs: &[Rec]) -> BTreeMap<String, (String, Value)> {
 pub struct ComparisonsParams {
     /// One or more comparison evidence records (app_function_versions_compare / core_archives_compare /
     /// runtime_captures_compare / core_evidence_exports_compare), inline or by reference.
+    #[schemars(schema_with = "evidence_list_schema")]
     pub comparisons: Vec<Value>,
 }
 
@@ -501,6 +504,7 @@ fn comparison_is_changed(result: &Value) -> bool {
 #[serde(deny_unknown_fields)]
 pub struct CallPathParams {
     /// native_function_study evidence records that describe the functions and their callees.
+    #[schemars(schema_with = "evidence_list_schema")]
     pub functions: Vec<Value>,
     /// Start address (0x-hex or decimal).
     pub start: String,
@@ -621,9 +625,11 @@ fn bfs(adj: &BTreeMap<u64, BTreeSet<u64>>, start: u64, goal: u64, max_depth: usi
 pub struct CorrelateParams {
     /// Static comparison evidence (app_function_versions_compare / core_archives_compare).
     #[serde(default)]
+    #[schemars(schema_with = "evidence_list_schema")]
     pub static_checks: Vec<Value>,
     /// Runtime comparison evidence (runtime_captures_compare).
     #[serde(default)]
+    #[schemars(schema_with = "evidence_list_schema")]
     pub runtime_checks: Vec<Value>,
     /// Each mapping links a static record to a runtime record by their evidence ids.
     pub mappings: Vec<Mapping>,
@@ -782,6 +788,21 @@ mod tests {
     use crate::{CallOptions, Caller, Engine};
     use craft_anything_testkit as tk;
     use serde_json::{Value, json};
+
+    #[test]
+    fn evidence_inputs_have_finite_schemas() {
+        let expected = json!({"anyOf": [{"type": "object"}, {"type": "string"}]});
+        let pairs = super::schema_of::<super::PairParams>();
+        assert_eq!(pairs["properties"]["left"]["anyOf"], expected["anyOf"]);
+        assert_eq!(pairs["properties"]["right"]["anyOf"], expected["anyOf"]);
+        let calls = super::schema_of::<super::CallPathParams>();
+        assert_eq!(calls["properties"]["functions"]["items"], expected);
+        let changes = super::schema_of::<super::ComparisonsParams>();
+        assert_eq!(changes["properties"]["comparisons"]["items"], expected);
+        let correlations = super::schema_of::<super::CorrelateParams>();
+        assert_eq!(correlations["properties"]["static_checks"]["items"], expected);
+        assert_eq!(correlations["properties"]["runtime_checks"]["items"], expected);
+    }
 
     /// #286: an archive comparison where a file only moved was summarised as unchanged.
     #[test]

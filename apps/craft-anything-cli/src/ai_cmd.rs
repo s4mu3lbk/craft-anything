@@ -55,6 +55,19 @@ pub enum AiCommand {
     },
     /// Remove a backend.
     Remove { name: String },
+    /// Show, replace or forget the key saved in the app for an API backend (the key is never printed).
+    Key {
+        name: String,
+        /// Read the new key from this environment variable.
+        #[arg(long, conflicts_with_all = ["key_stdin", "forget"])]
+        key_env: Option<String>,
+        /// Read the new key from stdin.
+        #[arg(long, conflicts_with_all = ["key_env", "forget"])]
+        key_stdin: bool,
+        /// Forget the saved key; the backend stays and the environment key is used again.
+        #[arg(long, conflicts_with_all = ["key_env", "key_stdin"])]
+        forget: bool,
+    },
     /// Turn a backend on again.
     On { name: String },
     /// Turn a backend off: nothing uses it, and it keeps its settings and key.
@@ -276,6 +289,38 @@ pub fn ai(cli: &Cli, c: &AiCommand, f: Format) -> u8 {
             }
             Err(e) => fail(&e, f),
         },
+        AiCommand::Key { name, key_env, key_stdin, forget } => {
+            if *forget {
+                return match hub.remove_backend_key(name) {
+                    Ok(()) => {
+                        emit(&json!({"name": name, "key_saved": false, "changed": "forgotten"}), f);
+                        0
+                    }
+                    Err(e) => fail(&e, f),
+                };
+            }
+            if key_env.is_some() || *key_stdin {
+                let key = match read_key(key_env, *key_stdin) {
+                    Ok(Some(k)) => k,
+                    Ok(None) => return crate::usage_error("--key-env or --key-stdin is needed to replace a key"),
+                    Err(m) => return crate::usage_error(&m),
+                };
+                return match hub.set_backend_key(name, &key) {
+                    Ok(()) => {
+                        emit(&json!({"name": name, "key_saved": true, "changed": "replaced"}), f);
+                        0
+                    }
+                    Err(e) => fail(&e, f),
+                };
+            }
+            match hub.saved_backend_key(name) {
+                Ok(saved) => {
+                    emit(&json!({"name": name, "key_saved": saved}), f);
+                    0
+                }
+                Err(e) => fail(&e, f),
+            }
+        }
         AiCommand::On { name } | AiCommand::Off { name } => {
             let on = matches!(c, AiCommand::On { .. });
             match hub.set_enabled(name, on) {

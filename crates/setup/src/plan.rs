@@ -196,7 +196,11 @@ pub fn plan(host: &Host, req: &PlanRequest) -> Result<Plan, ToolError> {
         let mut v = Vec::new();
         for id in &req.clients {
             match all.iter().find(|c| c.is(id)) {
-                Some(c) => v.push(c),
+                Some(c) => {
+                    if !v.iter().any(|selected: &&Client| selected.id == c.id) {
+                        v.push(c);
+                    }
+                }
                 None => {
                     let ids: Vec<&str> = all.iter().map(|c| c.id).collect();
                     return Err(ToolError::invalid(format!("Unknown client {id}")).with_remediation(format!("Use one of: {}", ids.join(", "))));

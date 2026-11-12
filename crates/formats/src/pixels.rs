@@ -1,9 +1,13 @@
 //! Turning game textures' stored pixels into RGBA: uncompressed layouts and the 4×4 block formats
-//! (DXT1/BC1, DXT5/BC3, BC4, BC5, BC6H and BC7). Shared by the Unity and Unreal readers; rows come out in the
+//! (DXT1/BC1, DXT3/BC2, DXT5/BC3, BC4, BC5, BC6H, BC7, ETC1 and EAC). Shared by the Unity and Unreal readers; rows come out in the
 //! order they're stored (Unity stores the bottom row first, Unreal the top).
+
+mod eac;
 
 use crate::bptc;
 use crate::common::FormatError;
+
+mod packed;
 
 /// Default RGBA output budget: 256 MiB, matching the texture exporters' 8192×8192 pixel limit.
 pub const DEFAULT_MAX_RGBA_BYTES: u64 = 256 << 20;
@@ -19,12 +23,24 @@ pub enum Layout {
     R16,
     /// Two unsigned 8-bit channels; blue is zero and alpha is opaque.
     Rg8,
+    /// Two unsigned 16-bit channels; blue is zero and alpha is opaque.
+    Rg16,
+    /// Three unsigned 16-bit channels; alpha is opaque.
+    Rgb16,
+    /// Four unsigned 16-bit channels, including alpha.
+    Rgba16,
     RHalf,
     RgHalf,
     RgbaHalf,
     RFloat,
     RgFloat,
     RgbaFloat,
+    /// Nine-bit RGB mantissas with a shared five-bit exponent, displayed as opaque sRGB.
+    Rgb9e5,
+    /// Packed unsigned 10-bit RGB with two-bit alpha, low bits first.
+    Rgba1010102,
+    /// Packed unsigned 11/11/10-bit floating-point RGB, displayed as opaque sRGB.
+    Rgb111110Float,
     Rgb24,
     Rgba32,
     Argb32,
@@ -33,6 +49,8 @@ pub enum Layout {
     Rgba4444,
     Argb4444,
     Dxt1,
+    /// Four-colour blocks with one explicit four-bit alpha value per texel.
+    Dxt3,
     Dxt5,
     /// One channel in blocks (shown as grey).
     Bc4,
@@ -43,6 +61,16 @@ pub enum Layout {
     /// BC6H with signed half floats.
     Bc6hSigned,
     Bc7,
+    /// ETC1 RGB, with individual or differential base colours.
+    Etc1,
+    /// One EAC channel, shown as grey.
+    EacR,
+    /// One signed EAC channel; -1..1 maps to 0..255.
+    EacRSigned,
+    /// Two EAC channels; blue is zero and alpha is opaque.
+    EacRg,
+    /// Two signed EAC channels; -1..1 maps to 0..255.
+    EacRgSigned,
 }
 
 /// Bytes of a `width`×`height` picture in `layout`.
@@ -53,12 +81,34 @@ pub fn size(layout: Layout, width: u32, height: u32) -> Option<usize> {
         Layout::Alpha8 | Layout::R8 => w.checked_mul(h),
         Layout::Rgb565 | Layout::Rgba4444 | Layout::Argb4444 | Layout::RHalf | Layout::R16 | Layout::Rg8 => w.checked_mul(h)?.checked_mul(2),
         Layout::Rgb24 => w.checked_mul(h)?.checked_mul(3),
-        Layout::Rgba32 | Layout::Argb32 | Layout::Bgra32 | Layout::RgHalf | Layout::RFloat => w.checked_mul(h)?.checked_mul(4),
+        Layout::Rg16 => w.checked_mul(h)?.checked_mul(4),
+        Layout::Rgb16 => w.checked_mul(h)?.checked_mul(6),
+        Layout::Rgba16 => w.checked_mul(h)?.checked_mul(8),
+        Layout::Rgba32 | Layout::Argb32 | Layout::Bgra32 | Layout::RgHalf | Layout::RFloat | Layout::Rgb9e5 | Layout::Rgba1010102 | Layout::Rgb111110Float => {
+            w.checked_mul(h)?.checked_mul(4)
+        }
         Layout::RgbaHalf | Layout::RgFloat => w.checked_mul(h)?.checked_mul(8),
         Layout::RgbaFloat => w.checked_mul(h)?.checked_mul(16),
-        Layout::Dxt1 | Layout::Bc4 => blocks.checked_mul(8),
-        Layout::Dxt5 | Layout::Bc5 | Layout::Bc6h | Layout::Bc6hSigned | Layout::Bc7 => blocks.checked_mul(16),
+        Layout::Dxt1 | Layout::Bc4 | Layout::Etc1 | Layout::EacR | Layout::EacRSigned => blocks.checked_mul(8),
+        Layout::Dxt3 | Layout::Dxt5 | Layout::Bc5 | Layout::Bc6h | Layout::Bc6hSigned | Layout::Bc7 | Layout::EacRg | Layout::EacRgSigned => {
+            blocks.checked_mul(16)
+        }
     }
+}
+
+fn unorm8(value: u16) -> u8 {
+    ((u32::from(value) * 255 + 32767) / 65535) as u8
+}
+
+/// Quantize unsigned channels; missing blue is zero and missing alpha is opaque.
+fn unorm16_pixels(samples: impl Iterator<Item = u16>, channels: usize) -> impl Iterator<Item = [u8; 4]> {
+    let mut samples = samples.map(unorm8);
+    std::iter::from_fn(move || {
+        let (r, g) = (samples.next()?, samples.next()?);
+        let b = if channels > 2 { samples.next()? } else { 0 };
+        let a = if channels > 3 { samples.next()? } else { 255 };
+        Some([r, g, b, a])
+    })
 }
 
 /// Treat RGB as linear light, alpha as coverage, and show a scalar texture in grey.
@@ -112,6 +162,44 @@ fn dxt_texels(b: &[u8; 8], punch: bool) -> [[u8; 4]; 16] {
     std::array::from_fn(|k| colours[((bits >> (2 * k)) & 3) as usize])
 }
 
+/// ETC1 uses big-endian blocks and column-major selector bits, independently of the split.
+/// Differential bases outside RGB555 are undefined by the format and are refused.
+fn etc1(block: &[u8; 8]) -> Option<[[u8; 4]; 16]> {
+    const MODIFIERS: [[i16; 2]; 8] = [[2, 8], [5, 17], [9, 29], [13, 42], [18, 60], [24, 80], [33, 106], [47, 183]];
+    let bits = u64::from_be_bytes(*block);
+    let differential = bits & (1 << 33) != 0;
+    let horizontal = bits & (1 << 32) != 0;
+    let mut bases = [[0i16; 3]; 2];
+    for (channel, shift) in [56, 48, 40].into_iter().enumerate() {
+        let value = ((bits >> shift) & 255) as i16;
+        let (first, second) = if differential {
+            let first = value >> 3;
+            let delta = ((value & 7) ^ 4) - 4;
+            let second = first + delta;
+            if !(0..=31).contains(&second) {
+                return None;
+            }
+            ((first << 3) | (first >> 2), (second << 3) | (second >> 2))
+        } else {
+            ((value >> 4) * 17, (value & 15) * 17)
+        };
+        bases[0][channel] = first;
+        bases[1][channel] = second;
+    }
+    let first_table = MODIFIERS.get(((bits >> 37) & 7) as usize)?;
+    let second_table = MODIFIERS.get(((bits >> 34) & 7) as usize)?;
+    Some(std::array::from_fn(|pixel| {
+        let (x, y) = (pixel % 4, pixel / 4);
+        let second = if horizontal { y >= 2 } else { x >= 2 };
+        let (base, table) = if second { (bases[1], second_table) } else { (bases[0], first_table) };
+        let selector = x * 4 + y;
+        let magnitude = if bits & (1 << selector) == 0 { table[0] } else { table[1] };
+        let delta = if bits & (1 << (selector + 16)) == 0 { magnitude } else { -magnitude };
+        let rgb = base.map(|channel| (channel + delta).clamp(0, 255) as u8);
+        [rgb[0], rgb[1], rgb[2], 255]
+    }))
+}
+
 /// The 16 values of an 8-byte single-channel block (DXT5's alpha, BC4, each half of BC5).
 fn channel_block(b: &[u8; 8]) -> [u8; 16] {
     let (a0, a1) = (u16::from(b[0]), u16::from(b[1]));
@@ -145,6 +233,15 @@ fn halves(b: &[u8; 16]) -> ([u8; 8], [u8; 8]) {
         }
     }
     (first, second)
+}
+
+fn dxt3(b: &[u8; 16]) -> [[u8; 4]; 16] {
+    let (alpha, colour) = halves(b);
+    let mut texels = dxt_texels(&colour, false);
+    for (texel, value) in texels.iter_mut().zip(alpha.iter().flat_map(|byte| [byte & 15, byte >> 4])) {
+        texel[3] = value * 17;
+    }
+    texels
 }
 
 fn dxt5(b: &[u8; 16]) -> [[u8; 4]; 16] {
@@ -231,13 +328,24 @@ pub fn decode_with_limit(layout: Layout, width: u32, height: u32, data: &[u8], m
         Layout::RFloat => put(&mut float_pixels(floats, 1)),
         Layout::RgFloat => put(&mut float_pixels(floats, 2)),
         Layout::RgbaFloat => put(&mut float_pixels(floats, 4)),
+        Layout::Rgba1010102 => put(&mut data.as_chunks::<4>().0.iter().map(packed::rgba1010102)),
+        Layout::Rgb111110Float => put(&mut data.as_chunks::<4>().0.iter().map(packed::rgb111110)),
+        Layout::Rgb9e5 => put(&mut data.as_chunks::<4>().0.iter().map(|bytes| {
+            let packed = u32::from_le_bytes(*bytes);
+            let scale = 2.0f32.powi((packed >> 27) as i32 - 24);
+            let channel = |shift: u32| bptc::srgb8(((packed >> shift) & 0x1ff) as f32 * scale);
+            [channel(0), channel(9), channel(18), 255]
+        })),
         Layout::Alpha8 => put(&mut data.iter().map(|a| [255, 255, 255, *a])),
         Layout::R8 => put(&mut data.iter().map(|r| [*r, *r, *r, 255])),
         Layout::R16 => put(&mut u16s.map(|value| {
-            let grey = ((u32::from(value) * 255 + 32767) / 65535) as u8;
+            let grey = unorm8(value);
             [grey, grey, grey, 255]
         })),
         Layout::Rg8 => put(&mut data.as_chunks::<2>().0.iter().map(|[r, g]| [*r, *g, 0, 255])),
+        Layout::Rg16 => put(&mut unorm16_pixels(u16s, 2)),
+        Layout::Rgb16 => put(&mut unorm16_pixels(u16s, 3)),
+        Layout::Rgba16 => put(&mut unorm16_pixels(u16s, 4)),
         Layout::Rgb24 => put(&mut data.as_chunks::<3>().0.iter().map(|[r, g, b]| [*r, *g, *b, 255])),
         Layout::Rgba32 => put(&mut data.as_chunks::<4>().0.iter().copied()),
         Layout::Argb32 => put(&mut data.as_chunks::<4>().0.iter().map(|[a, r, g, b]| [*r, *g, *b, *a])),
@@ -246,12 +354,31 @@ pub fn decode_with_limit(layout: Layout, width: u32, height: u32, data: &[u8], m
         Layout::Rgba4444 => put(&mut u16s.map(|v| nibbles(v, [12, 8, 4, 0]))),
         Layout::Argb4444 => put(&mut u16s.map(|v| nibbles(v, [8, 4, 0, 12]))),
         Layout::Dxt1 => blocks(&mut out, w, h, data.as_chunks::<8>().0.iter().map(|b| dxt_texels(b, true))),
+        Layout::Dxt3 => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(dxt3)),
         Layout::Dxt5 => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(dxt5)),
         Layout::Bc4 => blocks(&mut out, w, h, data.as_chunks::<8>().0.iter().map(bc4)),
         Layout::Bc5 => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(bc5)),
         Layout::Bc6h => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(|b| bptc::bc6h(b, false))),
         Layout::Bc6hSigned => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(|b| bptc::bc6h(b, true))),
         Layout::Bc7 => blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(bptc::bc7)),
+        Layout::EacR | Layout::EacRSigned => {
+            blocks(&mut out, w, h, data.as_chunks::<8>().0.iter().map(|block| eac::scalar(block, layout == Layout::EacRSigned)))
+        }
+        Layout::EacRg | Layout::EacRgSigned => {
+            blocks(&mut out, w, h, data.as_chunks::<16>().0.iter().map(|block| eac::dual(block, layout == Layout::EacRgSigned)))
+        }
+        Layout::Etc1 => {
+            let mut valid = true;
+            let texels = data.as_chunks::<8>().0.iter().map_while(|block| {
+                let pixels = etc1(block);
+                valid &= pixels.is_some();
+                pixels
+            });
+            blocks(&mut out, w, h, texels);
+            if !valid {
+                return Err(FormatError::Malformed("ETC1 differential colour is outside its five-bit range".into()));
+            }
+        }
     }
     Ok(out)
 }

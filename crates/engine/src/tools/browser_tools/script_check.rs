@@ -330,7 +330,7 @@ fn closest(name: &str, options: &[&str]) -> Option<String> {
         "key" | "keypress" | "keydown" => Some("press"),
         "css" | "locator" | "element" | "target" => Some("selector"),
         "text" | "label" => Some("name"),
-        "testid" | "testId" | "data_testid" | "data-testid" => Some("test_id"),
+        "testid" | "data_testid" | "data-testid" => Some("test_id"),
         "duration" | "time" | "timeout" | "milliseconds" => Some("ms"),
         "href" | "link" | "address" => Some("url"),
         _ => None,
@@ -561,5 +561,13 @@ mod clipped_tests {
     #[test]
     fn clipped_cuts_long_multibyte_text() {
         assert_eq!(clipped("é".repeat(401)), format!("{}…", "é".repeat(400)));
+    }
+
+    #[test]
+    fn carried_names_match_in_any_case() {
+        let options = ["test_id", "selector"];
+        for name in ["testid", "testId", "TestID", "data-testid", "data_testid"] {
+            assert_eq!(closest(name, &options).as_deref(), Some("test_id"), "{name}");
+        }
     }
 }

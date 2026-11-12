@@ -36,8 +36,8 @@ pub trait DeepDecompiler: Send + Sync {
         None
     }
     /// Decompile the function at `entry` (an address in the engine's own space). `Ok(None)` means
-    /// the engine has no better answer.
-    fn decompile(&self, entry: u64) -> Result<Option<DeepFunction>, DeepError>;
+    /// the engine has no better answer. `waiting` gets a line now and then while it waits (#1714).
+    fn decompile(&self, entry: u64, waiting: &dyn Fn(&str)) -> Result<Option<DeepFunction>, DeepError>;
     /// List the functions the engine found.
     fn list_functions(&self) -> Result<Vec<DeepFunction>, DeepError>;
 }

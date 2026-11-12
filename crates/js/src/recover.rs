@@ -96,6 +96,7 @@ impl<'a> Visit<'a> for RewriteVisitor<'_> {
             if let Statement::ExpressionStatement(es) = st
                 && let Expression::SequenceExpression(seq) = &es.expression
                 && seq.expressions.len() >= 2
+                && !matches!(seq.expressions.first(), Some(Expression::StringLiteral(_)))
                 && seq.expressions.iter().skip(1).all(|e| starts_statement_safely(slice(self.src, e.span().start, e.span().end)))
             {
                 for pair in seq.expressions.windows(2) {
@@ -268,7 +269,7 @@ pub fn safe_module_path(id: &str, fallback_ext: &str) -> String {
 pub fn recover_modules(src: &str, modules: &[BundleModule], level: RewriteLevel, limits: &Limits) -> Vec<RecoveredModule> {
     let mut out = Vec::new();
     let mut names = std::collections::HashSet::new();
-    for m in modules {
+    for (module_index, m) in modules.iter().enumerate() {
         let original = slice(src, m.start, m.end);
         let mut renamed = Vec::new();
         let mut note = None;
@@ -299,8 +300,13 @@ pub fn recover_modules(src: &str, modules: &[BundleModule], level: RewriteLevel,
         let mut file_name = safe_module_path(&m.id, ".js");
         if !names.insert(file_name.clone()) {
             let stem = file_name.trim_end_matches(".js").to_string();
-            file_name = format!("{stem}.{}.js", m.sha256.get(..8).unwrap_or("dup"));
-            names.insert(file_name.clone());
+            let hash = m.sha256.get(..8).unwrap_or("dup");
+            file_name = format!("{stem}.{hash}.js");
+            let mut occurrence = module_index;
+            while !names.insert(file_name.clone()) {
+                file_name = format!("{stem}.{hash}.{occurrence}.js");
+                occurrence += 1;
+            }
         }
         let header = format!("// Recovered from a {} bundle: module {:?} (bytes {}..{} of the original file).\n", m.format, m.id, m.start, m.end);
         let header = if renamed.is_empty() {
@@ -380,5 +386,68 @@ mod tests {
         assert_eq!(safe_module_path("..", ".js"), "module.js");
         assert_eq!(safe_module_path("12", ".js"), "12.js");
         assert_eq!(safe_module_path(".hidden", ".js"), "hidden.js");
+    }
+}
+
+#[cfg(test)]
+mod sequence_directives_regression {
+    use super::*;
+
+    #[test]
+    fn splitting_does_not_introduce_use_strict() {
+        for source in [r#"function f(){ "hello", "use strict"; return this; }"#, r#""hello", "use strict"; globalThis.answer = this;"#] {
+            let (out, _) = pretty_print("a.cjs", source, RewriteLevel::Standard, &Limits::default()).unwrap();
+            assert!(out.contains(','), "{out}");
+        }
+    }
+
+    #[test]
+    fn ordinary_sequences_still_split() {
+        let (out, count) = pretty_print("a.cjs", "a(), b();", RewriteLevel::Standard, &Limits::default()).unwrap();
+        assert_eq!(count, 1);
+        assert!(!out.contains(','), "{out}");
+    }
+}
+
+#[cfg(test)]
+mod module_collisions_regression {
+    use super::*;
+
+    /// Repeated webpack registrations retain every recovered module under a distinct path.
+    #[test]
+    fn repeated_webpack_chunk_modules_have_distinct_paths() {
+        let chunk = r#"(self.webpackChunknotes=self.webpackChunknotes||[]).push([[179],{512:function(e){e.exports=1}}]);"#;
+        let source = chunk.repeat(3);
+        let analysis = crate::analyze("bundle.js", &source, &crate::Limits::default());
+        assert_eq!(analysis.bundle.modules.len(), 3);
+        let recovered = super::recover_modules(&source, &analysis.bundle.modules, super::RewriteLevel::None, &crate::Limits::default());
+        let names: std::collections::HashSet<_> = recovered.iter().map(|m| &m.file_name).collect();
+        assert_eq!(names.len(), 3);
+    }
+
+    /// Hash collisions and module ids matching generated names never share an output path.
+    #[test]
+    fn repeated_hashes_have_distinct_output_paths() {
+        let source = "globalThis.answer = 1;";
+        let module = BundleModule {
+            id: "same.js".into(),
+            format: "webpack".into(),
+            chunk_ids: vec![],
+            start: 0,
+            end: source.len() as u32,
+            body: Some((0, source.len() as u32)),
+            line: 1,
+            params: vec![],
+            deps: vec![],
+            sha256: "0123456789abcdef".into(),
+            fingerprint: String::new(),
+        };
+        let mut modules = vec![module.clone(); 4];
+        modules[3].id = "same.01234567.js".into();
+        let recovered = recover_modules(source, &modules, RewriteLevel::None, &Limits::default());
+        let names: std::collections::HashSet<_> = recovered.iter().map(|m| &m.file_name).collect();
+        assert_eq!(names.len(), recovered.len());
+        assert_eq!(recovered[0].file_name, "same.js");
+        assert_eq!(recovered[1].file_name, "same.01234567.js");
     }
 }

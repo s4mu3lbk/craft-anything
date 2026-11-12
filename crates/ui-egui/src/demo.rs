@@ -232,6 +232,7 @@ fn workspace(slug: &str, name: &str, request: &str, target: TargetRef, status: S
             agent_session: None,
             agent_session_by: None,
             agent_session_deep: None,
+            capture_deep: None,
             allowed_actions: Vec::new(),
             last_reply: String::new(),
             asset_budget_usd: craft_anything_engine::workspace::ASSET_BUDGET_USD,

@@ -148,6 +148,16 @@ widget labels and registered engine tool titles and groups; it also runs in
 `cargo xtask ci`. It does not prove coverage of arbitrary runtime text or labels
 held in tables, so review those when adding or changing UI code.
 
+A UI change can land with its new strings in English while native speakers review the
+translations in a PR of their own. List each new string in `crates/ui-egui/src/i18n/awaiting.txt`
+(one per line, as in a catalog's first column). The coverage command lets the strings listed
+there be missing, and the app shows them in English until a catalog has them. The command fails
+once a listed string is in every catalog, or is no longer shown, so the translation PR takes it
+out of the list. The catalog tests require every catalog to have the same keys, so that PR adds
+each string to all of them at once. Only strings the command finds can be listed: a literal in
+`tr`, `trf` or a widget's label, not one passed through a constant (`tr(LABEL)`), which the
+command can't see and would report as not shown.
+
 The existing snapshot example accepts any catalog code with `--lang`, such as
 `--lang zh-hant` or `--lang ko`, for example:
 
@@ -162,6 +172,8 @@ stacked marks (ạ, ả, ấ, ế, ơ, ư, ữ…), so a build without craft-fon
 craft-fonts, Noto Sans CJK SC supplies those letters (a different face from the DM Sans around them);
 the script test in `theme.rs` checks every one of them. Chinese and Korean glyphs use the existing craft-fonts fallback, which release and CI builds
 already include. Local builds must set `CRAFT_FONTS_DIR` to a craft-fonts checkout
-before compiling to get the same glyph coverage. The catalogs add no font assets.
+before compiling to get the same glyph coverage; with `CRAFT_FONTS_REQUIRED=1` set as well, a
+build that would leave the fonts out (no `CRAFT_FONTS_DIR`, or a bad one) fails instead of
+quietly showing boxes. The catalogs add no font assets.
 Check each script, clipping, narrow windows and native file dialogs visually
 on each platform; catalog coverage alone does not verify layout or fonts.

@@ -5,6 +5,7 @@ use crate::BackendKind;
 use craft_anything_engine::tools::asset_tools::AssetKeys;
 use craft_anything_engines::assets::{AssetProvider, AssetProviders};
 use craft_anything_evidence::{ErrorCode, ToolError};
+use craft_anything_platform::sync::Mutex;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -16,6 +17,10 @@ pub const NO_KEYCHAIN_ENV: &str = "CRAFT_ANYTHING_NO_KEYCHAIN";
 const KEYCHAIN_TIMEOUT: Duration = Duration::from_secs(3);
 
 const FILE_HEADER: &str = "# Craft Anything AI keys: FALLBACK STORE.\n# These keys are here because no OS keychain was available when they were saved.\n# This file is readable only by you (0600). Delete a line to forget a key.\n";
+
+/// Serializes every fallback-file read-modify-write, across backend names: two saves for different
+/// backends must not read the file together and overwrite each other's entry.
+static FILE_LOCK: Mutex<()> = Mutex::new(());
 
 /// Where the fal.ai key for generated game assets is stored.
 pub const FAL_KEY: &str = "assets:fal";
@@ -61,6 +66,28 @@ pub fn env_var(kind: BackendKind) -> Option<&'static str> {
         BackendKind::Gemini => Some("GEMINI_API_KEY"),
         BackendKind::OpenaiCompatible | BackendKind::AgentCli => None,
     }
+}
+
+/// What a keychain delete told us.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KeychainDelete {
+    /// The entry was removed, or was already missing.
+    Confirmed,
+    /// There is no keychain on this computer to hold a key, so the fallback file is all there is.
+    NoKeychain,
+    /// A platform failure: the keychain exists but the delete didn't get through. A read-back
+    /// settles whether the key is still there.
+    Unreachable,
+    /// The keychain is there but locked, denied or timed out: the key may still be in it.
+    Unconfirmed,
+}
+
+/// What a keychain read found. `Unavailable` is not `Missing`: the key may still be there.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum KeychainGet {
+    Found(String),
+    Missing,
+    Unavailable,
 }
 
 /// Where keys live.
@@ -130,6 +157,7 @@ impl KeyStore {
         }
         if self.use_keychain && keychain::set(backend, key) {
             // Don't leave a stale copy in the fallback file (the keychain's copy is read first).
+            let _file = FILE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
             if let Ok(mut t) = self.read_file_to_change()
                 && t.remove(backend).is_some()
             {
@@ -137,6 +165,7 @@ impl KeyStore {
             }
             return Ok("keychain");
         }
+        let _file = FILE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
         let mut t = self.read_file_to_change()?;
         t.insert(backend.to_string(), toml::Value::String(key.to_string()));
         self.write_file(&t).map_err(|e| ToolError::new(ErrorCode::NoPermission, format!("Couldn't save the key: {}", e.message)))?;
@@ -144,20 +173,44 @@ impl KeyStore {
     }
 
     pub fn delete(&self, backend: &str) -> Result<(), ToolError> {
-        if self.use_keychain {
-            keychain::delete(backend);
-        }
-        let mut t = self.read_file_to_change()?;
-        if t.remove(backend).is_some() {
-            self.write_file(&t)?;
-        }
-        // A locked or busy keychain may have refused, and it's read first, so the key would still
-        // work. Reading back, not the delete's result: with no keychain at all the delete fails too.
-        if self.use_keychain && keychain::get(backend).is_some() {
+        // A delete that couldn't be confirmed must not read as success: the key would still be
+        // used. A keychain that couldn't be reached is settled by reading the key back (a computer
+        // with no keychain finds nothing); a locked, denied or timed-out one fails closed here.
+        let result = if self.use_keychain { keychain::delete(backend) } else { KeychainDelete::Confirmed };
+        let read_back = if result == KeychainDelete::Unreachable { keychain::get_result(backend) } else { KeychainGet::Missing };
+        let keychain_done = keychain_delete_confirmed(result, read_back);
+        // A known keychain failure leaves both copies untouched for a retry.
+        if result == KeychainDelete::Unconfirmed {
             return Err(ToolError::new(ErrorCode::NoPermission, "The system keychain still has this key, so it wasn't removed.")
-                .with_remediation("Unlock the keychain and try again, or delete the entry from your keychain app."));
+                .with_remediation("Unlock the keychain and try again, or delete this AI's entry in your keychain app."));
+        }
+        {
+            let _file = FILE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let mut t = self.read_file_to_change()?;
+            if t.remove(backend).is_some() {
+                self.write_file(&t)?;
+            }
+        }
+        if !keychain_done {
+            return Err(ToolError::new(
+                ErrorCode::NoPermission,
+                "The saved key file was cleared, but the system keychain couldn't confirm this key was removed.",
+            )
+            .with_remediation("Unlock the keychain and try again, or delete this AI's entry in your keychain app."));
         }
         Ok(())
+    }
+}
+
+/// Whether a keychain delete is confirmed: its own result, or, when the keychain couldn't be
+/// reached, a read-back that finds nothing. A locked or timed-out keychain is never settled by the
+/// read-back, which fails the same way. A headless computer with no keychain reads back nothing,
+/// so a fallback-file-only delete passes.
+fn keychain_delete_confirmed(result: KeychainDelete, read_back: KeychainGet) -> bool {
+    match result {
+        KeychainDelete::Confirmed | KeychainDelete::NoKeychain => true,
+        KeychainDelete::Unreachable => read_back == KeychainGet::Missing,
+        KeychainDelete::Unconfirmed => false,
     }
 }
 
@@ -175,11 +228,28 @@ fn bounded<T: Send + 'static>(f: impl FnOnce() -> Option<T> + Send + 'static) ->
 
 #[cfg(any(target_os = "linux", target_os = "macos", windows))]
 mod keychain {
-    use super::{SERVICE, bounded};
+    use super::{KeychainDelete, KeychainGet, SERVICE, bounded};
 
     pub fn get(backend: &str) -> Option<String> {
+        match get_result(backend) {
+            KeychainGet::Found(key) => Some(key),
+            KeychainGet::Missing | KeychainGet::Unavailable => None,
+        }
+    }
+
+    /// Read the entry and say whether it was missing or the keychain couldn't answer. The two are
+    /// not interchangeable when a delete is being confirmed: an unavailable read may hide a key.
+    pub fn get_result(backend: &str) -> KeychainGet {
         let b = backend.to_string();
-        bounded(move || keyring::Entry::new(SERVICE, &b).ok()?.get_password().ok())
+        bounded(move || match keyring::Entry::new(SERVICE, &b) {
+            Ok(entry) => Some(match entry.get_password() {
+                Ok(key) => KeychainGet::Found(key),
+                Err(keyring::Error::NoEntry) => KeychainGet::Missing,
+                Err(_) => KeychainGet::Unavailable,
+            }),
+            Err(_) => Some(KeychainGet::Unavailable),
+        })
+        .unwrap_or(KeychainGet::Unavailable)
     }
 
     pub fn set(backend: &str, key: &str) -> bool {
@@ -187,22 +257,66 @@ mod keychain {
         bounded(move || keyring::Entry::new(SERVICE, &b).ok()?.set_password(&k).ok()).is_some()
     }
 
-    pub fn delete(backend: &str) {
+    /// Delete the entry and say how far it got. A missing entry is confirmed; a platform with no
+    /// keychain to hold one is [`KeychainDelete::NoKeychain`]; a platform failure is
+    /// [`KeychainDelete::Unreachable`] for the caller to settle with a read-back; a locked, denied
+    /// or timed-out keychain is unconfirmed.
+    pub fn delete(backend: &str) -> KeychainDelete {
         let b = backend.to_string();
-        let _ = bounded(move || keyring::Entry::new(SERVICE, &b).ok()?.delete_credential().ok());
+        bounded(move || {
+            match keyring::Entry::new(SERVICE, &b) {
+                Ok(entry) => Some(delete_result(entry.delete_credential())),
+                // No keychain backend on this computer: there is nothing there to delete.
+                Err(_) => Some(KeychainDelete::NoKeychain),
+            }
+        })
+        .unwrap_or(KeychainDelete::Unconfirmed)
+    }
+
+    /// A delete is confirmed only when the entry was removed or was already gone. A platform
+    /// failure is the maybe-no-keychain case (the caller reads back); a locked store is not.
+    fn delete_result(result: Result<(), keyring::Error>) -> KeychainDelete {
+        match result {
+            Ok(()) | Err(keyring::Error::NoEntry) => KeychainDelete::Confirmed,
+            Err(keyring::Error::PlatformFailure(_)) => KeychainDelete::Unreachable,
+            Err(_) => KeychainDelete::Unconfirmed,
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::delete_result;
+        use crate::keys::KeychainDelete::{Confirmed, Unconfirmed, Unreachable};
+
+        #[test]
+        fn only_a_missing_or_removed_entry_is_confirmed() {
+            assert_eq!(delete_result(Ok(())), Confirmed);
+            assert_eq!(delete_result(Err(keyring::Error::NoEntry)), Confirmed);
+            assert_eq!(delete_result(Err(keyring::Error::PlatformFailure(Box::new(std::io::Error::other("present but failing"))))), Unreachable);
+            assert_eq!(delete_result(Err(keyring::Error::NoStorageAccess(Box::new(std::io::Error::other("locked"))))), Unconfirmed);
+        }
     }
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
 mod keychain {
+    use super::{KeychainDelete, KeychainGet};
+
     pub fn get(_: &str) -> Option<String> {
-        let _ = super::bounded(|| None::<()>);
         None
     }
+
+    pub fn get_result(_: &str) -> KeychainGet {
+        KeychainGet::Missing
+    }
+
     pub fn set(_: &str, _: &str) -> bool {
         false
     }
-    pub fn delete(_: &str) {}
+
+    pub fn delete(_: &str) -> KeychainDelete {
+        KeychainDelete::NoKeychain
+    }
 }
 
 #[cfg(test)]
@@ -221,6 +335,45 @@ mod tests {
         }
         fn generate(&self, _key: &str, _req: &craft_anything_engines::assets::AssetRequest) -> Result<craft_anything_engines::assets::Generated, ToolError> {
             Err(ToolError::invalid("not here"))
+        }
+    }
+
+    /// A failed keychain delete is settled by reading the key back: gone is confirmed, present is
+    /// not. A machine with no keychain reads back nothing, so the file-only delete still passes.
+    #[test]
+    fn a_failed_keychain_delete_is_settled_by_the_read_back() {
+        use KeychainGet::{Found, Missing, Unavailable};
+        assert!(keychain_delete_confirmed(KeychainDelete::Confirmed, Missing), "the delete itself succeeded");
+        assert!(keychain_delete_confirmed(KeychainDelete::NoKeychain, Unavailable), "there is no keychain to hold a key");
+        assert!(keychain_delete_confirmed(KeychainDelete::Unreachable, Missing), "the key is gone");
+        assert!(!keychain_delete_confirmed(KeychainDelete::Unreachable, Found("still here".into())), "the keychain still has it");
+        assert!(!keychain_delete_confirmed(KeychainDelete::Unreachable, Unavailable), "a read error or timeout can't confirm the delete");
+        assert!(!keychain_delete_confirmed(KeychainDelete::Unconfirmed, Missing), "a locked or timed-out delete fails closed");
+    }
+
+    /// Saves for different backends share one fallback file: a read-modify-write from one must not
+    /// overwrite another's entry.
+    #[test]
+    fn fallback_writes_from_different_backends_dont_lose_entries() {
+        let d = tempfile::tempdir().unwrap();
+        let store = KeyStore::file_only(d.path().join("keys.toml"));
+        let mut handles = Vec::new();
+        for i in 0..8 {
+            let store = store.clone();
+            handles.push(std::thread::spawn(move || {
+                for j in 0..5 {
+                    store.set(&format!("backend-{i}-{j}"), "sk-test").unwrap();
+                }
+            }));
+        }
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        let keys = store.read_file();
+        for i in 0..8 {
+            for j in 0..5 {
+                assert_eq!(keys.get(&format!("backend-{i}-{j}")).and_then(|v| v.as_str()), Some("sk-test"), "backend-{i}-{j}");
+            }
         }
     }
 

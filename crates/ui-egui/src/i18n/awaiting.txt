@@ -1,0 +1,4 @@
+# UI strings shown in English until native speakers review their translations.
+# One per line, written as in a catalog's first column (\n for a line break).
+# `cargo xtask i18n-coverage` lets these be missing from the catalogs, and fails once a string
+# here is translated in every catalog or no longer shown: the translation PR takes it out.

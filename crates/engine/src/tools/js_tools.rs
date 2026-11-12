@@ -169,9 +169,9 @@ impl Budget {
 }
 
 /// Read an input into files for the analyser. Returns the input, its subject, integrity problems
-/// and the folders that couldn't be listed, as (path, reason).
+/// and the folders that couldn't be listed as (path, reason), plus whether a listing was cut short.
 #[allow(clippy::type_complexity)]
-pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInput, Subject, Vec<String>, Vec<(String, String)>), ToolError> {
+pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInput, Subject, Vec<String>, Vec<(String, String)>, bool), ToolError> {
     let path = abs_path(&p.input_path, "input_path")?;
     let meta = std::fs::metadata(&path).map_err(|e| ToolError::io(path.display(), e))?;
     let label = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| path.display().to_string());
@@ -179,6 +179,7 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
     let mut input = AppInput { label: label.clone(), ..Default::default() };
     let mut integrity = Vec::new();
     let mut unlisted = Vec::new();
+    let mut listing_truncated = false;
     let format = match p.format {
         InputFormat::Auto if meta.is_dir() => InputFormat::Directory,
         InputFormat::Auto => {
@@ -207,6 +208,7 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
             if walked.truncated {
                 input.notes.push("the folder listing was cut short by the file-count or depth limit".into());
             }
+            listing_truncated |= walked.truncated;
             unlisted.extend(walked.unlisted.iter().cloned());
             // A packaged app folder: analyse its app.asar when there is no package.json of its own.
             let has_pkg = walked.files.iter().any(|f| f.rel == "package.json" || (f.rel.ends_with("/package.json") && !f.rel.contains("node_modules/")));
@@ -218,10 +220,10 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
                 let mut q = p.clone();
                 q.input_path = a.abs.display().to_string();
                 q.format = InputFormat::Asar;
-                let (mut inp, subj, integ, mut gaps) = load_app_input(ctx, &q)?;
+                let (mut inp, subj, integ, mut gaps, truncated) = load_app_input(ctx, &q)?;
                 inp.notes.push(format!("analysed {} found inside the folder", a.rel));
                 unlisted.append(&mut gaps);
-                return Ok((inp, subj, integ, unlisted));
+                return Ok((inp, subj, integ, unlisted, listing_truncated || truncated));
             }
             let mut listing_hash = Vec::new();
             for f in &walked.files {
@@ -246,8 +248,9 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
             let a = asar::parse(&bytes, p.max_files.saturating_mul(4).max(1000))
                 .map_err(|e| ToolError::new(ErrorCode::GarbledOutput, format!("{}: {e}", path.display())))?;
             if a.truncated {
-                input.notes.push("the ASAR listing was cut short by the file-count limit".into());
+                input.notes.push("the ASAR listing was cut short by the file-count, depth, or path-byte limit".into());
             }
+            listing_truncated = a.truncated;
             for r in &a.rejected_names {
                 input.notes.push(format!("skipped ASAR entry with an unsafe name: {r}"));
             }
@@ -289,6 +292,10 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
             let bytes = read_capped(&path, crate::target::MAX_TARGET_BYTES)?;
             let z = zip::parse(&bytes, p.max_files.saturating_mul(4).max(1000))
                 .map_err(|e| ToolError::new(ErrorCode::GarbledOutput, format!("{}: {e}", path.display())))?;
+            listing_truncated = z.truncated;
+            if z.truncated {
+                input.notes.push("the ZIP listing was cut short before every directory entry was read".into());
+            }
             for e in z.entries.iter().filter(|e| !e.is_dir) {
                 ctx.cancel.check()?;
                 input.listing.push((e.name.clone(), e.uncompressed_size));
@@ -331,6 +338,10 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
             let skip = |_: &str| false;
             let walked =
                 walk_dir(&ep, &WalkOptions { max_files: p.max_files, max_depth: 48, skip_dir: &skip, gitignore: false, include_hidden: false }, &ctx.cancel)?;
+            listing_truncated |= walked.truncated;
+            if walked.truncated {
+                input.notes.push(format!("{base}: the folder listing was cut short by the file-count or depth limit"));
+            }
             unlisted.extend(walked.unlisted.iter().map(|(rel, e)| (format!("{base}/{rel}"), e.clone())));
             for f in &walked.files {
                 let rel = format!("{base}/{}", f.rel);
@@ -350,7 +361,7 @@ pub(crate) fn load_app_input(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<(AppInp
     if budget.skipped > 0 {
         input.notes.push(format!("{} file(s) were listed but not read because of the size or count limits", budget.skipped));
     }
-    Ok((input, subject, integrity, unlisted))
+    Ok((input, subject, integrity, unlisted, listing_truncated))
 }
 
 fn read_head(path: &Path) -> Result<Vec<u8>, ToolError> {
@@ -367,7 +378,7 @@ fn read_head(path: &Path) -> Result<Vec<u8>, ToolError> {
 pub(crate) type Analyzed = (AppGraph, Subject, Vec<Limitation>, (u64, u64));
 
 pub(crate) fn analyze_to_graph(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<Analyzed, ToolError> {
-    let (input, subject, integrity, unlisted) = load_app_input(ctx, p)?;
+    let (input, subject, integrity, unlisted, listing_truncated) = load_app_input(ctx, p)?;
     if !integrity.is_empty() && p.if_tampered == IntegrityPolicy::Fail {
         return Err(ToolError::new(
             ErrorCode::FileHashMismatch,
@@ -381,6 +392,9 @@ pub(crate) fn analyze_to_graph(ctx: &Ctx<'_>, p: &AnalyzeParams) -> Result<Analy
     let check = move || cancel.is_cancelled();
     let graph = analyze_application(&input, &opts, &check).map_err(|_| ToolError::cancelled())?;
     let mut lims: Vec<Limitation> = graph.limitations.iter().map(|(c, m)| Limitation::new(c.clone(), m.clone())).collect();
+    if listing_truncated {
+        lims.push(Limitation::new("truncated", "The input listing was cut short; files beyond it were not read."));
+    }
     for path in &integrity {
         lims.push(Limitation::new("integrity_mismatch", format!("{path} does not match its ASAR integrity hash")));
     }
@@ -427,13 +441,32 @@ fn js_app_map(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError>
     let complete_modules = p.offset == 0 && p.limit >= total_modules;
     // A folder that couldn't be listed holds files never counted, so the count can't be complete (#294).
     let unlisted = lims.iter().any(|l| l.code == "unlisted_folders");
+    let truncated = lims.iter().any(|l| l.code == "truncated");
+    let mut coverage = if complete_modules {
+        Coverage {
+            status: if read >= listed && !unlisted {
+                craft_anything_evidence::CoverageStatus::Complete
+            } else {
+                craft_anything_evidence::CoverageStatus::Partial
+            },
+            examined: Some(read),
+            total: Some(listed),
+            next_offset: None,
+        }
+    } else {
+        Coverage::page(p.limit.min(total_modules.saturating_sub(p.offset)) as u64, total_modules as u64, p.offset as u64)
+    };
+    if truncated {
+        coverage.status = craft_anything_evidence::CoverageStatus::Partial;
+        coverage.total = None;
+    }
     let mut b = EvidenceBuilder::new("js_app_map", subject, env(ctx))
         .params(json!({"input_path": p.input_path, "include_node_modules": p.include_node_modules, "max_nodes": p.max_nodes, "offset": p.offset, "limit": p.limit, "source_paths": p.source_paths}))
         .result(result)
         .summary(summary)
         .confidence(Confidence::Derived)
         .limitations(lims)
-        .coverage(if complete_modules { Coverage { status: if read >= listed && !unlisted { craft_anything_evidence::CoverageStatus::Complete } else { craft_anything_evidence::CoverageStatus::Partial }, examined: Some(read), total: Some(listed), next_offset: None } } else { Coverage::page(p.limit.min(total_modules.saturating_sub(p.offset)) as u64, total_modules as u64, p.offset as u64) })
+        .coverage(coverage)
         .location(Location::new("path", p.input_path.clone()));
     if !complete_modules {
         b = b.limitation(Limitation::new("paged_modules", "Only one page of module summaries is included; tools that take this evidence need every module, so pass the input path to them or use offset=0 with a limit above modules_total."));

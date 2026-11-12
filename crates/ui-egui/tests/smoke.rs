@@ -1410,6 +1410,17 @@ fn an_ai_server_is_added_by_its_address() {
     h.get_by_label("Add an AI by its address");
     h.state_mut().server_form = craft_anything_ui_egui::ServerForm { name: "Studio box".into(), address: url.clone(), ..Default::default() };
     h.run_steps(1);
+    // The AI settings page scrolls, and the key row added in #1486 puts the form's Add button
+    // below its visible part. A pointer click there lands outside the scroll area, so scroll the
+    // page first, as a person would.
+    h.event(egui::Event::PointerMoved(egui::pos2(640.0, 400.0)));
+    h.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Point,
+        delta: egui::vec2(0.0, -300.0),
+        phase: egui::TouchPhase::Move,
+        modifiers: egui::Modifiers::NONE,
+    });
+    h.run_steps(20);
     h.get_by_label("Add").click();
     assert!(wait(&mut h, |a| a.backends.iter().any(|b| b.name == "Studio box" && b.model == "qwen3:8b")), "added with a model that can chat");
     assert!(h.state().server_form.name.is_empty(), "the form empties once it's added");
@@ -1440,6 +1451,29 @@ fn an_agent_apps_program_is_set_in_settings() {
     h.get_by_label("Program: /opt/oc/opencode");
     h.get_by_label("Find it automatically").click();
     assert!(wait(&mut h, |a| program(a).is_none()));
+}
+
+/// #721: an agent whose saved program is gone says so in Settings → AI, with the program that runs
+/// in its place. A program found by its usual name has no file to save, so nothing is offered.
+#[test]
+fn a_saved_program_that_is_gone_is_said_in_settings() {
+    use craft_anything_ai::{BackendEntry, BackendOptions};
+    let dir = tempfile::tempdir().unwrap();
+    let gone = dir.path().join("old-build").join("agent").display().to_string();
+    let mut h = harness(move || {
+        let a = demo::app(demo::engine(Mode::Experienced, true));
+        // cargo stands in for the agent's usual program: it's there wherever these tests run.
+        let config = BackendConfig { name: "Moved".into(), kind: BackendKind::AgentCli, model: "cargo".into(), base_url: None, ssh_host: None, enabled: true };
+        a.hub.add_backend_with(BackendEntry { config, options: BackendOptions { command: Some(gone), ..Default::default() } }, None).unwrap();
+        a
+    });
+    h.state_mut().refresh_backends();
+    assert!(wait(&mut h, |a| a.program_replaced.get("Moved").is_some_and(|p| p == "cargo")));
+    h.state_mut().state.settings_open = true;
+    h.state_mut().state.settings_tab = craft_anything_ui_egui::state::SettingsTab::Ai;
+    h.run_steps(3);
+    h.get_by_label("It isn't there any more, so cargo runs in its place.");
+    assert!(h.query_by_label("Use it").is_none(), "a name on PATH isn't a file to save");
 }
 
 /// Claude Code's effort is chosen in Settings → AI, from every level Claude offers.
@@ -1773,7 +1807,7 @@ fn a_note_waiting_for_the_builder_can_be_taken_back_into_the_prompt_box() {
     h.state_mut().open_workspace(a.clone());
     h.state_mut().follow_up(Some("Add tags".into()));
     h.run_steps(2);
-    // Notes sent while it works wait under the conversation, not in it.
+    // Waiting notes only join the saved conversation once the builder reads them.
     for note in ["Make them blue", "And sortable"] {
         h.state_mut().state.project_input = note.into();
         h.state_mut().send_message();
@@ -2251,6 +2285,43 @@ fn a_running_build_says_what_it_is_on_and_opens_up_into_its_activity() {
     assert!(runs.finish(&ws.root));
     h.run_steps(3);
     h.get_by_label("What happened in this build");
+}
+
+#[test]
+fn a_long_waiting_note_leaves_the_live_activity_and_prompt_visible() {
+    use craft_anything_ai::{
+        AgentEvent,
+        rebuild::{RunEvent, StandIns},
+    };
+    use craft_anything_engine::workspace::{Step, TargetRef, Workspace};
+    let d = tempfile::tempdir().unwrap();
+    let ws = Workspace::create(d.path(), "Alpha", "A notes app", TargetRef::None).unwrap();
+    let runs = StandIns::new();
+    let (dir, r) = (d.path().to_path_buf(), runs.clone());
+    let size = egui::vec2(1280.0, 600.0);
+    let mut h = harness_sized(size, move || stand_in_app(dir, &r));
+    h.state_mut().open_workspace(ws.clone());
+    h.state_mut().follow_up(Some("Add tags".into()));
+    assert!(runs.send(&ws.root, RunEvent::Step { step: Step::Build, text: "Building the first version…".into() }));
+    assert!(runs.send(
+        &ws.root,
+        RunEvent::Agent(AgentEvent::ToolStarted { call_id: "test".into(), tool: "Bash".into(), input: serde_json::json!({"command": "cargo test --quiet"}) })
+    ));
+    h.run_steps(4);
+
+    let note = "Please make the notes sortable and keep the selected tags.\n".repeat(160);
+    h.state_mut().state.project_input = note.trim_end().into();
+    h.state_mut().send_message();
+    h.run_steps(4);
+
+    let prompt = h.get_by_label("Ask for a change").rect();
+    assert!(prompt.bottom() <= size.y, "the prompt box is on the screen");
+    let activity = h.query_all_by_label_contains("Now: Running cargo test --quiet").next().expect("the live activity is shown").rect();
+    assert!(activity.top() >= 0.0 && activity.bottom() < prompt.top(), "the live activity is visible above the prompt");
+    let details = h.get_by_label("More detail").rect();
+    assert!(details.top() >= 0.0 && details.bottom() < prompt.top(), "the activity log can be opened");
+    let send = h.get_by_label("Send now").rect();
+    assert!(send.top() >= 0.0 && send.bottom() < activity.top(), "the waiting note's controls are reachable");
 }
 
 #[test]
@@ -2777,6 +2848,52 @@ fn only_the_claude_desktop_app_is_named_when_nothing_can_build() {
     assert!(h.query_by_label("The Claude desktop app is installed, but building needs Claude Code, its separate command-line tool. Install Claude Code, sign in to it once in a terminal, then look again.").is_none());
 }
 
+/// The discovery tabs and Detect action stay separate and evenly spaced in Settings → AI.
+#[test]
+fn ai_discovery_controls_have_even_spacing() {
+    for (width, mode, count) in [(760.0, Mode::Beginner, 0), (900.0, Mode::Experienced, 0), (1280.0, Mode::Beginner, 12), (1280.0, Mode::Experienced, 12)] {
+        let mut h = harness_sized(egui::vec2(width, 1000.0), move || {
+            let mut a = demo::app(demo::engine(mode, true));
+            a.backends.clear();
+            a.detected = Some(
+                [BackendKind::Openai, BackendKind::AgentCli]
+                    .into_iter()
+                    .flat_map(|kind| {
+                        (0..count).map(move |i| craft_anything_ai::Detected {
+                            suggestion: BackendConfig {
+                                name: format!("Fixture {kind:?} {i}"),
+                                kind,
+                                model: "fixture".into(),
+                                base_url: None,
+                                ssh_host: None,
+                                enabled: true,
+                            },
+                            reason: "Controlled discovery result".into(),
+                            needs_key: false,
+                        })
+                    })
+                    .collect(),
+            );
+            a.state.settings_open = true;
+            a.state.settings_tab = craft_anything_ui_egui::state::SettingsTab::Ai;
+            a
+        });
+        h.run_steps(4);
+        let providers = h.get_by_label(&format!("Providers ({count})")).rect();
+        let harnesses = h.get_by_label(&format!("Harnesses ({count})")).rect();
+        let detect = h.get_by_label("Detect").rect();
+        assert!(!providers.intersects(detect) && !harnesses.intersects(detect), "controls overlap at {width}: {providers:?}, {harnesses:?}, {detect:?}");
+        let tab_gap = harnesses.left() - providers.right();
+        let action_gap = detect.left() - harnesses.right();
+        assert!(tab_gap > 0.0 && action_gap > 0.0, "controls need a visible gap at {width}");
+        assert!((tab_gap - action_gap).abs() <= 1.0, "spacing differs at {width}: {tab_gap} vs {action_gap}");
+        assert!(providers.top() < detect.bottom() && detect.top() < providers.bottom(), "controls share a row at {width}");
+        h.get_by_label(&format!("Harnesses ({count})")).click();
+        h.run_steps(2);
+        assert_eq!(h.state().state.detect_tab, Some(craft_anything_ui_egui::detect_tabs::DetectTab::Harnesses));
+    }
+}
+
 /// A long reason on a card for an AI found on this computer wraps beside its Add button; it used
 /// to stay on one line and run on under the button.
 #[test]
@@ -2836,6 +2953,44 @@ fn an_ai_can_be_turned_off_and_removed_in_settings() {
     h.run_steps(2);
     h.get_by_label("Remove it and its key").click();
     assert!(wait(&mut h, |a| a.backends.is_empty()), "removed");
+}
+
+/// A key save for a backend is still running: its Remove must not start, or the save can write
+/// the key back after the backend and its key are gone.
+#[test]
+fn a_backend_cant_be_removed_while_its_key_is_being_saved() {
+    let mut h = harness(|| {
+        let mut a = demo::app(demo::engine(Mode::Experienced, true));
+        a.hub
+            .add_backend(
+                BackendConfig {
+                    name: "OpenAI test".into(),
+                    kind: BackendKind::Openai,
+                    model: "gpt-test".into(),
+                    base_url: None,
+                    ssh_host: None,
+                    enabled: true,
+                },
+                None,
+            )
+            .unwrap();
+        a.backends = a.hub.backends();
+        a.state.settings_open = true;
+        a.state.settings_tab = craft_anything_ui_egui::state::SettingsTab::Ai;
+        a
+    });
+    h.run_steps(3);
+    h.get_by_label("Remove OpenAI test").click();
+    h.run_steps(2);
+    h.state_mut().backend_key_pending.insert("OpenAI test".into());
+    h.run_steps(2);
+    h.get_by_label("Remove it and its key").click();
+    h.run_steps(3);
+    assert!(h.state().backends.iter().any(|b| b.name == "OpenAI test"), "the backend stays while its key is being saved");
+    h.state_mut().backend_key_pending.remove("OpenAI test");
+    h.run_steps(2);
+    h.get_by_label("Remove it and its key").click();
+    assert!(wait(&mut h, |a| a.backends.iter().all(|b| b.name != "OpenAI test")), "removed once the key save finished");
 }
 
 #[test]

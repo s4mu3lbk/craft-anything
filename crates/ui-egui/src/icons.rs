@@ -112,6 +112,7 @@ mod tests {
             K::Asar,
             K::Directory,
             K::Script,
+            K::Text,
             K::NetworkCapture,
             K::Plist,
             K::Evm,

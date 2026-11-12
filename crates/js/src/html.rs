@@ -198,7 +198,7 @@ pub fn scan_html(src: &str) -> HtmlFacts {
             "title" => {
                 let (_, end) = attributes(src, &lower, after);
                 let close = closing_tag(&lower, end, "title").unwrap_or(lower.len());
-                out.title = src.get(end..close).map(|t| t.trim().chars().take(200).collect());
+                out.title = src.get(end..close).map(|t| decode_entities(t).trim().chars().take(200).collect());
                 pos = close.max(at + 1);
             }
             _ if rest.starts_with("!--") => {
@@ -277,5 +277,23 @@ mod tests {
         for s in ["<", "<script", "<script src=", "<script src='x", "<<<<>>>", "<script>é", "<meta http-equiv=content-security-policy content=\"é", "<!--"] {
             let _ = scan_html(s);
         }
+    }
+}
+
+#[cfg(test)]
+mod title_entities_regression {
+    use super::scan_html;
+
+    #[test]
+    fn displayed_title_decodes_references_once() {
+        let facts = scan_html("<title>Fish &amp; Chips &#x1f41f; &amp;quot;</title>");
+        assert_eq!(facts.title.as_deref(), Some("Fish & Chips 🐟 &quot;"));
+        assert_eq!(scan_html("<title>A &unknown; B</title>").title.as_deref(), Some("A &unknown; B"));
+    }
+
+    #[test]
+    fn title_limit_counts_displayed_characters() {
+        let html = format!("<title>{}</title>", "&amp;".repeat(201));
+        assert_eq!(scan_html(&html).title, Some("&".repeat(200)));
     }
 }

@@ -183,9 +183,9 @@ Owner: maintainers · Status: in progress (runtime-visual and behaviour checks: 
 - [x] A windowed app pictured by runtime study claims each of the original's interactive controls
       (buttons, menus, tabs, check boxes, fields, links; `screenshot::INTERACTIVE`) by label; text
       labels stay advisory, since they may hold content the builder replaces
-- [x] Apps and games make claims too: each self-test step of a game (the core loop's, an untested
-      one failing, then the game's own) and each number from the original in the mechanics sheet
-      being used in the code
+- [x] Games make claims for each self-test step (the core loop's, an untested one failing, then
+      the game's own). Reading the mechanics sheet makes no effective-use claims; its
+      unmeasured behavior stays in `CheckResult::unknowns`
 - [x] Console apps: with runtime study on, a console original (PE console subsystem) is run with each
       input in `runs::CASES` (no arguments, --help, --version) through `runtime_walkthrough_record` and
       kept in capture/runs/; `RunsCheck` runs the rebuild the same way and claims, per input, the same

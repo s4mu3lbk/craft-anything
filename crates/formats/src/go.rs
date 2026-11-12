@@ -94,6 +94,7 @@ pub struct GoPclntab {
     /// or `absolute` (older layouts store full addresses).
     pub text_start_source: &'static str,
     pub functions: Vec<GoFunction>,
+    /// Some declared functions were omitted because of unreadable records/names or a limit.
     pub truncated: bool,
     pub warnings: Vec<String>,
 }
@@ -549,7 +550,12 @@ pub fn unquote_prefix(s: &str) -> Option<(String, usize)> {
     }
     let mut out: Vec<u8> = Vec::new();
     let mut i = 1usize;
-    let hex = |b: &[u8]| -> Option<u32> { u32::from_str_radix(std::str::from_utf8(b).ok()?, 16).ok() };
+    let hex = |b: &[u8]| -> Option<u32> {
+        if !b.iter().all(u8::is_ascii_hexdigit) {
+            return None;
+        }
+        u32::from_str_radix(std::str::from_utf8(b).ok()?, 16).ok()
+    };
     while let Some(&c) = bytes.get(i) {
         match c {
             b'"' => return String::from_utf8(out).ok().map(|v| (v, i + 1)),
@@ -742,6 +748,10 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
     }
     let take = usize::try_from(nfunc).ok()?.min(MAX_FUNCTIONS);
     let mut functions = Vec::with_capacity(take.min(65_536));
+    // A shared name offset must not multiply a small table into gigabytes of owned strings.
+    let name_budget = (64usize << 20).max(end.saturating_sub(base).saturating_mul(3));
+    let mut name_bytes_left = name_budget;
+    let mut name_budget_exhausted = false;
     let mut text_start_source = "absolute";
     let name_at = |abs: usize| -> Option<String> {
         if !in_table(abs) {
@@ -756,12 +766,29 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
         "1.2" => {
             let functab = 8usize.checked_add(psz)?;
             for i in 0..take {
-                let e = functab.checked_add(i.checked_mul(2 * psz)?)?;
-                let entry = word(e)?;
-                let funcoff = usize::try_from(word(e.checked_add(psz)?)?).ok()?;
-                let nameoff = u32at(funcoff.checked_add(psz)?)?;
-                match name_at(base.checked_add(usize::try_from(nameoff).ok()?)?) {
-                    Some(name) => functions.push(GoFunction { name, entry }),
+                let record = (|| {
+                    let e = functab.checked_add(i.checked_mul(2 * psz)?)?;
+                    let entry = word(e)?;
+                    let funcoff = usize::try_from(word(e.checked_add(psz)?)?).ok()?;
+                    let nameoff = u32at(funcoff.checked_add(psz)?)?;
+                    Some((entry, base.checked_add(usize::try_from(nameoff).ok()?)?))
+                })();
+                let Some((entry, name)) = record else {
+                    if i == 0 {
+                        return None;
+                    }
+                    warnings.push(format!("function {i}: unreadable record; the remaining functions were skipped"));
+                    break;
+                };
+                match name_at(name) {
+                    Some(name) => {
+                        let Some(remaining) = name_bytes_left.checked_sub(name.len()) else {
+                            name_budget_exhausted = true;
+                            break;
+                        };
+                        name_bytes_left = remaining;
+                        functions.push(GoFunction { name, entry });
+                    }
                     None => warnings.push(format!("function {i}: unreadable name")),
                 }
                 if warnings.len() > 64 {
@@ -789,16 +816,33 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
             }
             let stride = if new { 8 } else { 2 * psz };
             for i in 0..take {
-                let e = functab.checked_add(i.checked_mul(stride)?)?;
-                let (entry, funcoff) = if new {
-                    (text_start.checked_add(u64::from(u32at(e)?))?, usize::try_from(u32at(e.checked_add(4)?)?).ok()?)
-                } else {
-                    (word(e)?, usize::try_from(word(e.checked_add(psz)?)?).ok()?)
+                let record = (|| {
+                    let e = functab.checked_add(i.checked_mul(stride)?)?;
+                    let (entry, funcoff) = if new {
+                        (text_start.checked_add(u64::from(u32at(e)?))?, usize::try_from(u32at(e.checked_add(4)?)?).ok()?)
+                    } else {
+                        (word(e)?, usize::try_from(word(e.checked_add(psz)?)?).ok()?)
+                    };
+                    let f = functab.checked_add(funcoff)?;
+                    let nameoff = u32at(f.checked_add(if new { 4 } else { psz })?)?;
+                    Some((entry, base.checked_add(funcname)?.checked_add(usize::try_from(nameoff).ok()?)?))
+                })();
+                let Some((entry, name)) = record else {
+                    if i == 0 {
+                        return None;
+                    }
+                    warnings.push(format!("function {i}: unreadable record; the remaining functions were skipped"));
+                    break;
                 };
-                let f = functab.checked_add(funcoff)?;
-                let nameoff = u32at(f.checked_add(if new { 4 } else { psz })?)?;
-                match name_at(base.checked_add(funcname)?.checked_add(usize::try_from(nameoff).ok()?)?) {
-                    Some(name) => functions.push(GoFunction { name, entry }),
+                match name_at(name) {
+                    Some(name) => {
+                        let Some(remaining) = name_bytes_left.checked_sub(name.len()) else {
+                            name_budget_exhausted = true;
+                            break;
+                        };
+                        name_bytes_left = remaining;
+                        functions.push(GoFunction { name, entry });
+                    }
                     None => warnings.push(format!("function {i}: unreadable name")),
                 }
                 if warnings.len() > 64 {
@@ -811,6 +855,9 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
         warnings.truncate(64);
         warnings.push("stopped after too many unreadable entries".into());
     }
+    if name_budget_exhausted {
+        warnings.push(format!("function names reached their {name_budget}-byte budget; the remaining functions were skipped"));
+    }
     Some(GoPclntab {
         layout,
         offset: base as u64,
@@ -821,7 +868,7 @@ fn read_pclntab(r: &Reader<'_>, base: usize, size: usize, located_by: &'static s
         big_endian: big,
         declared_functions: nfunc,
         text_start_source,
-        truncated: (take as u64) < nfunc,
+        truncated: (functions.len() as u64) < nfunc,
         functions,
         warnings,
     })
@@ -832,11 +879,199 @@ mod tests {
     use super::*;
     use craft_anything_testkit::formats as fx;
 
+    fn shared_name_table(layout: u8, count: usize, name: &[u8]) -> (Vec<u8>, usize, usize) {
+        let new = layout >= 18;
+        let header = if layout == 2 {
+            16
+        } else if new {
+            72
+        } else {
+            64
+        };
+        let stride = if new { 8 } else { 16 };
+        let record_size = if new { 40 } else { 48 };
+        let records = header + (count + 1) * stride;
+        let names = records + count * record_size;
+        let mut bytes = vec![0; names + name.len() + 1];
+        let magic = match layout {
+            2 => 0xfb,
+            16 => 0xfa,
+            18 => 0xf0,
+            _ => 0xf1,
+        };
+        bytes[..8].copy_from_slice(&[magic, 0xff, 0xff, 0xff, 0, 0, 1, 8]);
+        let put = |bytes: &mut [u8], at: usize, value: usize, width: usize| bytes[at..at + width].copy_from_slice(&(value as u64).to_le_bytes()[..width]);
+        put(&mut bytes, 8, count, 8);
+        if layout != 2 {
+            put(&mut bytes, if new { 32 } else { 24 }, names, 8);
+            put(&mut bytes, if new { 64 } else { 56 }, header, 8);
+            if new {
+                put(&mut bytes, 24, 0x1000, 8);
+            }
+        }
+        let width = if new { 4 } else { 8 };
+        for i in 0..count {
+            let record = records + i * record_size;
+            let entry = if new { i } else { 0x1000 + i };
+            put(&mut bytes, header + i * stride, entry, width);
+            put(&mut bytes, header + i * stride + width, if layout == 2 { record } else { record - header }, width);
+            put(&mut bytes, record, entry, width);
+            put(&mut bytes, record + width, if layout == 2 { names } else { 0 }, 4);
+        }
+        put(&mut bytes, header + count * stride, if new { count } else { 0x1000 + count }, width);
+        bytes[names..names + name.len()].copy_from_slice(name);
+        (bytes, records, record_size)
+    }
+
+    /// Every supported layout may point many function records at one long, terminated name.
+    #[test]
+    fn shared_function_names_have_a_retained_byte_budget_in_every_layout() {
+        let name = vec![b'n'; 4096];
+        for layout in [2, 16, 18, 20] {
+            let (bytes, _, _) = shared_name_table(layout, 20_000, &name);
+            assert!(bytes.len() < 2 << 20);
+            let table = read_pclntab(&Reader::new(&bytes), 0, bytes.len(), "section", None, None).unwrap();
+            assert!(table.functions.iter().map(|f| f.name.len()).sum::<usize>() <= 64 << 20);
+            assert_eq!(table.declared_functions, 20_000);
+            assert!(!table.functions.is_empty());
+            assert!(table.truncated);
+            assert!(table.warnings.iter().any(|w| w.contains("byte budget")));
+            assert!(table.functions.iter().enumerate().all(|(i, f)| f.entry == 0x1000 + i as u64 && f.name.as_bytes() == name));
+        }
+    }
+
+    /// Charge the decoded UTF-8 bytes, including replacement characters from malformed names.
+    #[test]
+    fn lossy_function_names_spend_their_expanded_byte_length() {
+        let (bytes, _, _) = shared_name_table(20, 6000, &[0xff; 4096]);
+        let table = read_pclntab(&Reader::new(&bytes), 0, bytes.len(), "section", None, None).unwrap();
+        assert!(table.functions.iter().map(|f| f.name.len()).sum::<usize>() <= 64 << 20);
+        assert!(table.truncated);
+        assert_eq!(table.functions[0].name.chars().count(), 4096);
+        assert!(table.functions[0].name.chars().all(|c| c == char::REPLACEMENT_CHARACTER));
+    }
+
+    /// A memory limit is distinct from the existing cap on unreadable-entry warnings.
+    #[test]
+    fn name_budget_diagnostic_survives_existing_unreadable_names() {
+        let (mut bytes, records, size) = shared_name_table(20, 20_000, &[b'n'; 4096]);
+        for i in 0..64 {
+            bytes[records + i * size + 4..records + i * size + 8].fill(0xff);
+        }
+        let table = read_pclntab(&Reader::new(&bytes), 0, bytes.len(), "section", None, None).unwrap();
+        assert_eq!(table.functions[0].entry, 0x1040);
+        assert!(table.truncated);
+        assert!(table.warnings.iter().any(|w| w.contains("byte budget")));
+        assert!(!table.warnings.iter().any(|w| w.contains("too many unreadable")));
+    }
+
+    /// Repeated names are valid metadata and remain complete when their actual copies fit.
+    #[test]
+    fn ordinary_shared_function_names_stay_complete() {
+        for layout in [2, 16, 18, 20] {
+            let (bytes, _, _) = shared_name_table(layout, 100, b"main.shared");
+            let table = read_pclntab(&Reader::new(&bytes), 0, bytes.len(), "section", None, None).unwrap();
+            assert_eq!(table.functions.len(), 100);
+            assert!(!table.truncated);
+            assert!(table.warnings.is_empty());
+            assert!(table.functions.iter().enumerate().all(|(i, f)| f.name == "main.shared" && f.entry == 0x1000 + i as u64));
+        }
+    }
+
     #[test]
     fn instantiated_functions_keep_the_declaring_package() {
         assert_eq!(package_of("example.org/app.F[example.net/lib.Type]"), "example.org/app");
         assert_eq!(package_of("net/http.(*pool[example.net/lib.T]).get"), "net/http");
         assert_eq!(package_of("example.org/app.Run"), "example.org/app");
+    }
+
+    fn legacy_prefix_table() -> Vec<u8> {
+        let mut data = vec![0; 128];
+        data[..8].copy_from_slice(&[0xfb, 0xff, 0xff, 0xff, 0, 0, 1, 8]);
+        for (at, value) in [(8, 2u64), (16, 0x1000), (24, 88), (32, 0x1010), (40, 112)] {
+            data[at..at + 8].copy_from_slice(&value.to_le_bytes());
+        }
+        data[96..100].copy_from_slice(&56u32.to_le_bytes());
+        data[120..124].copy_from_slice(&67u32.to_le_bytes());
+        data[56..67].copy_from_slice(b"main.first\0");
+        data[67..79].copy_from_slice(b"main.second\0");
+        data
+    }
+
+    fn prefix_tables() -> Vec<(Vec<u8>, usize, usize, usize)> {
+        let funcs = [("main.first", 0), ("main.second", 0x10)];
+        let old = fx::pclntab_116(0x1000, &funcs);
+        let new = fx::pclntab_120(0x1000, &funcs);
+        let old_start = Reader::new(&old).u64_le(56).unwrap() as usize;
+        let new_start = Reader::new(&new).u64_le(64).unwrap() as usize;
+        vec![(legacy_prefix_table(), 16, 16, 8), (old, old_start, 16, 8), (new, new_start, 8, 4)]
+    }
+
+    #[test]
+    fn pclntab_keeps_functions_before_an_unreadable_record() {
+        for (mut data, start, stride, width) in prefix_tables() {
+            let complete = read_pclntab(&Reader::new(&data), 0, data.len(), "section", None, None).unwrap();
+            assert_eq!(complete.functions.len(), 2);
+            assert!(!complete.truncated);
+            data[start + stride + width..start + 2 * stride].fill(0xff);
+            let partial = read_pclntab(&Reader::new(&data), 0, data.len(), "section", None, None).unwrap();
+            assert_eq!(partial.functions, complete.functions[..1]);
+            assert_eq!(partial.declared_functions, 2);
+            assert!(partial.truncated);
+            assert!(partial.warnings.iter().any(|warning| warning.contains("function 1")));
+        }
+    }
+
+    #[test]
+    fn pclntab_keeps_functions_before_a_truncated_function_record() {
+        for (data, start, stride, width) in prefix_tables() {
+            let r = Reader::new(&data);
+            let record =
+                if width == 4 { r.u32_le(start + stride + width).unwrap() as usize + start } else { r.u64_le(start + stride + width).unwrap() as usize };
+            let record = if r.u32_le(0) == Some(0xffff_fffa) { start + record } else { record };
+            let partial = read_pclntab(&r, 0, record + width + 2, "section", None, None).unwrap();
+            assert_eq!(partial.functions, [GoFunction { name: "main.first".into(), entry: 0x1000 }]);
+            assert!(partial.truncated);
+        }
+    }
+
+    #[test]
+    fn pclntab_reports_incomplete_coverage_for_unreadable_names() {
+        for count in [2, 70] {
+            let mut data = fx::pclntab_120(0x1000, &vec![("main.first", 0); count]);
+            let start = Reader::new(&data).u64_le(64).unwrap() as usize;
+            for i in 1..count {
+                let record = start + Reader::new(&data).u32_le(start + i * 8 + 4).unwrap() as usize;
+                data[record + 4..record + 8].copy_from_slice(&u32::MAX.to_le_bytes());
+            }
+            let partial = read_pclntab(&Reader::new(&data), 0, data.len(), "section", None, None).unwrap();
+            assert_eq!(partial.functions.len(), 1);
+            assert!(partial.truncated);
+            if count == 70 {
+                assert!(partial.warnings.iter().any(|warning| warning.contains("stopped")));
+            }
+        }
+    }
+
+    #[test]
+    fn pclntab_address_overflow_keeps_an_earlier_valid_function() {
+        let data = fx::pclntab_120(u64::MAX - 4, &[("main.first", 0), ("main.second", 8)]);
+        let partial = read_pclntab(&Reader::new(&data), 0, data.len(), "section", None, None).unwrap();
+        assert_eq!(partial.functions, [GoFunction { name: "main.first".into(), entry: u64::MAX - 4 }]);
+        assert!(partial.truncated);
+    }
+
+    #[test]
+    fn go_inspection_exposes_a_recovered_function_prefix() {
+        let mut data = fx::go_elf();
+        let (_, start, _) = pclntab_section(&data);
+        let table = start + Reader::new(&data).u64_le(start + 64).unwrap() as usize;
+        data[table + 12..table + 16].copy_from_slice(&u32::MAX.to_le_bytes());
+        let report = inspect(&data, None).unwrap().pclntab.unwrap();
+        assert_eq!(report.functions.len(), 1);
+        assert_eq!(report.functions[0].name, fx::GO_FUNCS[0].0);
+        assert!(report.truncated);
+        assert_eq!(functions(&data), report.functions);
     }
 
     #[test]
@@ -1076,6 +1311,10 @@ mod tests {
         assert!(!r.is_go);
         assert_eq!(unquote_prefix("\"a\\tb\\x41\\u00e9\\101\" rest"), Some(("a\tbA\u{e9}A".to_string(), 20)));
         assert_eq!(unquote_prefix("\"open"), None);
+        assert_eq!(unquote_prefix("\"\\x+a\""), None);
+        assert_eq!(unquote_prefix("\"\\u+041\""), None);
+        assert_eq!(unquote_prefix("\"\\U+0000041\""), None);
+        assert_eq!(unquote_prefix("\"\\x0a\""), Some(("\n".to_string(), 6)));
         assert_eq!(package_of("github.com/a/b.(*T).M"), "github.com/a/b");
         assert_eq!(package_of("main.main"), "main");
         assert_eq!(base64(b"hi!?"), "aGkhPw==");

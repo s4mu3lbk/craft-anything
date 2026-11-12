@@ -401,11 +401,7 @@ const MAX_BUNDLE_BYTES: u64 = 512 * 1024 * 1024;
 fn core_evidence_import(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, ToolError> {
     let p: ImportParams = parse_params(params)?;
     let path = PathBuf::from(&p.path);
-    let len = std::fs::metadata(&path).map_err(|e| ToolError::io(path.display(), e))?.len();
-    if len > MAX_BUNDLE_BYTES {
-        return Err(ToolError::new(ErrorCode::OverLimit, "bundle is too large"));
-    }
-    let bytes = std::fs::read(&path).map_err(|e| ToolError::io(path.display(), e))?;
+    let bytes = craft_anything_platform::fs::read_file_capped(&path, MAX_BUNDLE_BYTES)?;
     let v: Value = serde_json::from_slice(&bytes).map_err(|e| ToolError::invalid(format!("not a bundle: {e}")))?;
     if v.get("format").and_then(Value::as_str) != Some(BUNDLE_FORMAT) {
         return Err(ToolError::invalid("not a Craft Anything evidence bundle"));
@@ -637,6 +633,30 @@ mod tests {
         e.call("core_target_close", json!(null), CallOptions::new(Caller::Cli)).unwrap();
         let st = e.call("core_session_show", json!({}), CallOptions::new(Caller::Cli)).unwrap().to_json();
         assert_eq!(st["result"]["open"], false);
+    }
+
+    #[test]
+    fn text_targets_are_named_in_open_list_and_triage() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("notes.md");
+        std::fs::write(&path, b"# Project notes\n").unwrap();
+        let e = Engine::new(crate::testing::session());
+        let call = |id: &str, params: serde_json::Value| e.call(id, params, CallOptions::new(Caller::Cli)).unwrap().to_json();
+
+        let opened = call("core_target_open", json!({"path": path}));
+        assert_eq!(opened["result"]["kind"], "text");
+        assert_eq!(opened["result"]["description"], "A text file (notes, source code or settings)");
+        let listed = call("core_targets_list", json!({}));
+        assert_eq!(listed["result"]["targets"][0]["kind"], "text");
+        assert_eq!(listed["result"]["targets"][0]["description"], "A text file (notes, source code or settings)");
+        let triage = call("core_target_triage", json!({}));
+        assert_eq!(triage["result"]["kind"], "text");
+        assert_eq!(triage["result"]["description"], "A text file (notes, source code or settings)");
+        assert_eq!(triage["result"]["next_steps"][0]["tool"], "core_text_read");
+
+        let binary = dir.path().join("opaque.bin");
+        std::fs::write(&binary, b"\0\xFF\x01opaque").unwrap();
+        assert_eq!(call("core_target_open", json!({"path": binary}))["result"]["kind"], "unknown");
     }
 
     /// #305: reopening the same raw bytes with another architecture or address kept the first.

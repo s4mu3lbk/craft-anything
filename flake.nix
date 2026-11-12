@@ -56,9 +56,14 @@
         {
           default = pkgs.rustPlatform.buildRustPackage {
             pname = "craft-anything";
-            version = "0.5.0";
+            version = "0.6.1";
             src = ./.;
-            cargoLock.lockFile = ./Cargo.lock;
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              outputHashes = {
+                "craft-update-0.1.0" = "sha256-sVWVenZ2XWwE9JblTqZgii4Tv5cDnJYRxip1quXFHwE=";
+              };
+            };
             cargoBuildFlags = [
               "-p"
               "craft-anything"

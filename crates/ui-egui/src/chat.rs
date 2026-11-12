@@ -128,6 +128,7 @@ pub fn suggestions(kind: Option<TargetKind>) -> Vec<&'static str> {
         Some(NetworkCapture) => vec!["Which servers were contacted?", "What data was sent?"],
         Some(Plist) => vec!["What settings are in here?"],
         Some(Evm) => vec!["What does this contract do?", "Who can move funds?"],
+        Some(Text) => vec!["What does this text say?", "What is this file for?"],
         Some(Unknown) => vec!["What kind of file is this?", "Is there any readable text inside?"],
     }
 }
@@ -763,7 +764,7 @@ mod tests {
 
     #[test]
     fn every_kind_has_suggestions() {
-        for k in [TargetKind::Elf, TargetKind::Apk, TargetKind::Asar, TargetKind::Unknown, TargetKind::Directory] {
+        for k in [TargetKind::Elf, TargetKind::Apk, TargetKind::Asar, TargetKind::Text, TargetKind::Unknown, TargetKind::Directory] {
             assert!(suggestions(Some(k)).len() >= 2);
         }
         assert!(!suggestions(None).is_empty());

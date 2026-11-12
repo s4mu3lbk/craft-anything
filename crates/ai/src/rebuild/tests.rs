@@ -364,6 +364,38 @@ fn a_launcher_leads_to_the_game_and_its_files() {
 }
 
 #[test]
+fn a_mac_app_bundle_is_studied_through_the_program_it_names() {
+    let d = tempfile::tempdir().unwrap();
+    // The executable's name differs from the bundle's, and a bigger helper sits beside it.
+    let app = d.path().join("Tip Calculator.app");
+    let macos = app.join("Contents/MacOS");
+    std::fs::create_dir_all(&macos).unwrap();
+    std::fs::write(
+        app.join("Contents/Info.plist"),
+        r#"<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>TipCalc</string></dict></plist>"#,
+    )
+    .unwrap();
+    std::fs::write(macos.join("TipCalc"), b"\xcf\xfa\xed\xfe").unwrap();
+    std::fs::write(macos.join("Helper"), vec![0u8; 4096]).unwrap();
+    assert_eq!(locate(&app, "app"), (macos.join("TipCalc"), None), "the program Info.plist names");
+
+    // Without an Info.plist, the program named like the bundle.
+    let bare = d.path().join("Notes.APP");
+    std::fs::create_dir_all(bare.join("Contents/MacOS")).unwrap();
+    std::fs::write(bare.join("Contents/MacOS/Notes"), b"\xcf\xfa\xed\xfe").unwrap();
+    assert_eq!(locate(&bare, "app").0, bare.join("Contents/MacOS/Notes"));
+
+    // A bundle with no program in it, and a folder that isn't a bundle, stay as picked.
+    let empty = d.path().join("Empty.app");
+    std::fs::create_dir_all(empty.join("Contents/MacOS")).unwrap();
+    assert_eq!(locate(&empty, "app"), (empty.clone(), None));
+    let plain = d.path().join("TipCalc");
+    std::fs::create_dir_all(&plain).unwrap();
+    std::fs::write(plain.join("TipCalc"), b"\xcf\xfa\xed\xfe").unwrap();
+    assert_eq!(locate(&plain, "app"), (plain.clone(), None), "only an app bundle is looked inside");
+}
+
+#[test]
 fn engine_stacks_get_their_own_steps_checks_and_play() {
     let ed = Path::new("C:/Engines/Unity/Editor/Unity.exe");
     let unity = stack_steps("Unity", Some(ed));
@@ -1042,7 +1074,7 @@ mod typed_retries {
             &ws,
             "opencode",
             concat!(
-                "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format'; exit 0; fi\n",
+                "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi\n",
                 "for arg do last=\"$arg\"; done\nprintf '%s\\n' \"$last\" >> prompts\n",
                 "if [ ! -f rate-was-returned ]; then touch rate-was-returned\n",
                 "printf '%s\\n' '{\"type\":\"error\",\"error\":{\"name\":\"APIError\",\"data\":{\"message\":\"Please retry in 19.052906498s.\",\"statusCode\":429,\"isRetryable\":true}}}'\nexit 1\nfi\n",
@@ -1077,7 +1109,7 @@ mod typed_retries {
         let mut cli = executable_cli(
             &ws,
             "opencode",
-            "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf 'old help\\n'; exit 0; fi\nprintf 'attempt\\n' >> attempts\nprintf 'Unknown option: --format. Please retry in 1s.\\n' >&2\nexit 2\n",
+            "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi\nprintf 'attempt\\n' >> attempts\nprintf 'Unknown option: --model. Please retry in 1s.\\n' >&2\nexit 2\n",
         );
         let mut waits = Vec::new();
         let error = worker
@@ -1193,8 +1225,12 @@ fn needs_an_agent_app() {
     let d = tempfile::tempdir().unwrap();
     let hub = AiHub::with_stores(engine, d.path().join("settings.toml"), crate::KeyStore::file_only(d.path().join("keys.toml")));
     let ws = Workspace::create(d.path(), "x", "y", TargetRef::None).unwrap();
+    let dir = notes::notes_dir(&ws.inbox_dir());
+    let left = notes::Left { text: "make it blue".into(), shown: "make it blue".into(), pictures: Vec::new() };
+    notes::hand_over(&dir, 1, "make it blue", Some(&left)).unwrap();
     let err = RebuildRun::start(&hub, ws, RunOptions::default()).err().unwrap();
     assert!(err.message.contains("coding agent"), "{}", err.message);
+    assert!(dir.join("1.json").is_file(), "a run that can't start leaves an earlier run's notes waiting (#1620)");
 }
 
 /// A fork's own kind: recognised from its words, with its own stack and check.
@@ -1468,7 +1504,17 @@ impl TargetKind for SheetKind {
 }
 
 #[test]
-fn the_mechanics_sheet_is_required_and_held_against_the_code() {
+fn builder_instructions_allow_an_unverified_comparison_to_remain_open() {
+    for deep in [false, true] {
+        let steps = super::brief::steps(deep);
+        assert!(!steps.contains("until it says it would pass"), "{steps}");
+        assert!(steps.contains("another builder turn cannot resolve"), "{steps}");
+    }
+    assert!(CHECK_BEFORE_REPLYING.contains("unverified comparisons"), "{CHECK_BEFORE_REPLYING}");
+}
+
+#[test]
+fn the_mechanics_sheet_is_required_without_claiming_effective_behavior() {
     let d = tempfile::tempdir().unwrap();
     let ws = Workspace::create(d.path(), "Arena", "Recreate this game", TargetRef::None).unwrap();
     let engine = Arc::new(Engine::new(craft_anything_engine::testing::session()));
@@ -1495,6 +1541,7 @@ fn the_mechanics_sheet_is_required_and_held_against_the_code() {
 
     let none = check(1);
     assert!(!none.passed && none.note.contains("no app/mechanics.json") && none.note.contains("\"version\": 1"), "{}", none.note);
+    assert!(MechanicsCheck.can_refine(&none) && kinds::DeepOnly(MechanicsCheck).can_refine(&none));
 
     std::fs::create_dir_all(ws.app_dir().join("src")).unwrap();
     std::fs::write(ws.mechanics_path(), "{ not json").unwrap();
@@ -1515,26 +1562,85 @@ fn the_mechanics_sheet_is_required_and_held_against_the_code() {
     assert!(ok.passed, "an estimate may stay out of the code: {}", ok.note);
     assert!(ok.note.contains("4 values (1 with a source, 2 estimated)"), "{}", ok.note);
     assert!(ok.note.contains("neither a source nor \"estimated\": crouch."), "{}", ok.note);
-    assert!(!ok.note.contains("aren't in the code"), "{}", ok.note);
-    let claimed: Vec<(&str, bool)> = ok.claims.iter().map(|c| (c.title.as_str(), c.passed)).collect();
-    assert_eq!(claimed, [("walk speed (4.5) is used in the code", true)], "estimates and words make no claim");
+    assert!(ok.claims.is_empty() && !ok.unknowns.is_empty() && !ok.good(0.0), "{ok:?}");
+    assert!(!MechanicsCheck.can_refine(&ok) && !kinds::DeepOnly(MechanicsCheck).can_refine(&ok));
 
-    // A number found in the original but not used in the code fails, and says what to do.
-    std::fs::write(
-        ws.mechanics_path(),
-        r#"{"version": 1, "values": [
-            {"name": "walk speed", "value": 4.5, "source": "function 0x140012a0"},
-            {"name": "grunt speed", "value": 290, "unit": "cm/s", "source": "pak: ENE_Spider_Grunt_Base"},
-            {"name": "guard health", "value": 270, "source": "pak: ENE_Spider_Grunt_Guard"}
-        ]}"#,
-    )
-    .unwrap();
-    let unused = check(4);
-    assert!(!unused.passed, "{}", unused.note);
-    assert!(unused.note.contains("2 numbers from the original aren't in the code as written: grunt speed (290), guard health (270)."), "{}", unused.note);
-    assert!(unused.note.contains("mark it \"estimated\""), "{}", unused.note);
-    let failed: Vec<&str> = unused.failed_claims().map(|c| c.title.as_str()).collect();
-    assert_eq!(failed, ["grunt speed (290) is used in the code", "guard health (270) is used in the code"]);
+    // Provenance remains in the sheet; a differently implemented or missing value isn't proof
+    // of a broken build, and a matching literal isn't proof of effective behavior.
+    std::fs::write(ws.app_dir().join("src/main.rs"), "fn speed() -> f64 { 9.0 / 2.0 }").unwrap();
+    let computed = check(4);
+    assert!(computed.passed && !computed.good(0.0), "{computed:?}");
+    assert!(computed.claims.is_empty() && computed.note.contains("unverified"));
+}
+
+#[test]
+fn mechanics_literals_never_verify_effective_behavior() {
+    for code in [
+        "// walk speed 4.5\nfn speed() -> f64 { 1.0 }",
+        "fn unused() -> f64 { 4.5 }\nfn speed() -> f64 { 1.0 }",
+        "const UNRELATED: f64 = 4.5;\nfn speed() -> f64 { 1.0 }",
+        "fn speed() -> f64 { 4.5 * 2.0 }",
+        "fn speed() -> f64 { 9.0 / 2.0 }",
+        "",
+    ] {
+        let d = tempfile::tempdir().unwrap();
+        let mut ws = Workspace::create(d.path(), "Arena", "Recreate this game", TargetRef::None).unwrap();
+        std::fs::create_dir_all(ws.app_dir()).unwrap();
+        std::fs::write(ws.app_dir().join("main.rs"), code).unwrap();
+        if code.is_empty() {
+            std::fs::write(ws.app_dir().join("unrelated.json"), r#"{"release":4.5}"#).unwrap();
+        }
+        std::fs::write(ws.mechanics_path(), r#"{"version":1,"values":[{"name":"walk speed","value":4.5,"unit":"m/s","source":"reference measurement"}]}"#)
+            .unwrap();
+        let c = check_worker(&ws, false).run_checks(&ws, &SheetKind, 1).unwrap().remove(0);
+        assert!(c.passed, "a valid sheet is readable even with computed values: {code}: {c:?}");
+        assert!(!c.good(0.0), "source text does not verify behavior: {code}: {c:?}");
+        assert!(c.claims.is_empty(), "no behavior claim can be inferred: {c:?}");
+        assert!(!c.unknowns.is_empty(), "no oracle was run: {c:?}");
+        ws.manifest.checks.push(c.clone());
+        ws.save().unwrap();
+        let saved = Workspace::open(&ws.root).unwrap();
+        assert_eq!(saved.manifest.checks.last().unwrap().unknowns, c.unknowns);
+        let summary = self_check::summary(&[CheckResult::new("build", 1, true, "Build succeeded."), c], 90.0);
+        assert!(summary.contains("unverified"), "a usable build's final summary retains the gap: {summary}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn a_measured_self_test_does_not_stand_in_for_a_mechanics_comparison() {
+    use std::os::unix::fs::PermissionsExt;
+    for (calculation, expected) in [("$((9 * 10 / 2))", true), ("90 # unrelated 4.5", false)] {
+        let d = tempfile::tempdir().unwrap();
+        let ws = Workspace::create(d.path(), "Arena", "Recreate this game", TargetRef::None).unwrap();
+        std::fs::create_dir_all(ws.app_dir().join("target/debug")).unwrap();
+        std::fs::write(ws.app_dir().join("Cargo.toml"), "[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n").unwrap();
+        std::fs::write(ws.mechanics_path(), r#"{"values":[{"name":"walk speed","value":4.5,"source":"controlled reference"}]}"#).unwrap();
+        let program = ws.app_dir().join("target/debug/fixture");
+        // This owned fixture measures integer tenths against a controlled 4.5 m/s reference.
+        // Its report still cannot establish a general binding between sheet entries and state.
+        let script = format!(
+            r#"#!/bin/sh
+tenths={calculation}
+passed=false
+if [ "$tenths" -eq 45 ]; then passed=true; fi
+printf '{{"version":1,"steps":[{{"step":"move","passed":%s}},{{"step":"act","passed":true}},{{"step":"hud","passed":true}}]}}' "$passed" > "$2"
+"#
+        );
+        std::fs::write(&program, script).unwrap();
+        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let checks = check_worker(&ws, false).run_checks(&ws, &LaterChecks(&GameKind, 2), 1).unwrap();
+        assert_eq!(checks[0].check, "game-self-test");
+        assert_eq!(checks[0].good(0.0), expected, "{checks:?}");
+        if expected {
+            assert_eq!(checks.len(), 2);
+            assert_eq!(checks[1].check, "mechanics");
+            assert!(checks[1].passed && !checks[1].good(0.0), "even a measured self-test doesn't compare every sheet value: {checks:?}");
+            assert!(checks[1].claims.is_empty() && !checks[1].unknowns.is_empty());
+        } else {
+            assert_eq!(checks.len(), 1, "a failed measured core-loop step stops later checks");
+        }
+    }
 }
 
 #[test]
@@ -1547,7 +1653,14 @@ fn clean_room_studies_nothing_inside_and_deep_mode_looks() {
     for (deep, name) in [(false, "clean"), (true, "deep")] {
         let mut ws = Workspace::create(&d.path().join("projects"), name, "Recreate this game", TargetRef::Local { path: game.clone() }).unwrap();
         let mut w = check_worker(&ws, deep);
-        w.study(&mut ws, kind("game").as_ref()).unwrap();
+        // What an earlier Deep study left: a Clean room study must remove it before writing its own.
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        std::fs::write(ws.capture_dir().join(super::study::HOW_IT_WORKS), "deep notes").unwrap();
+        std::fs::write(ws.capture_dir().join("page.html"), "<p>deep</p>").unwrap();
+        let runs = ws.capture_dir().join(kinds::runs::RUNS_DIR);
+        std::fs::create_dir_all(&runs).unwrap();
+        std::fs::write(runs.join("no-arguments.json"), "{}").unwrap();
+        w.study(&mut ws, kind("game").as_ref(), deep).unwrap();
         let notes = std::fs::read_to_string(ws.capture_dir().join("README.md")).unwrap();
         let files: Vec<_> = std::fs::read_dir(ws.capture_dir()).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
         if deep {
@@ -1580,7 +1693,7 @@ fn deep_mode_maps_the_javascript_beside_an_exe_target() {
     for (name, target) in [("folder", app.clone()), ("exe", app.join("App.exe"))] {
         let mut ws = Workspace::create(&d.path().join("projects"), name, "Recreate this app", TargetRef::Local { path: target }).unwrap();
         let mut w = check_worker(&ws, true);
-        w.study(&mut ws, kind("game").as_ref()).unwrap();
+        w.study(&mut ws, kind("game").as_ref(), true).unwrap();
         let notes = std::fs::read_to_string(ws.capture_dir().join("README.md")).unwrap();
         assert!(notes.contains("## JavaScript application"), "{name}: {notes}");
     }
@@ -1631,8 +1744,8 @@ mod picking_up_a_build {
         fn goal(&self) -> &'static str {
             "a thing"
         }
-        fn checks(&self, _ws: &Workspace) -> Vec<Box<dyn Check>> {
-            vec![Box::new(FlakyCheck)]
+        fn checks(&self, ws: &Workspace) -> Vec<Box<dyn Check>> {
+            if ws.mechanics_path().is_file() { vec![Box::new(MechanicsCheck)] } else { vec![Box::new(FlakyCheck)] }
         }
     }
 
@@ -1714,6 +1827,8 @@ mod picking_up_a_build {
         let mut ws = Workspace::create(&b.projects, "x", "A thing", TargetRef::None).unwrap();
         ws.manifest.agent_session = Some("session-1".into());
         ws.manifest.stack = "Anything".into();
+        // The fixture's capture was studied in the default (Deep) session.
+        ws.manifest.capture_deep = Some(true);
         ws.save().unwrap();
         std::fs::create_dir_all(ws.capture_dir()).unwrap();
         std::fs::create_dir_all(ws.app_dir()).unwrap();
@@ -1759,6 +1874,23 @@ mod picking_up_a_build {
         assert!(finished.1.contains("craft-anything-cli"), "{finished:?}");
         assert_eq!(prompts_given(&b), 0, "the agent was asked anyway");
         assert!(!studied(&feed::load(&Workspace::open(&ws.root).unwrap())), "it studied first");
+    }
+
+    #[test]
+    fn a_usable_build_keeps_unverified_mechanics_in_its_ready_summary() {
+        let b = bench();
+        let mut ws = worked_on(&b);
+        ws.manifest.awaiting_check = true;
+        std::fs::write(ws.mechanics_path(), r#"{"values":[{"name":"walk speed","value":4.5,"source":"reference measurement"}]}"#).unwrap();
+        std::fs::write(ws.app_dir().join("main.rs"), "// 4.5\n").unwrap();
+        ws.save().unwrap();
+        let (ok, _) = try_it(&b, &ws);
+        assert!(ok, "unverified mechanics do not make a usable build fail");
+        assert_eq!(prompts_given(&b), 0, "a builder turn cannot supply the check's missing measurement oracle");
+        let saved = Workspace::open(&ws.root).unwrap();
+        assert_eq!(saved.manifest.status, Status::Ready);
+        assert!(saved.manifest.note.contains("unverified"), "{}", saved.manifest.note);
+        assert!(!saved.manifest.checks.last().unwrap().good(0.0));
     }
 
     #[test]
@@ -1824,7 +1956,7 @@ mod picking_up_a_build {
         let agent = b._dir.path().join("agent.sh");
         let works = std::fs::read_to_string(&agent).unwrap().replacen(
             "#!/bin/sh\n",
-            "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format'; exit 0; fi\n",
+            "#!/bin/sh\nif [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi\n",
             1,
         );
         let error = json!({"type":"error","error":{"name":"APIError","data":{"message":"fixture sign in needed","statusCode":401,"isRetryable":false}}});
@@ -2119,7 +2251,7 @@ mod picking_up_a_build {
                 if self.add && self.script.seen.lock().unwrap().len() == 1 {
                     self.notes.lock().unwrap().push(note(self.text));
                     if self.claim {
-                        notes::hand_over(&self.dir, 42, self.text).unwrap();
+                        notes::hand_over(&self.dir, 42, self.text, None).unwrap();
                         assert_eq!(notes::claim(&self.dir), [self.text]);
                     }
                 }
@@ -2288,6 +2420,7 @@ mod picking_up_a_build {
             let b = bench();
             let mut ws = worked_on(&b);
             ws.manifest.agent_session_deep = saved;
+            ws.manifest.capture_deep = Some(deep);
             ws.save().unwrap();
             std::fs::write(ws.capture_dir().join("README.md"), "# What we found in the Deep run\n\ninside evidence").unwrap();
             b.hub.engine.session().settings.deep_mode = deep;
@@ -2432,24 +2565,92 @@ mod picking_up_a_build {
     }
 
     /// R2.9: a follow-up with a conversation kept in the other mode studies even when a capture
-    /// exists; one that resumed a conversation in this mode builds from the capture without
-    /// studying again. A fresh follow-up with no conversation at all keeps the old no-study path.
+    /// exists; one that resumed a conversation in this mode builds from a capture in this mode
+    /// without studying again. A capture from the other mode studies again, whatever conversation
+    /// is kept.
     #[test]
     fn a_rejected_transcript_studies_even_with_a_capture() {
         use super::super::{KeptHistory, starts_with_study};
         let opts = RunOptions::default();
         let none = KeptHistory::default();
-        assert!(starts_with_study(&opts, none, true), "no conversation for this mode studies");
+        assert!(starts_with_study(&opts, none, true), "no conversation for this mode studies even with a capture in this mode");
         let mut follow_up = RunOptions { message: Some("change it".into()), ..Default::default() };
-        assert!(!starts_with_study(&follow_up, none, true), "a fresh follow-up with a capture doesn't study");
+        assert!(!starts_with_study(&follow_up, none, true), "a fresh follow-up with a capture in this mode doesn't study");
         assert!(starts_with_study(&follow_up, KeptHistory { elsewhere: true, ..Default::default() }, true), "a conversation rejected for mode studies");
         assert!(!starts_with_study(&follow_up, KeptHistory { in_mode: true, ..Default::default() }, true), "a conversation in this mode carries on");
         assert!(starts_with_study(&opts, KeptHistory { in_mode: true, ..Default::default() }, false), "no capture to build from: study");
+        assert!(starts_with_study(&follow_up, none, false), "a capture from the other mode studies even for a fresh follow-up");
+        assert!(
+            starts_with_study(&follow_up, KeptHistory { in_mode: true, ..Default::default() }, false),
+            "a capture from the other mode studies even when the conversation is in this mode"
+        );
         follow_up.message = None;
         assert!(
             !starts_with_study(&follow_up, KeptHistory { in_mode: true, ..Default::default() }, true),
-            "a same-mode continuation studies only without a capture"
+            "a same-mode continuation studies only without a usable capture"
         );
+    }
+
+    /// R2.9: a capture a Deep study left must not be handed to a Clean room run, even when the
+    /// conversation the project keeps is in Clean room. The run studies again and replaces it.
+    #[test]
+    fn a_capture_from_the_other_mode_is_studied_again() {
+        let b = bench();
+        b.hub.engine.session().settings.deep_mode = false;
+        let target = b.projects.join("target.bin");
+        std::fs::write(&target, b"\x7fELF not really").unwrap();
+        let mut ws = Workspace::create(&b.projects, "mode", "Recreate this app", TargetRef::Local { path: target }).unwrap();
+        // A Deep study's capture, and a conversation the project kept in Clean room.
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        std::fs::write(ws.capture_dir().join("README.md"), "# What we found in the Deep run\n\nDecompiled notes.").unwrap();
+        ws.manifest.capture_deep = Some(true);
+        ws.manifest.agent_session = Some("clean-session".into());
+        ws.manifest.agent_session_deep = Some(false);
+        ws.manifest.stack = "Anything".into();
+        ws.save().unwrap();
+        let (ok, feed) = try_with(&b, &ws, RunOptions::default());
+        let notes = std::fs::read_to_string(ws.capture_dir().join("README.md")).unwrap_or_default();
+        assert!(notes.starts_with("# Clean room"), "the Deep capture must not be handed to Clean room: {notes}\n{feed:?}");
+        assert!(!notes.contains("Decompiled notes"), "{notes}");
+        assert_eq!(Workspace::open(&ws.root).unwrap().manifest.capture_deep, Some(false), "the Clean room study recorded its mode");
+        let _ = ok;
+
+        // The other way: a Clean room capture must not be handed to a Deep run either; Deep studies
+        // again and records its own capture.
+        let b = bench();
+        let target = b.projects.join("target-deep.bin");
+        std::fs::write(&target, b"\x7fELF not really").unwrap();
+        let mut ws = Workspace::create(&b.projects, "mode-deep", "Recreate this app", TargetRef::Local { path: target }).unwrap();
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        std::fs::write(ws.capture_dir().join("README.md"), "# Clean room\n\nNothing inside was read.").unwrap();
+        ws.manifest.capture_deep = Some(false);
+        ws.manifest.agent_session = Some("deep-session".into());
+        ws.manifest.agent_session_deep = Some(true);
+        ws.manifest.stack = "Anything".into();
+        ws.save().unwrap();
+        let (ok, feed) = try_with(&b, &ws, RunOptions::default());
+        let notes = std::fs::read_to_string(ws.capture_dir().join("README.md")).unwrap_or_default();
+        assert!(notes.starts_with("# What we found"), "the Clean room capture must not be handed to Deep: {notes}\n{feed:?}");
+        assert_eq!(Workspace::open(&ws.root).unwrap().manifest.capture_deep, Some(true), "the Deep study recorded its mode");
+        let _ = ok;
+    }
+
+    /// A capture with no recorded mode (a failed study, or one copied in) isn't usable: a run
+    /// studies again. A recorded capture is usable only in its own mode.
+    #[test]
+    fn a_capture_with_no_recorded_mode_is_studied_again() {
+        let d = tempfile::tempdir().unwrap();
+        let mut ws = Workspace::create(d.path(), "x", "A thing", TargetRef::None).unwrap();
+        assert!(!super::super::capture_in_mode(&ws, false), "no capture yet");
+        std::fs::create_dir_all(ws.capture_dir()).unwrap();
+        assert!(!super::super::capture_in_mode(&ws, true), "a capture with no mode isn't trusted in Deep");
+        assert!(!super::super::capture_in_mode(&ws, false), "nor in Clean room");
+        ws.manifest.capture_deep = Some(true);
+        assert!(super::super::capture_in_mode(&ws, true), "a Deep capture is usable in Deep");
+        assert!(!super::super::capture_in_mode(&ws, false), "but not in Clean room");
+        ws.manifest.capture_deep = Some(false);
+        assert!(!super::super::capture_in_mode(&ws, true), "a Clean room capture isn't handed to Deep");
+        assert!(super::super::capture_in_mode(&ws, false));
     }
 
     /// A saved session records the mode it ran in, and a lost one clears both.
@@ -2515,6 +2716,7 @@ mod picking_up_a_build {
         let b = bench();
         let mut ws = Workspace::create(&b.projects, "x", "A website for a bakery", TargetRef::None).unwrap();
         ws.manifest.agent_session = Some("session-1".into());
+        ws.manifest.capture_deep = Some(true);
         ws.save().unwrap();
         std::fs::create_dir_all(ws.capture_dir()).unwrap();
         std::fs::create_dir_all(ws.app_dir()).unwrap();
@@ -2612,7 +2814,8 @@ fn a_saved_asset_key_gets_an_api_builders_tool_past_the_key_check() {
     assert!(worker.assets, "the brief and the tools go by the same read");
 }
 
-fn check_worker(ws: &Workspace, deep: bool) -> Worker {
+/// A worker over a test session and the workspace's feed, for check tests.
+pub(crate) fn check_worker(ws: &Workspace, deep: bool) -> Worker {
     let mut s = craft_anything_engine::testing::session();
     s.settings.deep_mode = deep;
     let (tx, _rx) = std::sync::mpsc::channel();
@@ -2633,6 +2836,35 @@ fn check_worker(ws: &Workspace, deep: bool) -> Worker {
         reset_progress_after_notes: false,
         keys: crate::KeyStore::file_only(ws.root.join("keys.toml")),
         kept_checks: Mutex::default(),
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn console_study_keeps_two_real_observations_for_each_input() {
+    use std::os::unix::fs::PermissionsExt;
+    let d = tempfile::tempdir().unwrap();
+    let program = d.path().join("counter-tool");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\nn=0\nif [ -f run-count.txt ]; then read -r n < run-count.txt; fi\nn=$((n + 1))\nprintf '%s\\n' \"$n\" > run-count.txt\nprintf 'Result 42 completed in %s ms\\n' \"$n\"\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let ws = Workspace::create(d.path(), "Counter", "Rebuild this console tool", TargetRef::Local { path: program.clone() }).unwrap();
+    let worker = check_worker(&ws, true);
+    worker.capture_runs(&program, &ws.capture_dir()).unwrap();
+    let records = kinds::runs::captured(&ws);
+    assert_eq!(records.len(), kinds::runs::CASES.len());
+    assert_eq!(std::fs::read_to_string(d.path().join("run-count.txt")).unwrap().trim(), "6");
+    for record in records {
+        assert_eq!(record["reason"], "exited");
+        assert_eq!(record["repeat"]["reason"], "exited");
+        assert_ne!(record["lines"], record["repeat"]["lines"]);
+        let built = json!({"reason":"exited", "exit_code":0, "lines":["Result 42 completed in 999 ms"]});
+        assert!(kinds::runs::run_claims(&record, &built, &[]).iter().all(|c| c.passed));
+        let wrong = json!({"reason":"exited", "exit_code":0, "lines":["Result -42 completed in 999 ms"]});
+        assert!(!kinds::runs::run_claims(&record, &wrong, &[])[1].passed);
     }
 }
 
@@ -3554,8 +3786,8 @@ fn a_note_the_builder_took_at_a_step_joins_the_feed_and_isnt_sent_again() {
         reset_progress_after_notes: false,
     };
     let dir = notes::notes_dir(&ws.inbox_dir());
-    notes::hand_over(&dir, 1, "make the header blue").unwrap();
-    notes::hand_over(&dir, 2, "add a footer").unwrap();
+    notes::hand_over(&dir, 1, "make the header blue", None).unwrap();
+    notes::hand_over(&dir, 2, "add a footer", None).unwrap();
     // The agent's hook takes the first one at a step; the second comes in after it.
     std::fs::rename(dir.join("2.json"), dir.join("2.wait")).unwrap();
     assert_eq!(notes::claim(&dir), ["make the header blue"]);
@@ -3640,6 +3872,54 @@ fn starting_a_project_at_existing_project_folder_attaches_to_it() {
     let reattached = project::new_project(&session.settings, "-", "Follow up", project::Place::At(&folder, None), None, false, None).unwrap();
     assert_eq!(reattached.root, folder);
     assert_eq!(reattached.manifest.name, ws.manifest.name);
+}
+
+/// #987 made a folder that already holds a project attach to it. Attaching must not treat the
+/// project as new: its saved builder, asset budget, generate_assets and stack stay, and the typed
+/// request becomes a follow-up instead of being dropped.
+#[test]
+fn reattaching_keeps_the_projects_saved_settings() {
+    let session = craft_anything_engine::testing::session();
+    let d = tempfile::tempdir().unwrap();
+    let folder = d.path().join("mine");
+    let mut ws = project::new_project(&session.settings, "-", "Initial app", project::Place::At(&folder, None), None, false, Some("Claude")).unwrap();
+    ws.set_person(|m| {
+        m.asset_budget_usd = 42.0;
+        m.generate_assets = true;
+        m.builder = Some("Claude".into());
+    })
+    .unwrap();
+    ws.manifest.stack = "Godot".into();
+    ws.save().unwrap();
+
+    let reattached = project::new_project(&session.settings, "-", "Add a jump", project::Place::At(&folder, None), Some("unity"), false, None).unwrap();
+    assert_eq!(reattached.manifest.builder.as_deref(), Some("Claude"), "the saved builder is kept");
+    assert_eq!(reattached.manifest.asset_budget_usd, 42.0, "the saved asset budget is kept");
+    assert!(reattached.manifest.generate_assets, "the saved asset setting is kept");
+    assert_eq!(reattached.manifest.stack, "Godot", "the saved stack is kept");
+    assert_eq!(reattached.manifest.request, "Initial app", "the project's original request stays");
+    assert!(project::has_project(&folder), "the folder is now a project");
+    assert_eq!(
+        project::attached_request(project::has_project(&folder), "Add a jump").as_deref(),
+        Some("Add a jump"),
+        "a request typed for an attached project is its follow-up"
+    );
+    assert_eq!(project::attached_request(false, "A new app"), None, "a new project's request stays its own");
+}
+
+/// A folder that doesn't hold a project yet is created with the stack, builder, asset budget and
+/// generate_assets it was started with; only an attached folder keeps what it had.
+#[test]
+fn a_new_project_gets_the_settings_it_started_with() {
+    let session = craft_anything_engine::testing::session();
+    let d = tempfile::tempdir().unwrap();
+    let folder = d.path().join("new");
+    let ws = project::new_project(&session.settings, "-", "A game", project::Place::At(&folder, None), Some("godot"), true, Some("Claude")).unwrap();
+    assert_eq!(ws.manifest.stack, "Godot", "the picked stack is written");
+    assert_eq!(ws.manifest.builder.as_deref(), Some("Claude"), "the picked builder is written");
+    assert!(ws.manifest.generate_assets, "the asset choice is written");
+    assert_eq!(ws.manifest.asset_budget_usd, session.settings.assets.budget(), "the budget comes from settings");
+    assert_eq!(ws.manifest.request, "A game");
 }
 
 #[test]
@@ -4175,13 +4455,13 @@ fn a_later_run_opens_the_projects_program_again_for_the_builder() {
             self_check: None,
             reset_progress_after_notes: false,
         };
-        w.reopen_target(&mut ws, app.as_ref(), true).unwrap();
+        w.reopen_target(&mut ws, app.as_ref(), true, deep).unwrap();
         assert!(w.engine.session().shared_targets().is_empty(), "a builder over SSH isn't handed this computer's targets");
-        w.reopen_target(&mut ws, app.as_ref(), false).unwrap();
+        w.reopen_target(&mut ws, app.as_ref(), false, deep).unwrap();
         let opened: Vec<PathBuf> = w.engine.session().shared_targets().into_iter().map(|t| t.path).collect();
         if deep {
             assert_eq!(opened, std::slice::from_ref(&program), "the builder's tool server is handed the program");
-            w.reopen_target(&mut ws, app.as_ref(), false).unwrap();
+            w.reopen_target(&mut ws, app.as_ref(), false, deep).unwrap();
             assert_eq!(w.engine.session().shared_targets().len(), 1, "an open program isn't opened twice");
         } else {
             assert!(opened.is_empty(), "Clean room opens nothing");

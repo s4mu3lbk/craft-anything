@@ -21,7 +21,9 @@ pub(super) fn snapshot(cancel: &crate::tool::CancelToken) -> Result<String, Tool
         ])
     };
     #[cfg(not(windows))]
-    let command = Process::new("/bin/ps").args(["-A", "-o", "pid=,ppid="]);
+    // One `-o` per column: after `=` the rest of the argument is the header (POSIX), so FreeBSD
+    // reads `pid=,ppid=` as one `pid` column headed ",ppid=" and no parent is ever listed.
+    let command = Process::new("/bin/ps").args(["-A", "-o", "pid=", "-o", "ppid="]);
     let cancel = cancel.clone();
     let out = command
         .timeout(Duration::from_secs(10))

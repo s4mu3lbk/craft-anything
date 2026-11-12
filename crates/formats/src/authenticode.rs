@@ -202,25 +202,49 @@ fn signer_facts(cms: &[u8]) -> (usize, Vec<String>) {
     walk().unwrap_or((0, Vec::new()))
 }
 
-/// The parts of the file an Authenticode hash covers: everything except the header checksum, the
-/// security directory entry and the certificate table.
+/// The parts of the file an Authenticode hash covers, in the order Windows hashes them (PE/COFF
+/// specification, "Authenticode PE Image Hash"): the headers, each section in the order its data
+/// sits in the file, then the data after them — all but the header checksum and the certificate
+/// table. A gap between sections isn't hashed. The bytes after the sections are counted from the
+/// headers and the sections' sizes, as Windows counts them, so a count that ends before the last
+/// section's data hashes that data again.
 fn hashed_ranges<'a>(data: &'a [u8], h: &PeHeaders) -> Result<Vec<&'a [u8]>, String> {
     let (cert_off, cert_size) = h.dir(SECURITY_DIR).ok_or("there is no certificate table")?;
     let opt = h.pe_offset.checked_add(24).ok_or("the headers are out of range")?;
     let checksum = opt.checked_add(64).ok_or("the headers are out of range")?;
     let dirs = opt.checked_add(if h.pe32_plus { 112 } else { 96 }).ok_or("the headers are out of range")?;
     let entry = dirs.checked_add(SECURITY_DIR * 8).ok_or("the headers are out of range")?;
+    let header_end = usize::try_from(h.size_of_headers).map_err(|_| "the headers are out of range")?;
     let cert_start = usize::try_from(cert_off).map_err(|_| "the table is out of range")?;
     let cert_end = cert_start.checked_add(usize::try_from(cert_size).map_err(|_| "the table is out of range")?).ok_or("the table is out of range")?;
     if cert_end > data.len() {
         return Err("the certificate table runs past the end of the file".into());
     }
-    let ordered = checksum.checked_add(4).is_some_and(|c| c <= entry) && entry.checked_add(8).is_some_and(|e| e <= cert_start);
-    if !ordered {
+    let ordered = checksum.checked_add(4).is_some_and(|c| c <= entry) && entry.checked_add(8).is_some_and(|e| e <= header_end);
+    if !ordered || header_end > cert_start {
         return Err("the certificate table overlaps the headers".into());
     }
     let part = |from: usize, to: usize| data.get(from..to).ok_or_else(|| "the file is too short for its headers".to_string());
-    Ok(vec![part(0, checksum)?, part(checksum + 4, entry)?, part(entry + 8, cert_start)?, part(cert_end, data.len())?])
+    let mut ranges = vec![part(0, checksum)?, part(checksum + 4, entry)?, part(entry + 8, header_end)?];
+    let mut sections: Vec<&crate::pe::PeSection> = h.sections.iter().filter(|s| s.raw_size > 0).collect();
+    sections.sort_by_key(|s| s.raw_offset);
+    // The running count of hashed bytes: the headers, then every section's data.
+    let mut hashed = header_end;
+    for s in sections {
+        let from = usize::try_from(s.raw_offset).map_err(|_| "a section is out of range")?;
+        let len = usize::try_from(s.raw_size).map_err(|_| "a section is out of range")?;
+        let to = from.checked_add(len).ok_or("a section is out of range")?;
+        ranges.push(data.get(from..to).ok_or_else(|| "a section runs past the end of the file".to_string())?);
+        hashed = hashed.checked_add(len).ok_or("the sections are too large")?;
+    }
+    // Everything after them: Windows takes the whole file, less the sections' sizes and the
+    // certificate table's, from the running count. A gap between sections isn't hashed, and a
+    // count that ends before the last section's data hashes that data again.
+    let cert_len = usize::try_from(cert_size).map_err(|_| "the table is out of range")?;
+    let extra_len = data.len().checked_sub(hashed).and_then(|left| left.checked_sub(cert_len)).ok_or("the sections cover the certificate table")?;
+    let extra_end = hashed.checked_add(extra_len).ok_or("the sections are too large")?;
+    ranges.push(data.get(hashed..extra_end).ok_or_else(|| "the sections run past the end of the file".to_string())?);
+    Ok(ranges)
 }
 
 /// Compute the Authenticode hash of a PE file with `digest`.
@@ -237,6 +261,9 @@ fn read_signature(data: &[u8], h: &PeHeaders, payload: &[u8], table_ok: bool) ->
     let certificates: Vec<CertInfo> = sd.certificates.iter().filter_map(|c| der::certificate(c)).collect();
     let signer = sd.signer_cert().and_then(der::certificate);
     let mut notes = Vec::new();
+    if sd.non_minimal_length {
+        notes.push(der::NON_MINIMAL_LENGTH_NOTE.into());
+    }
     if signer_count > 1 {
         notes.push(format!("The block has {signer_count} signers; only the first was read."));
     }
@@ -286,7 +313,11 @@ fn read_signature(data: &[u8], h: &PeHeaders, payload: &[u8], table_ok: bool) ->
     {
         report.signature_check = check.signature_valid;
         report.chain = Some(check.chain);
-        report.notes.extend(check.notes);
+        for note in check.notes {
+            if !report.notes.contains(&note) {
+                report.notes.push(note);
+            }
+        }
     }
     report
 }

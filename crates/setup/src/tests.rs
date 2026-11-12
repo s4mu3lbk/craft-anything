@@ -250,3 +250,19 @@ fn setup_keeps_a_crlf_config_crlf_and_a_second_run_changes_nothing() {
     assert_eq!(apply(&plan(&fx.host, &r).unwrap()).status, "configured");
     assert!(!read(&path).contains('\r'));
 }
+
+/// Repeated ids and aliases produce one write per client and an idempotent installation.
+#[test]
+fn repeated_client_ids_are_applied_once() {
+    let fx = fixture();
+    let request = req(&fx, &["claude_code", "claude-code", "codex", "claude_code"]);
+    let plan = plan(&fx.host, &request).unwrap();
+    assert_eq!(plan.actions.len(), 2);
+    assert_eq!(plan.actions[0].client, "claude_code");
+    assert_eq!(plan.actions[1].client, "codex");
+    let report = apply(&plan);
+    assert_eq!(report.status, "configured", "{report:?}");
+    assert_eq!(report.results.len(), 2);
+    assert!(report.results.iter().all(|r| r.outcome == Outcome::Configured));
+    assert_eq!(apply(&crate::plan::plan(&fx.host, &request).unwrap()).status, "unchanged");
+}

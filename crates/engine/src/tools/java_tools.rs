@@ -628,7 +628,7 @@ fn java_method_show(ctx: &mut Ctx<'_>, params: Value) -> Result<ToolOutput, Tool
                 .map(|i| InsnRow { offset: format!("{:04x}", i.pc), text: cf.format_insn(i), opcode: format!("{:#04x}", i.opcode), len: i.len })
                 .collect();
             if !complete {
-                lims.push(Limitation::new("listing_incomplete", "Decoding stopped at an instruction that runs past the end of the code."));
+                lims.push(Limitation::new("listing_incomplete", "Decoding stopped at an invalid or incomplete instruction."));
             }
             (rows, complete)
         }

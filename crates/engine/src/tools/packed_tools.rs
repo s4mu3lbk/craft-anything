@@ -373,6 +373,7 @@ mod tests {
             "android_components_list",
             "web_standin_build",
             "web_standin_show",
+            "core_text_read",
         ] {
             assert!(r.get(id).unwrap().effects.contains(Effects::CARRIES_TARGET_CONTENT), "{id}");
         }

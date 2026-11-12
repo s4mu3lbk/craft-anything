@@ -257,9 +257,11 @@ impl Evidence {
         self.compute_id().is_ok_and(|id| id == self.id)
     }
 
-    /// A compact view for agents and lists: everything except the full result.
+    /// A compact view for agents and lists: everything except the full result, plus the names
+    /// of the result's lists (`lists`, name → length) when it has any, so a caller knows what it
+    /// can page without reading the result.
     pub fn summary_view(&self) -> Value {
-        serde_json::json!({
+        let mut view = serde_json::json!({
             "evidence_id": self.id,
             "operation": self.operation,
             "summary": self.summary,
@@ -268,8 +270,56 @@ impl Evidence {
             "coverage": self.coverage,
             "subject": self.subject,
             "carries_target_content": self.carries_target_content,
-        })
+        });
+        let lists = result_lists(&self.result);
+        if let (false, Value::Object(m)) = (lists.is_empty(), &mut view) {
+            m.insert("lists".into(), serde_json::json!(lists));
+        }
+        view
     }
+}
+
+/// How deep [`find_result_key`] looks for a name: the top level and four levels of objects below.
+pub const RESULT_KEY_DEPTH: usize = 4;
+/// Most lists [`result_lists`] names.
+const MAX_LISTED: usize = 64;
+
+/// The value a name reaches in a result: the key at the top level, else the first one found in
+/// the objects below it (depth first, at most [`RESULT_KEY_DEPTH`] levels down). This is how a
+/// saved result's parts and lists are looked up by name.
+pub fn find_result_key<'a>(v: &'a Value, key: &str) -> Option<&'a Value> {
+    fn go<'a>(v: &'a Value, key: &str, depth: usize) -> Option<&'a Value> {
+        if depth > RESULT_KEY_DEPTH {
+            return None;
+        }
+        match v {
+            Value::Object(m) => m.get(key).or_else(|| m.values().find_map(|x| go(x, key, depth + 1))),
+            _ => None,
+        }
+    }
+    go(v, key, 0)
+}
+
+/// The lists a result holds, by the name [`find_result_key`] reaches them with, and their
+/// lengths. A name that reaches something other than a list first (`changed` as a count) is
+/// left out. At most 64 names.
+pub fn result_lists(result: &Value) -> std::collections::BTreeMap<String, usize> {
+    fn names<'a>(v: &'a Value, depth: usize, out: &mut std::collections::BTreeSet<&'a str>) {
+        if depth > RESULT_KEY_DEPTH {
+            return;
+        }
+        if let Value::Object(m) = v {
+            for (k, x) in m {
+                if x.is_array() && out.len() < MAX_LISTED {
+                    out.insert(k);
+                }
+                names(x, depth + 1, out);
+            }
+        }
+    }
+    let mut found = std::collections::BTreeSet::new();
+    names(result, 0, &mut found);
+    found.into_iter().filter_map(|k| find_result_key(result, k).and_then(Value::as_array).map(|a| (k.to_string(), a.len()))).collect()
 }
 
 /// Builds an [`Evidence`] and computes its id.
@@ -404,6 +454,29 @@ mod tests {
         assert_eq!(human_bytes(1_048_575), "1.0 MB");
         assert_eq!(human_bytes(1024 * 1024 * 1024 - 1), "1.00 GB");
         assert_eq!(human_bytes(1024 * 1024 * 1024), "1.00 GB");
+    }
+
+    #[test]
+    fn summary_view_names_the_lists_a_name_reaches() {
+        // `changed` is a count at the top and a list deeper down: the name reaches the count.
+        let result = serde_json::json!({
+            "counts": {"changed": 2},
+            "changed": 2,
+            "pairs": [{"a": 1}, {"a": 2}],
+            "groups": {"ambiguous": [], "deeper": {"changed": [1]}},
+            "text": "x",
+        });
+        let lists = result_lists(&result);
+        assert_eq!(lists.into_iter().collect::<Vec<_>>(), vec![("ambiguous".to_string(), 0), ("pairs".to_string(), 2)]);
+        let mut e = sample();
+        assert!(e.summary_view().get("lists").is_none(), "no lists, no field");
+        e.result = result;
+        assert_eq!(e.summary_view()["lists"], serde_json::json!({"ambiguous": 0, "pairs": 2}));
+        // Deeper than a name is looked up isn't listed, and the list is capped.
+        let deep = serde_json::json!({"a": {"b": {"c": {"d": {"e": {"far": []}}}}}, "near": {"x": {"y": {"z": {"here": []}}}}});
+        assert_eq!(result_lists(&deep).keys().collect::<Vec<_>>(), vec!["here"]);
+        let many: serde_json::Map<String, Value> = (0..100).map(|i| (format!("l{i:03}"), serde_json::json!([]))).collect();
+        assert_eq!(result_lists(&Value::Object(many)).len(), MAX_LISTED);
     }
 
     #[test]

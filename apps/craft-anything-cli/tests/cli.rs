@@ -48,6 +48,52 @@ fn commands_and_exit_codes() {
     assert_eq!(e["error"]["code"], "bad_input");
 }
 
+/// #1358: the saved key can be reported, replaced and forgotten headlessly, and is never printed.
+#[test]
+fn ai_key_reports_replaces_and_forgets_without_printing_the_key() {
+    let cfg = tempfile::tempdir().unwrap();
+    let run = |args: &[&str], input: &str| {
+        Process::new(env!("CARGO_BIN_EXE_craft-anything-cli"))
+            .args(args)
+            .env("CRAFT_ANYTHING_CONFIG_DIR", cfg.path())
+            .env("CRAFT_ANYTHING_NO_KEYCHAIN", "1")
+            .stdin_bytes(input.as_bytes().to_vec())
+            .timeout(Duration::from_secs(60))
+            .run()
+            .unwrap()
+    };
+
+    assert!(run(&["ai", "add", "OpenAI", "--kind", "openai", "--model", "gpt-test", "--key-stdin"], "sk-old").success);
+    let status = run(&["ai", "key", "OpenAI", "--format", "json"], "");
+    let v: Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(v["key_saved"], true, "{v}");
+    assert!(!String::from_utf8_lossy(&status.stdout).contains("sk-old"));
+
+    let replaced = run(&["ai", "key", "OpenAI", "--key-stdin", "--format", "json"], "sk-new");
+    let v: Value = serde_json::from_slice(&replaced.stdout).unwrap();
+    assert_eq!((v["key_saved"].as_bool(), v["changed"].as_str()), (Some(true), Some("replaced")), "{v}");
+    assert!(!String::from_utf8_lossy(&replaced.stdout).contains("sk-old") && !String::from_utf8_lossy(&replaced.stdout).contains("sk-new"));
+
+    let forgotten = run(&["ai", "key", "OpenAI", "--forget", "--format", "json"], "");
+    let v: Value = serde_json::from_slice(&forgotten.stdout).unwrap();
+    assert_eq!((v["key_saved"].as_bool(), v["changed"].as_str()), (Some(false), Some("forgotten")), "{v}");
+    let status = run(&["ai", "key", "OpenAI", "--format", "json"], "");
+    let v: Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(v["key_saved"], false, "{v}");
+
+    let from_env = Process::new(env!("CARGO_BIN_EXE_craft-anything-cli"))
+        .args(["ai", "key", "OpenAI", "--key-env", "CRAFT_TEST_KEY", "--format", "json"])
+        .env("CRAFT_ANYTHING_CONFIG_DIR", cfg.path())
+        .env("CRAFT_ANYTHING_NO_KEYCHAIN", "1")
+        .env("CRAFT_TEST_KEY", "sk-env")
+        .timeout(Duration::from_secs(60))
+        .run()
+        .unwrap();
+    let v: Value = serde_json::from_slice(&from_env.stdout).unwrap();
+    assert_eq!((v["key_saved"].as_bool(), v["changed"].as_str()), (Some(true), Some("replaced")), "{v}");
+    assert_eq!(run(&["ai", "key", "No such backend"], "").code, Some(1));
+}
+
 /// #249: in Clean room a target tool the mode refuses was listed as available, because nothing
 /// being open yet was waived for every target tool.
 #[test]

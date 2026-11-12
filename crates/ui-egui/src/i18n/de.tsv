@@ -893,6 +893,7 @@ Read a Unity game's IL2CPP metadata	Die IL2CPP-Metadaten eines Unity-Spiels lese
 Read a game's files	Die Dateien eines Spiels lesen
 Read a project file	Eine Projektdatei lesen
 Read a setting	Eine Einstellung lesen
+Read a text file	Eine Textdatei lesen
 Read an app's screen	Den Bildschirm einer App lesen
 Read bytes	Bytes lesen
 Read comment	Kommentar lesen
@@ -1470,3 +1471,26 @@ Deep: we read its code, files and page source with every tool we have, and with 
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} ist noch nicht auf diesem Computer, deshalb springt der eingebaute Dekompilierer ein.
 Connecting to {name}… {seconds} s	Verbinde mit {name}… {seconds} s
 Stopped adding {name}.	Hinzufügen von {name} abgebrochen.
+It isn't there any more, so {program} runs in its place.	Es ist nicht mehr dort, daher läuft stattdessen {program}.
+Use it	Verwenden
+
+# Native update checks and verified installation.
+ArtCraft Launcher manages this app's version. Change its version there.	ArtCraft Launcher verwaltet die Version dieser App. Ändere die Version dort.
+Check again	Erneut prüfen
+Check for Updates	Nach Updates suchen
+Check for Updates…	Nach Updates suchen…
+Checking for updates…	Suche nach Updates…
+Couldn't check for updates: {error}	Updates konnten nicht geprüft werden: {error}
+Downloading and verifying the update…	Update wird heruntergeladen und überprüft…
+No installer is available for this platform.	Für diese Plattform ist kein Installationsprogramm verfügbar.
+Releases	Veröffentlichungen
+Save your work and stop running tasks before installing an update.	Speichere deine Arbeit und beende laufende Aufgaben, bevor du ein Update installierst.
+The update failed: {error}	Das Update ist fehlgeschlagen: {error}
+The update worker stopped unexpectedly. Try checking again.	Der Update-Prozess wurde unerwartet beendet. Prüfe erneut auf Updates.
+This installation is managed externally. Update it with its package manager or open Releases.	Diese Installation wird extern verwaltet. Aktualisiere sie mit der Paketverwaltung oder öffne die Veröffentlichungen.
+Update and restart	Aktualisieren und neu starten
+Update ready. Restarting…	Update bereit. Neustart…
+Updated to {version}.	Auf {version} aktualisiert.
+Use Releases or your package manager to update this installation.	Aktualisiere diese Installation über die Veröffentlichungen oder deine Paketverwaltung.
+You're up to date.	Du bist auf dem neuesten Stand.
+{version} is available.	{version} ist verfügbar.

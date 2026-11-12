@@ -26,7 +26,7 @@ we don't have); source reviewed · **New** = added since the audit, unit-tested 
 | Formats, firmware, database | 11 | 0 | 0 | 1 | |
 | Runtime (process capture, native calls/UI) | 0 | 0 | 0 | 5 | run foreign code; not executed in the audit |
 | Frida | 0 | 0 | 0 | 9 | Frida not installed; parts of session handling are simulated in source |
-| Added since the audit | — | — | — | — | 14 new: `native_bytes_find`, `native_rust_binary_show`, `js_electron_fuses_show`, `formats_wasm_compare`, `packets_capture_show`, `packets_fields_show`, `engines_tshark_check`, `packets_inventory_show`, `native_objdump_run`, `native_rizin_command_run`, `native_gdb_session_begin`, `native_gdb_command_run`, `native_gdb_session_show`, `native_gdb_session_end` |
+| Added since the audit | — | — | — | — | 15 new: `core_text_read`, `native_bytes_find`, `native_rust_binary_show`, `js_electron_fuses_show`, `formats_wasm_compare`, `packets_capture_show`, `packets_fields_show`, `engines_tshark_check`, `packets_inventory_show`, `native_objdump_run`, `native_rizin_command_run`, `native_gdb_session_begin`, `native_gdb_command_run`, `native_gdb_session_show`, `native_gdb_session_end` |
 
 ## Real-binary run (2026-10-21)
 

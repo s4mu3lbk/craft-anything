@@ -893,6 +893,7 @@ Read a Unity game's IL2CPP metadata	Loe Unity mängu IL2CPP metaandmeid
 Read a game's files	Loe mängu faile
 Read a project file	Loe projektifaili
 Read a setting	Loe seadet
+Read a text file	Loe tekstifaili
 Read an app's screen	Loe rakenduse ekraani
 Read bytes	Loe baite
 Read comment	Loe kommentaari
@@ -1470,3 +1471,26 @@ Deep: we read its code, files and page source with every tool we have, and with 
 {engine} isn't on this computer yet, so the built-in decompiler stands in.	{engine} pole selles arvutis veel, seega kasutatakse sisseehitatud dekompilaatorit.
 Connecting to {name}… {seconds} s	Ühendamine: {name}… {seconds} s
 Stopped adding {name}.	{name} lisamine peatati.
+It isn't there any more, so {program} runs in its place.	Seda pole enam seal, nii et selle asemel käivitub {program}.
+Use it	Kasuta seda
+
+# Native update checks and verified installation.
+ArtCraft Launcher manages this app's version. Change its version there.	Selle rakenduse versiooni haldab ArtCraft Launcher. Muuda versiooni seal.
+Check again	Kontrolli uuesti
+Check for Updates	Otsi uuendusi
+Check for Updates…	Otsi uuendusi…
+Checking for updates…	Uuenduste otsimine…
+Couldn't check for updates: {error}	Uuendusi ei saanud kontrollida: {error}
+Downloading and verifying the update…	Uuenduse allalaadimine ja kontrollimine…
+No installer is available for this platform.	Sellele platvormile pole paigaldajat saadaval.
+Releases	Väljalasked
+Save your work and stop running tasks before installing an update.	Enne uuenduse paigaldamist salvesta töö ja peata töötavad ülesanded.
+The update failed: {error}	Uuendamine nurjus: {error}
+The update worker stopped unexpectedly. Try checking again.	Uuendamisprotsess peatus ootamatult. Proovi uuesti kontrollida.
+This installation is managed externally. Update it with its package manager or open Releases.	Seda paigaldust hallatakse väliselt. Uuenda seda paketihalduriga või ava Väljalasked.
+Update and restart	Uuenda ja taaskäivita
+Update ready. Restarting…	Uuendus on valmis. Taaskäivitamine…
+Updated to {version}.	Uuendatud versioonile {version}.
+Use Releases or your package manager to update this installation.	Selle paigalduse uuendamiseks kasuta Väljalaskeid või paketihaldurit.
+You're up to date.	Sul on uusim versioon.
+{version} is available.	Saadaval on {version}.

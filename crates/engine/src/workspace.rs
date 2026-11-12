@@ -80,10 +80,10 @@ fn copy_tree(from: &Path, to: &Path, skip: &dyn Fn(&Path) -> bool, depth: usize)
 }
 
 /// The current `craft.json` format version. Bumping it means appending a step to [`MANIFEST_STEPS`].
-pub const MANIFEST_VERSION: u32 = 4;
+pub const MANIFEST_VERSION: u32 = 5;
 
 /// The steps that bring an older `craft.json` forward; step `i` goes from version `i` to `i + 1`.
-const MANIFEST_STEPS: &[versioned::Step<Value>] = &[manifest_v0_to_v1, manifest_v1_to_v2, manifest_v2_to_v3, manifest_v3_to_v4];
+const MANIFEST_STEPS: &[versioned::Step<Value>] = &[manifest_v0_to_v1, manifest_v1_to_v2, manifest_v2_to_v3, manifest_v3_to_v4, manifest_v4_to_v5];
 const _: () = assert!(MANIFEST_STEPS.len() == MANIFEST_VERSION as usize, "one step per craft.json version");
 
 /// Version 0 (no `version` field) has the same shape as version 1; only the number is new.
@@ -113,6 +113,17 @@ fn manifest_v3_to_v4(doc: &mut Value) -> Result<(), String> {
     let has_session = obj.get("agent_session").and_then(Value::as_str).is_some_and(|s| !s.is_empty());
     if has_session && !obj.contains_key("agent_session_deep") {
         obj.insert("agent_session_deep".into(), Value::Bool(true));
+    }
+    Ok(())
+}
+
+/// Version 5 adds the mode the current `capture/` was studied in (`capture_deep`). A version-4
+/// manifest predates the field; a capture it left is the legacy case this build treats as Deep,
+/// so the step fills `true` for it. A mode an early build of this change already wrote is kept.
+fn manifest_v4_to_v5(doc: &mut Value) -> Result<(), String> {
+    let obj = doc.as_object_mut().ok_or("the manifest isn't a JSON object")?;
+    if !obj.contains_key("capture_deep") {
+        obj.insert("capture_deep".into(), Value::Bool(true));
     }
     Ok(())
 }
@@ -410,6 +421,10 @@ pub struct Manifest {
     /// kept, so it is only resumed in Deep (it may have read the original there).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_session_deep: Option<bool>,
+    /// The mode the current `capture/` was studied in (`true`: Deep); none: no study by this
+    /// build recorded it (a failed study, or a capture copied in), so a run studies again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capture_deep: Option<bool>,
     /// Kinds of agent action the person allowed for this workspace ("bash:npm", "web_fetch"…).
     #[serde(default)]
     pub allowed_actions: Vec<String>,
@@ -488,6 +503,7 @@ impl Manifest {
             agent_session: None,
             agent_session_by: None,
             agent_session_deep: None,
+            capture_deep: None,
             allowed_actions: Vec::new(),
             last_reply: String::new(),
             asset_budget_usd: ASSET_BUDGET_USD,
@@ -634,6 +650,12 @@ impl ProjectUsage {
 pub struct Workspace {
     pub root: PathBuf,
     pub manifest: Manifest,
+}
+
+/// The absolute form of a project path, for a child that changes into the project folder. An
+/// already-absolute path is kept; one that can't be made absolute is returned unchanged.
+pub fn absolute(path: &Path) -> PathBuf {
+    std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// A folder-name slug: lower-case words joined by dashes, at most 40 characters.
@@ -1673,6 +1695,7 @@ mod tests {
         let ws = Workspace::open(dir.path()).unwrap();
         assert_eq!(ws.manifest.version, MANIFEST_VERSION);
         assert_eq!(ws.manifest.agent_session_deep, Some(true), "a session from before the mode was kept counts as Deep");
+        assert_eq!(ws.manifest.capture_deep, Some(true), "a capture from before the mode was kept counts as Deep");
         assert_eq!(ws.manifest.agent_session_for_mode("claude-code", false), None);
         assert_eq!(ws.manifest.status, Status::Ready);
         assert_eq!(ws.manifest.asset_budget_usd, ASSET_BUDGET_USD);
@@ -1903,6 +1926,29 @@ mod tests {
         assert_session_migrated(&v3, Some(true));
         let recorded = v3.replace(r#""agent_session": "abc","#, r#""agent_session": "abc", "agent_session_deep": false,"#);
         assert_session_migrated(&recorded, Some(false));
+    }
+
+    /// R2.9: version 4 predates the capture's mode. A capture it left is recorded as Deep (the
+    /// legacy case), and a mode an early build of the change already wrote is kept.
+    #[test]
+    fn a_version_4_capture_mode_is_kept_and_an_older_one_migrates_as_deep() {
+        let v4 = MANIFEST_V0.replacen('{', r#"{ "version": 4,"#, 1);
+        assert_eq!(read_manifest(v4.as_bytes()).unwrap().capture_deep, Some(true), "a capture from before the field counts as Deep");
+        let recorded = v4.replace(r#""agent_session": "abc","#, r#""agent_session": "abc", "capture_deep": false,"#);
+        assert_eq!(read_manifest(recorded.as_bytes()).unwrap().capture_deep, Some(false), "a recorded mode is kept");
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(MANIFEST), &v4).unwrap();
+        let mut ws = Workspace::open(dir.path()).unwrap();
+        assert_eq!((ws.manifest.version, ws.manifest.capture_deep), (MANIFEST_VERSION, Some(true)));
+        ws.save().unwrap();
+        let saved: Value = serde_json::from_slice(&std::fs::read(dir.path().join(MANIFEST)).unwrap()).unwrap();
+        assert_eq!(saved["version"], MANIFEST_VERSION);
+        assert_eq!(saved["capture_deep"], true, "the legacy capture is recorded as Deep");
+        ws.manifest.capture_deep = Some(false);
+        ws.save().unwrap();
+        let saved: Value = serde_json::from_slice(&std::fs::read(dir.path().join(MANIFEST)).unwrap()).unwrap();
+        assert_eq!(saved["capture_deep"], false);
     }
 
     /// Read a literal `craft.json` sample, check both modes and the saved document.

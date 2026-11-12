@@ -336,7 +336,7 @@ pub fn inspect(data: &[u8]) -> Result<SolanaProgram, FormatError> {
         raw_sections.push(RawSection { name: String::new(), name_idx, sh_type, sh_flags, sh_addr, sh_offset, sh_size, sh_link, sh_entsize });
     }
     // The section-name string table, then fill in each section's name.
-    let shstr = raw_sections.get(e_shstrndx).and_then(|s| str_table(data, s.sh_offset, s.sh_size));
+    let shstr = raw_sections.get(e_shstrndx).filter(|s| s.sh_type == 3).and_then(|s| str_table(data, s.sh_offset, s.sh_size));
     for s in &mut raw_sections {
         s.name = shstr.as_ref().and_then(|tab| read_str(tab, s.name_idx)).unwrap_or_default();
     }
@@ -368,15 +368,33 @@ pub fn inspect(data: &[u8]) -> Result<SolanaProgram, FormatError> {
         if s.sh_type != 2 && s.sh_type != 11 {
             continue;
         }
+        if symbols.len() >= MAX_SYMBOLS {
+            break;
+        }
         let dynamic = s.sh_type == 11;
-        let strtab = raw_sections.get(s.sh_link as usize).and_then(|st| str_table(data, st.sh_offset, st.sh_size));
-        let entsize = if s.sh_entsize >= 24 { s.sh_entsize as usize } else { 24 };
-        let count = (s.sh_size as usize) / entsize;
+        let strtab = raw_sections.get(s.sh_link as usize).filter(|st| st.sh_type == 3).and_then(|st| str_table(data, st.sh_offset, st.sh_size));
+        let Ok(entsize) = usize::try_from(s.sh_entsize) else {
+            warnings.push("an ELF symbol entry size cannot be represented".into());
+            continue;
+        };
+        if entsize < 24 {
+            warnings.push("an ELF symbol entry size is too short".into());
+            continue;
+        }
+        if !s.sh_size.is_multiple_of(s.sh_entsize) {
+            warnings.push("the ELF symbol table ends with a partial record".into());
+        }
+        let count = usize::try_from(s.sh_size / s.sh_entsize).unwrap_or(usize::MAX);
         let base = usize::try_from(s.sh_offset).unwrap_or(usize::MAX);
         for i in 0..count.min(MAX_SYMBOLS) {
             let Some(o) = i.checked_mul(entsize).and_then(|x| x.checked_add(base)) else { break };
+            let Some(record) = r.slice(o, entsize) else {
+                warnings.push("the ELF symbol table is truncated".into());
+                break;
+            };
+            let record = Reader::new(record);
             let (Some(st_name), Some(st_info), Some(st_shndx), Some(st_value), Some(st_size)) =
-                (r.u32_le(o), r.u8(o + 4), r.u16_le(o + 6), r.u64_le(o + 8), r.u64_le(o + 16))
+                (record.u32_le(0), record.u8(4), record.u16_le(6), record.u64_le(8), record.u64_le(16))
             else {
                 break;
             };
@@ -405,6 +423,9 @@ pub fn inspect(data: &[u8]) -> Result<SolanaProgram, FormatError> {
         let is_rel = s.sh_type == 9;
         if !is_rela && !is_rel {
             continue;
+        }
+        if relocations.len() >= MAX_RELOCS {
+            break;
         }
         let symtab = raw_sections.get(s.sh_link as usize).filter(|st| matches!(st.sh_type, 2 | 11));
         let strtab =
@@ -557,7 +578,7 @@ fn str_table(data: &[u8], off: u64, size: u64) -> Option<Vec<u8>> {
 fn read_str(table: &[u8], idx: u32) -> Option<String> {
     let start = usize::try_from(idx).ok()?;
     let rest = table.get(start..)?;
-    let end = rest.iter().position(|&b| b == 0).unwrap_or(rest.len());
+    let end = rest.iter().position(|&b| b == 0)?;
     Some(String::from_utf8_lossy(rest.get(..end)?).into_owned())
 }
 

@@ -75,6 +75,7 @@ pub static READERS: &[&dyn PackedFormat] = &[
     &crate::dotnet_bundle::DotnetBundle,
     &crate::godot_pck::GodotPck,
     &crate::pyinstaller::PyInstaller,
+    &crate::pyinstaller::PyzArchive,
 ];
 
 /// The reader for these bytes, if any.

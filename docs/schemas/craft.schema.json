@@ -73,6 +73,13 @@
         "null"
       ]
     },
+    "capture_deep": {
+      "description": "The mode the current `capture/` was studied in (`true`: Deep); none: no study by this\nbuild recorded it (a failed study, or a capture copied in), so a run studies again.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
     "checks": {
       "type": "array",
       "default": [],

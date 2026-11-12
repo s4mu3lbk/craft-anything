@@ -509,10 +509,12 @@ fn compare_source_to_bundle_tool(ctx: &mut Ctx<'_>, params: Value) -> Result<Too
     let d = diff_source_and_bundle(&src, &app, p.max_rows.clamp(1, 100_000));
     let s = &d["summary"];
     let summary = format!(
-        "{} of {} source script(s) matched shipped code; {} unmatched; {} bundle unit(s) without a source.",
-        s["matched"], s["source_scripts"], s["unmatched_sources"], s["bundle_units_without_source"]
+        "{} of {} source script(s) matched shipped code; {} unmatched; {} uncertain; {} bundle unit(s) with no observed source match.",
+        s["matched"], s["source_scripts"], s["unmatched_sources"], s["uncertain_sources"], s["bundle_units_without_source"]
     );
-    let b = EvidenceBuilder::new(
+    let inventory_truncated = d["source_map_inventory_truncated"].as_bool().unwrap_or(false);
+    let map_unreadable = d["source_map_unreadable"].as_bool().unwrap_or(false);
+    let mut b = EvidenceBuilder::new(
         "js_source_bundle_compare",
         Subject { kind: "source-bundle-pair".into(), sha256: None, name: Some(format!("{} vs {}", src.label, app.label)) },
         env(ctx),
@@ -525,6 +527,22 @@ fn compare_source_to_bundle_tool(ctx: &mut Ctx<'_>, params: Value) -> Result<Too
         "heuristic_matching",
         "Beyond identical paths and source-map listings, matches rest on shared strings and names; 'weak' matches need a human look.",
     ));
+    if inventory_truncated {
+        b = b
+            .limitation(Limitation::new(
+                "source_map_inventory_truncated",
+                "Some source-map paths were omitted by inventory or source-map limits; sources without an observed match are uncertain, not confirmed absent.",
+            ))
+            .coverage(Coverage { status: CoverageStatus::Partial, ..Default::default() });
+    }
+    if map_unreadable {
+        b = b
+            .limitation(Limitation::new(
+                "source_map_unreadable",
+                "A source map was malformed or not loaded; sources without an observed match are uncertain, not confirmed absent.",
+            ))
+            .coverage(Coverage { status: CoverageStatus::Partial, ..Default::default() });
+    }
     Ok(ToolOutput::evidence(with_links(b, [sid, aid]).build()?))
 }
 
@@ -861,6 +879,74 @@ mod tests {
         let c = call(&e, "js_source_bundle_compare", json!({"source": retained(&s), "application": dist})).unwrap();
         assert_eq!(c["result"]["summary"]["matched"], 2, "{}", c["result"]);
         assert_eq!(c["confidence"], "inferred");
+    }
+
+    #[test]
+    fn source_comparison_discloses_an_unreadable_map() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("reference");
+        fx::write_files(&src, &[("src/kept.js", String::new())]).unwrap();
+        let dist = dir.path().join("dist");
+        fx::write_files(&dist, &[("main.js", "//# sourceMappingURL=main.js.map\n".to_string()), ("main.js.map", "{\"version\":2}".to_string())]).unwrap();
+        let e = Engine::new(crate::testing::session());
+        let source = call(&e, "app_source_import", json!({"path": src})).unwrap();
+        let comparison = call(&e, "js_source_bundle_compare", json!({"source": retained(&source), "application": dist})).unwrap();
+        assert_eq!(comparison["result"]["source_map_unreadable"], true);
+        assert_eq!(comparison["result"]["unmatched_sources"], json!([]));
+        assert_eq!(comparison["result"]["uncertain_sources"], json!([{"source": "src/kept.js", "reason": "source_map_unreadable"}]));
+        assert!(comparison["limitations"].as_array().unwrap().iter().any(|l| l["code"] == "source_map_unreadable"));
+        assert_eq!(comparison["coverage"]["status"], "partial");
+    }
+
+    #[test]
+    fn source_comparison_discloses_incomplete_map_inventories() {
+        for truncated in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let src = dir.path().join("reference");
+            fx::write_files(&src, &[("src/kept.js", String::new()), ("src/omitted.js", String::new())]).unwrap();
+            let dist = dir.path().join("dist");
+            let mut sources = vec!["kept.js".to_string()];
+            if truncated {
+                sources.extend((0..4999).map(|i| format!("padding-{i}.js")));
+                sources.push("omitted.js".to_string());
+            }
+            fx::write_files(
+                &dist,
+                &[
+                    ("main.js", "//# sourceMappingURL=main.js.map\n".to_string()),
+                    ("main.js.map", json!({"version": 3, "sourceRoot": "src", "sources": sources, "mappings": ""}).to_string()),
+                ],
+            )
+            .unwrap();
+            let e = Engine::new(crate::testing::session());
+            let source = call(&e, "app_source_import", json!({"path": src})).unwrap();
+            let comparison = call(&e, "js_source_bundle_compare", json!({"source": retained(&source), "application": dist})).unwrap();
+            assert_eq!(comparison["result"]["summary"]["matched"], 1);
+            assert_eq!(comparison["result"]["source_map_inventory_truncated"], truncated);
+            let limitations = comparison["limitations"].as_array().unwrap();
+            assert_eq!(limitations.iter().any(|l| l["code"] == "source_map_inventory_truncated"), truncated);
+            if truncated {
+                assert_eq!(comparison["result"]["unmatched_sources"], json!([]));
+                assert_eq!(
+                    comparison["result"]["uncertain_sources"],
+                    json!([
+                        {"source": "src/omitted.js", "reason": "source_map_inventory_truncated"}
+                    ])
+                );
+                assert_eq!(comparison["coverage"]["status"], "partial");
+                let summary = comparison["summary"].as_str().unwrap();
+                assert!(summary.contains("1 uncertain"), "{summary}");
+                assert!(summary.contains("no observed source match"), "{summary}");
+                let first_row = call(&e, "js_source_bundle_compare", json!({"source": retained(&source), "application": dist, "max_rows": 1})).unwrap();
+                assert_eq!(first_row["result"]["summary"]["matched"], 1);
+                assert_eq!(first_row["result"]["uncertain_sources"], json!([]));
+                assert_eq!(first_row["coverage"]["status"], "partial");
+            } else {
+                assert_eq!(comparison["result"]["unmatched_sources"], json!(["src/omitted.js"]));
+                assert_eq!(comparison["result"]["uncertain_sources"], json!([]));
+                assert_eq!(comparison["coverage"]["status"], "unknown");
+            }
+        }
     }
 
     #[test]

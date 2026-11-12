@@ -4,7 +4,7 @@
 
 use craft_anything_formats::authenticode::{self, HashStatus};
 use craft_anything_formats::pe::{self, ImportKind};
-use craft_anything_formats::verify::Verified;
+use craft_anything_formats::verify::{Digest, Verified};
 use craft_anything_formats::{ai_model, elf, parse_binary};
 use craft_anything_testkit::program_facts as pf;
 
@@ -144,6 +144,7 @@ fn a_descriptor_loop_hits_the_row_cap() {
     d[sh + 16..sh + 20].copy_from_slice(&(extra.len() as u32).to_le_bytes());
     d[sh + 20..sh + 24].copy_from_slice(&extra_raw.to_le_bytes());
     // Fill .facts with descriptors that all use it (0x800 / 20 = 102 of them, 408,000 rows wanted).
+    set_dir(&mut d, 1, 0x6000, 102 * 20); // All descriptors belong to the declared import directory.
     let name = 0x6300u32;
     for i in 0..102 {
         let o = start + i * 20;
@@ -219,6 +220,35 @@ fn the_excluded_fields_do_not_change_the_hash() {
     d[OPT + 64] ^= 0xff;
     let t = authenticode::certificate_table(&d, &pe::headers(&d).unwrap()).unwrap();
     assert_eq!(t.entries[0].signature.as_ref().unwrap().file_hash, HashStatus::Matches);
+}
+
+/// Windows hashes the headers, then each section in the order its data sits in the file, then the
+/// data after them. A gap between sections is left out, which a single run from the start of the
+/// file to the certificate table would hash.
+#[test]
+fn a_file_hash_leaves_out_a_gap_between_sections() {
+    let plain = pf::pe_facts();
+    let h = pe::headers(&plain).unwrap();
+    let last = h.sections.last().unwrap();
+    let at = usize::try_from(last.raw_offset).unwrap();
+    let gap = 0x200usize;
+    // Move the last section's data (and the certificate table after it) past a gap.
+    let mut moved = plain[..at].to_vec();
+    moved.resize(at + gap, 0);
+    moved.extend_from_slice(&plain[at..]);
+    let section_header = OPT + 240 + (h.sections.len() - 1) * 40;
+    moved[section_header + 20..section_header + 24].copy_from_slice(&((at + gap) as u32).to_le_bytes());
+    let signed = pf::pe_with_certificate(&moved, 2, b"gap");
+    let hash = |bytes: &[u8]| authenticode::file_hash(bytes, &pe::headers(bytes).unwrap(), Digest::Sha256).unwrap();
+    let expected = hash(&signed);
+    assert!(!expected.is_empty());
+    // A change in the gap leaves the hash as it was; a change in a section doesn't.
+    let mut gap_changed = signed.clone();
+    gap_changed[at] ^= 0xff;
+    assert_eq!(hash(&gap_changed), expected, "the gap between sections isn't hashed");
+    let mut section_changed = signed.clone();
+    section_changed[at + gap] ^= 0xff;
+    assert_ne!(hash(&section_changed), expected, "a section's data is hashed");
 }
 
 #[test]

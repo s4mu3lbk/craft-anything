@@ -19,9 +19,12 @@ fn split_bom(text: &str) -> (&'static str, &str) {
     }
 }
 
-/// Parse to JSON-like data (first document; an empty file is an empty mapping).
+/// Parse one YAML document to JSON-like data. An empty file is an empty mapping.
 pub fn parse(text: &str) -> Result<Value, String> {
     let docs = YamlLoader::load_from_str(split_bom(text).1).map_err(|e| e.to_string())?;
+    if docs.len() > 1 {
+        return Err("the config must contain only one YAML document".into());
+    }
     match docs.into_iter().next() {
         None | Some(Yaml::Null) => Ok(Value::Object(Map::new())),
         Some(y @ Yaml::Hash(_)) => Ok(to_json(&y, 0)),
@@ -262,8 +265,13 @@ pub fn set(text: &str, table: &str, name: &str, value: &Value) -> Result<String,
     let found = find_table(&lines, table)?;
     match found {
         None => {
-            out.push((format!("{table}:"), eol));
-            out.extend(new_lines(render_entry(name, value, 2)));
+            let at = lines
+                .iter()
+                .position(|line| line.strip_prefix("...").is_some_and(|rest| rest.is_empty() || rest.starts_with([' ', '\t'])))
+                .unwrap_or(out.len());
+            let mut added = vec![(format!("{table}:"), eol)];
+            added.extend(new_lines(render_entry(name, value, 2)));
+            out.splice(at..at, added);
         }
         Some(block) => {
             let indent = child_indent(&lines, &block);
@@ -295,6 +303,7 @@ pub fn set(text: &str, table: &str, name: &str, value: &Value) -> Result<String,
 
 /// Remove `table.name`. Returns `None` when it was not there.
 pub fn remove(text: &str, table: &str, name: &str) -> Option<String> {
+    parse(text).ok()?;
     let (bom, text) = split_bom(text);
     let (mut out, _) = split(text);
     let lines: Vec<&str> = out.iter().map(|(t, _)| t.as_str()).collect();
@@ -304,6 +313,25 @@ pub fn remove(text: &str, table: &str, name: &str) -> Option<String> {
     let new = format!("{bom}{}", join(&out));
     parse(&new).ok()?;
     Some(new)
+}
+
+#[cfg(test)]
+mod stream_regressions {
+    use super::*;
+    use serde_json::json;
+
+    /// Editing and removal reject a stream whose extra documents would be ignored by the reader.
+    #[test]
+    fn multiple_yaml_documents_are_refused_before_editing() {
+        for text in
+            ["model: first\n---\nmodel: second\n", "---\nmodel: first\n---\n", "mcp_servers:\n  craft-anything:\n    command: old\n---\nmodel: second\n"]
+        {
+            assert!(parse(text).is_err());
+            assert!(set(text, "mcp_servers", "craft-anything", &json!({"command":"c"})).is_err());
+            assert!(remove(text, "mcp_servers", "craft-anything").is_none());
+        }
+        assert_eq!(parse("---\nmodel: first\n...\n").unwrap()["model"], "first");
+    }
 }
 
 #[cfg(test)]
@@ -384,5 +412,26 @@ mod tests {
         let new = set(mixed, "mcp_servers", "craft-anything", &entry).unwrap();
         assert!(new.starts_with("# top\r\nmodel: big\nmcp_servers:\r\n  other:\n    command: x\r\n  craft-anything:"), "{new:?}");
         assert_eq!(remove(&new, "mcp_servers", "craft-anything").unwrap(), mixed);
+    }
+}
+
+#[cfg(test)]
+mod document_end_regressions {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn missing_table_is_inserted_before_document_end() {
+        let value = json!({"command": "craft-anything-cli", "args": ["mcp"]});
+        for text in ["model: x\n...\n", "---\nmodel: x\r\n... # end\r\n# tail\r\n"] {
+            let output = set(text, "mcp_servers", "craft-anything", &value).unwrap();
+            assert_eq!(parse(&output).unwrap()["mcp_servers"]["craft-anything"], value);
+            assert_eq!(set(&output, "mcp_servers", "craft-anything", &value).unwrap(), output);
+            let removed = remove(&output, "mcp_servers", "craft-anything").unwrap();
+            assert!(removed.ends_with(text.split_once("...").map(|(_, tail)| format!("...{tail}")).as_deref().unwrap()));
+            assert_eq!(parse(&removed).unwrap()["model"], "x");
+        }
+        let output = set("...suffix: keep\n", "mcp_servers", "craft-anything", &value).unwrap();
+        assert_eq!(parse(&output).unwrap()["...suffix"], "keep");
     }
 }

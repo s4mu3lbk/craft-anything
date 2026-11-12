@@ -101,12 +101,24 @@ fn mock(responses: Vec<(u16, &'static str, String)>) -> (String, Arc<Mutex<Vec<S
     let seen = Arc::new(Mutex::new(Vec::new()));
     let s2 = seen.clone();
     std::thread::spawn(move || {
-        for (status, ctype, reply) in responses {
+        let mut responses = responses.into_iter().peekable();
+        while let Some((next_status, next_type, _)) = responses.peek() {
+            let lists_next = *next_status == 200 && *next_type == "application/json";
             let Ok((stream, _)) = l.accept() else { return };
             let mut r = BufReader::new(stream.try_clone().unwrap());
             let mut line = String::new();
             r.read_line(&mut line).unwrap();
             let path = line.split_whitespace().nth(1).unwrap_or_default().to_string();
+            // Scripted questions are model lists answered with a list. Any other question is a
+            // window probe (crate::window) the test didn't script: say nothing, as a server that
+            // doesn't report its window does, and keep the scripted answer for the request after.
+            if line.starts_with("GET ") && !(lists_next && path.ends_with("/models")) {
+                let mut w = stream;
+                write!(w, "HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n").unwrap();
+                w.flush().unwrap();
+                continue;
+            }
+            let Some((status, ctype, reply)) = responses.next() else { return };
             let mut headers = Vec::new();
             let mut len = 0usize;
             loop {
@@ -260,6 +272,21 @@ fn a_saved_program_that_is_gone_is_named_by_test_and_doctor() {
     let reach = h.check_reachability();
     let nowhere = reach.iter().find(|(name, _)| name == "Nowhere").map(|(_, r)| r.clone()).unwrap();
     assert_eq!(nowhere, Err(format!("there's no program at {gone}")));
+
+    // What Settings says: each AI whose saved program is gone, and what runs instead. One whose
+    // saved program is there, that has none saved, or that has nothing to run instead (doctor
+    // says that one), isn't listed.
+    let there = dir.path().join("agent-here");
+    std::fs::write(&there, "").unwrap();
+    let mut kept = backend("Kept", "cargo");
+    kept.options.command = Some(there.display().to_string());
+    h.add_backend_with(kept, None).unwrap();
+    let mut usual = backend("Unsaved", "cargo");
+    usual.options.command = None;
+    h.add_backend_with(usual, None).unwrap();
+    let replaced = h.replaced_programs();
+    assert_eq!(replaced.get("Usual").map(String::as_str), Some("cargo"));
+    assert!(!replaced.contains_key("Nowhere") && !replaced.contains_key("Kept") && !replaced.contains_key("Unsaved"), "{replaced:?}");
 }
 
 /// Every known agent with an adapter of its own is offered when adding a coding agent.
@@ -389,7 +416,7 @@ fn opencode_selection_is_validated_saved_and_run_natively_with_our_mcp_server() 
     let seen = dir.path().join("arguments.txt");
     let quote = |p: &std::path::Path| ssh::shell_quote(&p.display().to_string());
     let script = format!(
-        "#!/bin/sh\ncase \"$1\" in\napi) cat {};;\nrun) printf '%s\\n' \"$@\" > {}; cat \"$OPENCODE_CONFIG\" >> {}; printf 'done';;\n*) exit 8;;\nesac\n",
+        "#!/bin/sh\ncase \"$1\" in\napi) cat {};;\nrun) if [ \"$2\" = '--help' ]; then printf '%s\\n' '--format --standalone'; exit 0; fi; printf '%s\\n' \"$@\" > {}; cat \"$OPENCODE_CONFIG\" >> {}; printf 'done';;\n*) exit 8;;\nesac\n",
         quote(&catalogue),
         quote(&seen),
         quote(&seen)
@@ -1548,6 +1575,56 @@ fn hub_config_keys_and_test_backend() {
         assert_eq!(e.code, ErrorCode::BadSettings);
     }
     assert!(h.compare("Local", "Local", true).is_err());
+}
+
+/// #1358: a key saved for an API backend can be replaced or forgotten without removing the
+/// backend or its settings, so a rotated key isn't hidden behind an older one.
+#[test]
+fn a_saved_api_key_can_be_replaced_or_forgotten() {
+    let (h, _d) = hub();
+    add(&h, "OpenAI", BackendKind::Openai, "https://api.openai.com/v1", Some("sk-old"));
+    assert_eq!(h.stored_backend_keys().get("OpenAI"), Some(&true));
+    assert!(h.saved_backend_key("OpenAI").unwrap());
+    h.set_backend_key("OpenAI", " sk-new ").unwrap();
+    assert_eq!(h.keys.get("OpenAI").as_deref(), Some("sk-new"));
+    assert_eq!(h.key_for(&h.entry("OpenAI").unwrap()).unwrap(), "sk-new", "the replacement is the key a request uses");
+    h.remove_backend_key("OpenAI").unwrap();
+    assert_eq!(h.stored_backend_keys().get("OpenAI"), Some(&false));
+    assert!(!h.saved_backend_key("OpenAI").unwrap());
+    assert!(h.backends().iter().any(|b| b.name == "OpenAI"), "the backend stays");
+    assert!(h.set_backend_key("OpenAI", "   ").is_err(), "an empty key is refused");
+    assert!(h.set_backend_key("No such backend", "sk-new").is_err());
+    assert!(h.remove_backend_key("No such backend").is_err());
+    add(&h, "Agent", BackendKind::AgentCli, "", None);
+    assert!(!h.stored_backend_keys().contains_key("Agent"), "an agent app has no saved key here");
+    assert!(h.saved_backend_key("Agent").is_err());
+    assert!(h.set_backend_key("Agent", "sk-new").is_err(), "a coding agent keeps its own sign-in");
+    assert!(h.remove_backend_key("Agent").is_err());
+}
+
+/// A key save and another key or backend change wait for each other: a save can't write the key
+/// after a remove has deleted the backend and its key.
+#[test]
+fn a_key_save_waits_for_another_backend_change() {
+    let (h, _d) = hub();
+    add(&h, "OpenAI", BackendKind::Openai, "https://api.openai.com/v1", None);
+    let h = Arc::new(h);
+    let edit = h.backend_edits.lock().unwrap();
+    let (started, started_rx) = std::sync::mpsc::channel();
+    let worker = {
+        let h = h.clone();
+        std::thread::spawn(move || {
+            started.send(()).unwrap();
+            h.set_backend_key("OpenAI", "sk-new")
+        })
+    };
+    started_rx.recv().unwrap();
+    // While another change holds the lock, the save can't reach the keychain.
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    assert!(!worker.is_finished(), "the save waits for the other backend change");
+    drop(edit);
+    worker.join().unwrap().unwrap();
+    assert_eq!(h.keys.get("OpenAI").as_deref(), Some("sk-new"));
 }
 
 /// #369: when OpenRouter has no provider that supports tools for a model (404 once only those are

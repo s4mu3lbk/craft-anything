@@ -160,7 +160,14 @@ pub enum Done {
     AgentConnection(String, Result<String, String>),
     /// The configured backends, the ones chosen to build with and to extract with, and each one's
     /// options.
-    Backends(Vec<BackendConfig>, Option<String>, Option<String>, std::collections::BTreeMap<String, craft_anything_ai::BackendOptions>),
+    Backends(
+        Vec<BackendConfig>,
+        Option<String>,
+        Option<String>,
+        std::collections::BTreeMap<String, craft_anything_ai::BackendOptions>,
+        /// `AiHub::replaced_programs`: saved programs that are gone, and what runs instead.
+        std::collections::BTreeMap<String, String>,
+    ),
     /// The models an AI can be set to (Settings → AI's model picker).
     ModelChoices {
         name: String,
@@ -227,6 +234,22 @@ pub enum Done {
     },
     /// Which asset providers have a key set up (provider id → stored).
     AssetKeys(std::collections::BTreeMap<String, bool>),
+    /// Which API backends have a key saved in the app (backend name → stored; #1358), and the
+    /// check that asked: a result from before a save or another check is stale.
+    BackendKeys {
+        request: u64,
+        keys: std::collections::BTreeMap<String, bool>,
+    },
+    /// A saved-key mutation finished: the refreshed status, the error to report (if any), and the
+    /// key that was saved so a matching draft can be cleared.
+    BackendKeyResult {
+        request: u64,
+        name: String,
+        keys: std::collections::BTreeMap<String, bool>,
+        error: Option<String>,
+        saved_key: Option<String>,
+        forgot: bool,
+    },
     Wrote {
         what: String,
         path: Option<PathBuf>,
@@ -246,6 +269,8 @@ pub enum Done {
         backend: String,
         /// Why the pictures couldn't be copied, if they couldn't.
         pictures: Option<String>,
+        /// The folder already held a project: the request is its follow-up, not a new project's.
+        attached: bool,
     },
     /// A message's pictures were copied into its project (see `CraftApp::deliver`).
     Attached {
@@ -419,6 +444,8 @@ struct FirstFrames {
 }
 
 pub struct CraftApp {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) updates: updates::Updates,
     pub engine: Arc<Engine>,
     pub hub: Arc<AiHub>,
     pub state: UiState,
@@ -439,6 +466,8 @@ pub struct CraftApp {
     pub backends: Vec<BackendConfig>,
     /// Each backend's options (an agent app's program and model), by name (Settings → AI).
     pub backend_options: std::collections::BTreeMap<String, craft_anything_ai::BackendOptions>,
+    /// Agent apps whose saved program is gone, and the program that runs in its place (#721).
+    pub program_replaced: std::collections::BTreeMap<String, String>,
     /// The AI whose model is being chosen in Settings → AI, and the models it offers once they've
     /// come (`None`: still asking).
     pub model_picker: Option<(String, Option<Vec<String>>)>,
@@ -512,6 +541,17 @@ pub struct CraftApp {
     /// Which asset providers have a key set up, by provider id (`None` until checked; the keys
     /// themselves never come into the app).
     pub asset_keys: Option<std::collections::BTreeMap<String, bool>>,
+    /// Which API backends have a key saved in the app, by backend name (`None` until checked; the
+    /// keys themselves never come into the app). `backend_keys_request` drops a result from before
+    /// a save or a newer check.
+    pub backend_keys: Option<std::collections::BTreeMap<String, bool>>,
+    backend_keys_request: u64,
+    /// What has been typed in each API backend's key field, kept across frames and after a failed
+    /// save.
+    pub backend_key_inputs: std::collections::BTreeMap<String, String>,
+    /// Backends whose key save or forget is still running: their key controls stay disabled so a
+    /// later action can't be overtaken by an earlier worker. Other backends keep working.
+    pub backend_key_pending: std::collections::BTreeSet<String>,
     /// What the open project's files say (built result, pictures, assets, open questions), read
     /// on a worker.
     pub facts: project::Facts,
@@ -549,6 +589,12 @@ pub struct CraftApp {
 }
 
 impl CraftApp {
+    /// Show the last update's result once the native window begins drawing.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn show_update_outcome_on_start(&mut self) {
+        self.updates.startup();
+    }
+
     /// Initialize UI state from the shared engine's saved settings, waiting rather than substituting defaults.
     pub fn new(engine: Arc<Engine>, hub: Arc<AiHub>) -> Self {
         // Wait for the engine if it's busy: defaults here would show Clean room and no AI, and the
@@ -556,6 +602,8 @@ impl CraftApp {
         let settings = engine.session().settings.clone();
         i18n::set_language(&settings.language);
         CraftApp {
+            #[cfg(not(target_arch = "wasm32"))]
+            updates: Default::default(),
             engine,
             hub,
             state: UiState::default(),
@@ -570,6 +618,7 @@ impl CraftApp {
             conversation: None,
             backends: Vec::new(),
             backend_options: Default::default(),
+            program_replaced: Default::default(),
             model_picker: None,
             agent_model_picker: None,
             model_request: 0,
@@ -609,6 +658,10 @@ impl CraftApp {
             kinds: craft_anything_ai::rebuild::KindRegistry::built_in(),
             game_engines: None,
             asset_keys: None,
+            backend_keys: None,
+            backend_keys_request: 0,
+            backend_key_inputs: Default::default(),
+            backend_key_pending: Default::default(),
             facts: Default::default(),
             facts_reader: Default::default(),
             engine_flow: Default::default(),
@@ -1204,6 +1257,42 @@ impl CraftApp {
         self.jobs.spawn("Read AI settings", false, move |_| Ok(backends(&hub)));
     }
 
+    /// Find out which API backends have a key saved in the app, rather than only in the environment
+    /// (in the background: the keychain can be slow). Run after the backends are read.
+    pub fn check_backend_keys(&mut self) {
+        if self.headless {
+            return;
+        }
+        self.backend_keys_request = self.backend_keys_request.wrapping_add(1);
+        let (request, hub) = (self.backend_keys_request, self.hub.clone());
+        self.jobs.spawn("Read AI settings", false, move |_| Ok(Done::BackendKeys { request, keys: hub.stored_backend_keys() }));
+    }
+
+    /// Replace the key saved for an API backend, keeping the backend and its options (#1358).
+    pub fn save_backend_key(&mut self, name: String, key: String) {
+        self.backend_keys_request = self.backend_keys_request.wrapping_add(1);
+        self.backend_key_pending.insert(name.clone());
+        let (request, hub) = (self.backend_keys_request, self.hub.clone());
+        self.jobs.spawn(tr("Save the key"), true, move |_| {
+            let result = hub.set_backend_key(&name, &key);
+            let saved_key = result.is_ok().then(|| key.clone());
+            let error = result.err().map(|e| e.message);
+            Ok(Done::BackendKeyResult { request, name: name.clone(), keys: hub.stored_backend_keys(), error, saved_key, forgot: false })
+        });
+    }
+
+    /// Forget the key saved for an API backend, so the one in the environment is used again. The
+    /// backend itself stays.
+    pub fn remove_backend_key(&mut self, name: String) {
+        self.backend_keys_request = self.backend_keys_request.wrapping_add(1);
+        self.backend_key_pending.insert(name.clone());
+        let (request, hub) = (self.backend_keys_request, self.hub.clone());
+        self.jobs.spawn(tr("Forget the key"), true, move |_| {
+            let error = hub.remove_backend_key(&name).err().map(|e| e.message);
+            Ok(Done::BackendKeyResult { request, name: name.clone(), keys: hub.stored_backend_keys(), error, saved_key: None, forgot: true })
+        });
+    }
+
     /// Choose the backend that builds or extracts (`None`: its default).
     pub fn set_role(&mut self, role: craft_anything_ai::Role, name: Option<String>) {
         let hub = self.hub.clone();
@@ -1461,7 +1550,7 @@ impl CraftApp {
             }
             Done::Facts(f) => self.facts_read(job, Some(f)),
             Done::PicturesAdded(added) => self.pictures_added(added),
-            Done::Created { ws, request, backend, pictures } => self.created(*ws, request, backend, pictures),
+            Done::Created { ws, request, backend, pictures, attached } => self.created(*ws, request, backend, pictures, attached),
             Done::Thumb { path, image } => self.thumb_ready(path, image),
             Done::Preview { path, image } => self.preview_ready(path, image),
             Done::Tool { tool, params, route, result } => self.tool_done(tool, params, route, result),
@@ -1511,7 +1600,7 @@ impl CraftApp {
             Done::AgentConnection(name, result) => {
                 self.agent_connections.insert(name, Some(result));
             }
-            Done::Backends(b, builder, extractor, options) => {
+            Done::Backends(b, builder, extractor, options, replaced) => {
                 if self.state.backend.as_ref().is_some_and(|n| !b.iter().any(|c| &c.name == n)) {
                     self.state.backend = None;
                 }
@@ -1519,10 +1608,39 @@ impl CraftApp {
                 self.builder = builder;
                 self.extractor = extractor;
                 self.backend_options = options;
+                self.program_replaced = replaced;
                 self.model_tuning.retain(|name, state| {
                     self.backends.iter().any(|backend| backend.name == *name && craft_anything_ai::model_options::supported(backend))
                         && self.backend_options.get(name).and_then(|options| options.cli_model.as_ref()) == state.cli_model.as_ref()
                 });
+                // Settings shows which backends have a saved key; the list may have changed (added,
+                // removed, or read again after a save).
+                self.check_backend_keys();
+            }
+            Done::BackendKeys { request, keys } => {
+                if request == self.backend_keys_request {
+                    self.backend_keys = Some(keys);
+                }
+            }
+            Done::BackendKeyResult { request, name, keys, error, saved_key, forgot } => {
+                self.backend_key_pending.remove(&name);
+                if forgot && error.is_none() {
+                    self.backend_key_inputs.remove(&name);
+                } else if let Some(key) = saved_key
+                    && self.backend_key_inputs.get(&name).is_some_and(|draft| draft.trim() == key)
+                {
+                    self.backend_key_inputs.remove(&name);
+                }
+                if request == self.backend_keys_request {
+                    self.backend_keys = Some(keys);
+                } else {
+                    // A later check superseded this mutation and may have read before it landed.
+                    self.check_backend_keys();
+                }
+                if let Some(error) = error {
+                    self.log(true, error.clone());
+                    self.toast(error, true);
+                }
             }
             Done::ModelChoices { name, result } => match result {
                 // Kept only while the picker is still open for that AI.
@@ -1803,6 +1921,18 @@ impl CraftApp {
     /// Draw the whole interface.
     pub fn show(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let safe = !self.jobs.busy()
+                && !self.runs.any_busy()
+                && !self.conversation.as_ref().is_some_and(|c| c.is_busy())
+                && !self.settings_dirty
+                && self.save_due.is_none()
+                && self.saving.is_none();
+            if self.updates.show(&ctx, safe) {
+                return;
+            }
+        }
         self.tick(&ctx);
         self.shortcuts(&ctx);
         #[cfg(target_os = "macos")]
@@ -1986,7 +2116,13 @@ pub fn app_icon(size: f32) -> egui::Image<'static> {
 /// Run an action; a panic is logged and swallowed so one bad action never takes the app down.
 /// The configured backends and the ones chosen to build and to extract (read off the UI thread).
 pub(crate) fn backends(hub: &AiHub) -> Done {
-    Done::Backends(hub.backends(), hub.chosen(craft_anything_ai::Role::Builder), hub.chosen(craft_anything_ai::Role::Extractor), hub.options())
+    Done::Backends(
+        hub.backends(),
+        hub.chosen(craft_anything_ai::Role::Builder),
+        hub.chosen(craft_anything_ai::Role::Extractor),
+        hub.options(),
+        hub.replaced_programs(),
+    )
 }
 
 impl CraftApp {
@@ -2109,10 +2245,21 @@ pub fn kind_icon(k: TargetKind) -> &'static str {
         TargetKind::Zip | TargetKind::Asar => "package",
         TargetKind::Directory => "folder",
         TargetKind::Script => "file-code",
+        TargetKind::Text => "file",
         TargetKind::NetworkCapture => "network",
         TargetKind::Plist => "list-tree",
         TargetKind::Evm => "zap",
         TargetKind::Sqlite => "database",
         TargetKind::Unknown => "file",
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod updates;
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Drop for CraftApp {
+    fn drop(&mut self) {
+        self.updates.finish();
     }
 }

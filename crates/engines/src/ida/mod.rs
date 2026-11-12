@@ -378,7 +378,7 @@ impl DeepDecompiler for Session {
         self.image_base
     }
 
-    fn decompile(&self, entry: u64) -> Result<Option<DeepFunction>, DeepError> {
+    fn decompile(&self, entry: u64, _waiting: &dyn Fn(&str)) -> Result<Option<DeepFunction>, DeepError> {
         let never_cancel = || false;
         let value = self.lock().request(
             "native_function_pseudocode",

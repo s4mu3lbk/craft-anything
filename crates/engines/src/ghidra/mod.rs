@@ -782,14 +782,36 @@ impl DeepDecompiler for Session {
         self.image_base
     }
 
-    fn decompile(&self, entry: u64) -> Result<Option<DeepFunction>, GhidraError> {
-        let never_cancel = || false;
-        let v = self.lock().request(
-            "native_function_pseudocode",
-            serde_json::json!({"address": format!("{entry:#x}")}),
-            &never_cancel,
-            Self::request_deadline(),
-        )?;
+    fn decompile(&self, entry: u64, waiting: &dyn Fn(&str)) -> Result<Option<DeepFunction>, GhidraError> {
+        let said = std::cell::RefCell::new(String::new());
+        // Once a minute, from the first: most decompiles take seconds and say nothing.
+        let say = |since: Instant, what: &dyn Fn(u64) -> String| {
+            let minutes = since.elapsed().as_secs() / 60;
+            let line = if minutes == 0 { return } else { what(minutes) };
+            if *said.borrow() != line {
+                waiting(&line);
+                *said.borrow_mut() = line;
+            }
+        };
+        // A decompile ahead of this one holds the bridge, for up to its own request time (#1711).
+        let queued = Instant::now();
+        let mut client = loop {
+            match self.client.try_lock() {
+                Ok(g) => break g,
+                Err(std::sync::TryLockError::Poisoned(p)) => break p.into_inner(),
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    say(queued, &|m| format!("Waiting for Ghidra to finish decompiling another function ({m} min so far)"));
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+            }
+        };
+        let asked = Instant::now();
+        let limit = REQUEST_TIME.as_secs() / 60;
+        let still = || {
+            say(asked, &|m| format!("Ghidra is decompiling this function ({m} min so far; it gives up at {limit} min)"));
+            false
+        };
+        let v = client.request("native_function_pseudocode", serde_json::json!({"address": format!("{entry:#x}")}), &still, Self::request_deadline())?;
         Ok(decompiled(entry, &v))
     }
 
